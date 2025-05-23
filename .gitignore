@@ -58,7 +58,7 @@ htmlcov/
 
 # SQL database files (optional)
 *.sqlite3
-*.db
+# *.db
 
 # Project-specific temporary files
 /tmp/
