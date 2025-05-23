@@ -1,0 +1,81 @@
+# This is a sample .gitignore file for a Python project using Streamlit and SQLite.
+# It ignores common files and directories that should not be tracked by Git.
+_pycache_
+__pycache__/logging_config.cpython-312.pyc
+__pycache__/main.cpython-312.pyc
+__pycache__/read_csv.cpython-312.pyc
+__pycache__/transform_data.cpython-312.pyc
+__pycache__/update_database.cpython-312.pyc
+
+# Python virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment files (like secrets, API keys)
+.env
+.env.*
+
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Logs
+*.log
+
+# VSCode settings
+.vscode/
+
+# macOS system files
+.DS_Store
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Pytest cache
+.pytest_cache/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+
+# MyPy cache
+.mypy_cache/
+
+# Profiling data
+*.prof
+
+# SQL database files (optional)
+*.sqlite3
+*.db
+
+# Project-specific temporary files
+/tmp/
+output/
+data/
+
+# Exported models
+models/
+saved_models/
+*.h5
+*.pkl
+*.joblib
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Ignore all files in the .devcontainer directory except for devcontainer.json
+.devcontainer/devcontainer.json
