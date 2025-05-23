@@ -66,11 +66,11 @@ output/
 data/
 
 # Exported models
-models/
-saved_models/
-*.h5
-*.pkl
-*.joblib
+# models/
+# saved_models/
+# *.h5
+# *.pkl
+# *.joblib
 
 # Build artifacts
 build/
