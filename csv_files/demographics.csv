@@ -1,0 +1,123 @@
+﻿age;gender;country;occupation;education_level;professionally_diagnosed;age_of_onset;years_with_ttm;family_history
+40;Female;Sweden;Student;Bachelor's Degree;Yes;27;More than 10 years;No
+43;Female;USA;Hairstylist;Secondary;Yes;13;More than 10 years;Yes
+26;Female;USA;Unemployed;Secondary;No;9;More than 10 years;Yes
+35;Female;Australia;Dog Trainer;Master's Degree;No;27;6-10 years;Not sure
+24;Female;Unknown;Unknown;Other;Yes;11;More than 10 years;Not sure
+45;Female;Unknown;Unknown;Other;Yes;15;More than 10 years;Not sure
+34;Female;Unknown;Unknown;Other;No;25;6-10 years;Not sure
+24;Female;Unknown;Unknown;Other;Yes;11;More than 10 years;Not sure
+34;Female;Unknown;Unknown;Other;Yes;7;More than 10 years;Not sure
+34;Female;Unknown;Unknown;Other;No;9;More than 10 years;Not sure
+44;Female;Unknown;Unknown;Other;Yes;15;More than 10 years;Not sure
+44;Female;Unknown;Unknown;Other;No;10;More than 10 years;Not sure
+34;Female;Unknown;Unknown;Other;Yes;11;More than 10 years;Not sure
+44;Female;Unknown;Unknown;Other;Yes;28;More than 10 years;Not sure
+3;Female;USA;Unknown;Other;No;1;1-2 years;Not sure
+22;Female;USA;Student;Secondary;Yes;11;More than 10 years;Not sure
+29;Female;USA;Unknown;Other;Yes;6;More than 10 years;Yes
+10;Female;USA;Student;Primary;Yes;10;Less than a year;Not sure
+39;Female;USA;Unknown;Other;No;12;More than 10 years;Not sure
+17;Female;USA;Student;Secondary;Yes;6;More than 10 years;Not sure
+35;Female;USA;Unknown;Other;Yes;8;More than 10 years;Not sure
+34;Female;USA;School Psychologist;Master's Degree;No;16;More than 10 years;No
+13;Female;Australia;Student;Primary;Yes;4;6-10 years;Not sure
+17;Female;USA;Student;Secondary;Yes;8;6-10 years;Not sure
+44;Female;UK;Unknown;Other;No;12;More than 10 years;Not sure
+16;Male;Australia;Student;Secondary;Yes;8;6-10 years;Not sure
+52;Male;UK;Unknown;Other;No;12;More than 10 years;Not sure
+17;Female;Canada;Student;Secondary;Yes;6;More than 10 years;Not sure
+48;Female;UK;Unknown;Other;No;14;More than 10 years;Not sure
+16;Female;USA;Student;Secondary;Yes;9;6-10 years;Not sure
+13;Female;USA;Student;Primary;Yes;8;3-5 years;Not sure
+46;Female;UK;Unknown;Other;No;4;More than 10 years;Not sure
+34;Female;USA;Unknown;Other;No;4;More than 10 years;Not sure
+14;Female;USA;Student;Other;No;12;1-2 years;Not sure
+57;Female;USA;Unknown;Other;No;13;More than 10 years;Not sure
+54;Female;USA;Unknown;Other;Yes;8;More than 10 years;Yes
+29;Female;USA;Unknown;Other;No;10;More than 10 years;Not sure
+29;Female;USA;Unknown;Other;Yes;10;More than 10 years;Not sure
+52;Female;USA;Unknown;Other;Yes;12;More than 10 years;Not sure
+21;Female;USA;Unknown;Other;Yes;15;6-10 years;Not sure
+39;Female;Australia;Unknown;Other;Yes;11;More than 10 years;Not sure
+56;Female;USA;Unknown;Other;Yes;6;More than 10 years;Not sure
+33;Female;USA;Unknown;Other;Yes;32;1-2 years;Not sure
+52;Female;USA;Unknown;Other;Yes;7;More than 10 years;Not sure
+42;Female;UK;Unknown;Other;No;12;More than 10 years;Not sure
+16;Female;Australia;Student;Secondary;Yes;11;3-5 years;Not sure
+24;Female;Philippines;Unknown;Other;Yes;12;More than 10 years;Not sure
+36;Female;Canada;Unknown;Other;Yes;12;More than 10 years;Not sure
+37;Female;UK;Unknown;Other;No;2;More than 10 years;Yes
+62;Female;Canada;Unknown;Other;No;10;More than 10 years;Not sure
+46;Female;UK;Unknown;Other;No;8;More than 10 years;Not sure
+40;Female;Finland;Unknown;Other;No;25;More than 10 years;Not sure
+33;Female;Egypt;Unknown;Other;No;30;3-5 years;Not sure
+3;Female;Australia;Unknown;Other;Yes;1;1-2 years;Not sure
+35;Female;USA;Unknown;Other;Yes;9;More than 10 years;Not sure
+46;Female;USA;Unknown;Other;Yes;22;More than 10 years;Not sure
+38;Female;Philippines;Unknown;Other;No;11;More than 10 years;Not sure
+62;Female;Canada;Unknown;Other;Yes;11;More than 10 years;Not sure
+19;Female;USA;Unknown;Other;No;7;More than 10 years;Not sure
+58;Female;USA;Unknown;Other;Yes;11;More than 10 years;Not sure
+28;Female;USA;Unknown;Other;Yes;4;More than 10 years;Not sure
+30;Female;USA;Registered Nurse;Bachelor's Degree;Yes;18;More than 10 years;Yes
+56;Female;USA;Unknown;Other;No;19;More than 10 years;Not sure
+20;Female;UK;Student;Bachelor's Degree;Yes;6;More than 10 years;Not sure
+62;Female;USA;Unknown;Other;No;12;More than 10 years;Not sure
+31;Female;UK;Health Care Support Worker / Student Nurse;Bachelor's Degree;Yes;2;More than 10 years;No
+30;Female;UK;Patent Examiner ;Bachelor's Degree;No;16;More than 10 years;No
+48;Female;UK;Support worker ;Secondary;Yes;20;More than 10 years;No
+51;Female;Canada ;Unemployed ;Secondary;Yes;16;More than 10 years;Not sure
+28;Female;USA;Mental health counselor;Master's Degree;Yes;9;More than 10 years;No
+15;Female;Australia;Student;Secondary;Yes;13;1-2 years;Not sure
+42;Female;UK;Unknown;Other;No;7;More than 10 years;Not sure
+32;Female;USA;Unknown;Other;No;14;More than 10 years;Not sure
+26;Female;USA;Unknown;Other;Yes;16;6-10 years;Not sure
+38;Female;USA;Unknown;Other;No;10;More than 10 years;No
+16;Non-binary;UK;Student;Secondary;No;14;1-2 years;Not sure
+30;Female;Greece;Unknown;Other;No;17;More than 10 years;Not sure
+25;Female;USA;Unknown;Other;No;22;3-5 years;Not sure
+22;Female;USA;Unknown;Other;Yes;10;More than 10 years;Not sure
+34;Male;Denmark;Unknown;Secondary;Yes;15;More than 10 years;No
+62;Female;USA;Unknown;Other;Yes;12;More than 10 years;No
+39;Female;Canada;Unknown;Other;Yes;7;More than 10 years;No
+26;Female;USA;Unknown;Other;Yes;8;More than 10 years;No
+52;Female;USA;professor;Doctorate;Yes;13;More than 10 years;No
+59;Female;Sweden;Unemployed;Secondary;Yes;3;More than 10 years;Yes
+27;Female;Sweden;Student;Bachelor's Degree;Yes;23;3-5 years;Not sure
+31;Female;Canada;Unknown;Other;No;10;More than 10 years;No
+48;Female;USA;Unknown;Other;No;12;More than 10 years;No
+36;Female;USA;Unknown;Other;Yes;7;More than 10 years;Not sure
+52;Female;USA;Unknown;Other;Yes;11;More than 10 years;Not sure
+20;Non-binary;USA;Unknown;Other;Yes;9;More than 10 years;Not sure
+28;Male;USA;Unknown;Other;Yes;20;6-10 years;No
+27;Female;Canada;Unknown;Other;Yes;16;More than 10 years;No
+27;Female;Sweden ;Human Resources ;Bachelor's Degree;Yes;11;More than 10 years;Yes
+13;Female;UK;Student;Secondary;No;13;Less than a year;No
+17;Female;USA;Student;Secondary;No;13;3-5 years;No
+18;Female;USA;Student;Secondary;No;16;Less than a year;No
+25;Female;Spain;Unknown;Other;Yes;19;6-10 years;No
+15;Female;Unknown;Student;Secondary;No;13;1-2 years;No
+2;Female;Unknown;Unknown;Other;No;1;1-2 years;No
+18;Female;USA;Student;Secondary;Yes;7;More than 10 years;No
+25;Female;USA;Unknown;Other;Yes;14;More than 10 years;Yes
+40;Female;USA;Unemployed;Other;Yes;38;1-2 years;Yes
+25;Female;USA;Unknown;Bachelor's Degree;Yes;16;6-10 years;No
+15;Female;Unknown;Student;Primary;No;11;3-5 years;No
+47;Female;USA;Unknown;Other;Yes;6;More than 10 years;No
+37;Female;USA;Unknown;Other;Yes;12;More than 10 years;Yes
+31;Female;USA;Unknown;Other;Yes;10;More than 10 years;No
+23;Female;USA;Unknown;Other;No;7;More than 10 years;Not sure
+19;Female;USA;Unknown;Other;Yes;5;More than 10 years;No
+27;Female;South Africa ;Jobless;Master's Degree;Yes;10;More than 10 years;No
+14;Female;USA;Babysitter, Housesitter, Student;Secondary;Yes;11;3-5 years;Not sure
+28;Female;Czech Republic;Supervisor;Secondary;Yes;10;More than 10 years;No
+19;Female;USA;Medical Assistant;Other;Yes;7;More than 10 years;No
+28;Female;USA;Delivery Driver;No formal education;Yes;9;More than 10 years;No
+17;Female;Australia;Student;Secondary;Yes;8;6-10 years;No
+54;Female;USA;Accounting;Bachelor's Degree;Yes;52;1-2 years;No
+46;Female;Canada;Teacher;Master's Degree;Yes;11;6-10 years;No
+13;Male;USA;Student;No formal education;Yes;11;1-2 years;No
+21;Female;Philippines;Credit Staff;Bachelor's Degree;Yes;10;6-10 years;Yes
+31;Female;USA;Tech job (remote);Bachelor's Degree;No;22;6-10 years;Not sure
+43;Female;USA;Nurse;Bachelor's Degree;Yes;5;More than 10 years;Yes
