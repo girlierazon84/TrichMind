@@ -44,7 +44,7 @@ VALIDATION_DIR = os.path.join(BASE_DIR, "validation_outputs")
 
 FIG_DIR = os.path.join(VALIDATION_DIR, "figure-png")
 LOG_DIR = os.path.join(VALIDATION_DIR, "logs")
-METRICS_DIR = os.path.join(VALIDATION_DIR, "metrics")
+METRICS_DIR = os.path.join(VALIDATION_DIR, "metrics_csv")
 PERFORMANCE_DIR = os.path.join(VALIDATION_DIR, "performance_history")
 
 MODEL_DIR = os.path.join(BASE_DIR, "training_outputs", "best_models")
