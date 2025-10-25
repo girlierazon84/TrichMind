@@ -36,7 +36,6 @@ OUT_SUMMARY = os.path.join(EDA_DIR, "summary")
 OUT_REPORT = os.path.join(EDA_DIR, "report")
 LOG_PATH = os.path.join(EDA_DIR, "eda_log.txt")
 
-# Create directories
 for folder in [EDA_DIR, OUT_PNG, OUT_SUMMARY, OUT_REPORT]:
     os.makedirs(folder, exist_ok=True)
 
@@ -56,7 +55,7 @@ if os.path.exists(LOG_PATH):
     os.remove(LOG_PATH)
 
 log("──────────────────────────────────────────────")
-log(f"🧠 TrichMind EDA Session — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+log(f"🧠 TrichMind EDA Session — {datetime.now():%Y-%m-%d %H:%M:%S}")
 log("──────────────────────────────────────────────")
 
 # ──────────────────────────────
@@ -64,17 +63,17 @@ log("─────────────────────────
 # ──────────────────────────────
 if not os.path.exists(DB_PATH):
     log(f"❌ Database not found at: {DB_PATH}")
-    raise FileNotFoundError(f"Database not found at: {DB_PATH}")
+    raise FileNotFoundError(DB_PATH)
 
 conn = sqlite3.connect(DB_PATH)
 tables = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table';", conn)["name"].tolist()
 log(f"📋 Tables found: {tables}")
 
-def safe_read(table: str) -> pd.DataFrame:
+def safe_read(table: str, connection) -> pd.DataFrame:
     """Safely read a table if it exists."""
     if table in tables:
         log(f"✅ Reading table: {table}")
-        df = pd.read_sql(f"SELECT * FROM {table}", conn)
+        df = pd.read_sql(f"SELECT * FROM {table}", connection)
         if "id" in df.columns:
             df = df.drop(columns=["id"])
         return df
@@ -83,10 +82,8 @@ def safe_read(table: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 # Read core tables
-demo = safe_read("demographics")
-beh = safe_read("hair_pulling_behaviours_patterns")
-conn.close()
-
+demo = safe_read("demographics", conn)
+beh = safe_read("hair_pulling_behaviours_patterns", conn)
 summary_data = {}
 
 # ──────────────────────────────
@@ -104,7 +101,6 @@ if not demo.empty:
             ("education_level", "Education Level", "count"),
             ("family_history", "Family History", "count"),
         ]
-
         for i, (col, title, kind) in enumerate(plots):
             if col in demo.columns:
                 ax = axs[i]
@@ -113,13 +109,14 @@ if not demo.empty:
                     summary_data["Mean Age"] = round(demo[col].mean(), 2)
                     summary_data["Median Age"] = round(demo[col].median(), 2)
                 else:
-                    sns.countplot(y=demo[col], order=demo[col].value_counts().index, ax=ax, palette="coolwarm")
+                    # ✅ Fixed warning by adding hue and legend=False
+                    sns.countplot(y=demo[col], order=demo[col].value_counts().index,
+                                  ax=ax, hue=demo[col], legend=False, palette="coolwarm")
                     top_val = demo[col].mode()[0] if not demo[col].mode().empty else "N/A"
                     summary_data[f"Most Common {title}"] = top_val
                 ax.set_title(title)
                 ax.set_xlabel("")
                 ax.set_ylabel("Count")
-
         plt.tight_layout()
         plt.savefig(os.path.join(OUT_PNG, "demographics.png"), dpi=150)
         plt.close(fig)
@@ -134,18 +131,15 @@ if not beh.empty:
     try:
         fig, axs = plt.subplots(1, 2, figsize=(12, 5))
         if "pulling_frequency" in beh.columns:
-            sns.countplot(x=beh["pulling_frequency"], ax=axs[0], palette="crest")
+            sns.countplot(x=beh["pulling_frequency"], hue=beh["pulling_frequency"],
+                          legend=False, ax=axs[0], palette="crest")
             axs[0].set_title("Pulling Frequency")
-            summary_data["Most Common Pulling Frequency"] = (
-                beh["pulling_frequency"].mode()[0] if not beh["pulling_frequency"].mode().empty else "N/A"
-            )
+            summary_data["Most Common Pulling Frequency"] = beh["pulling_frequency"].mode()[0]
         if "pulling_awareness" in beh.columns:
-            sns.countplot(x=beh["pulling_awareness"], ax=axs[1], palette="flare")
+            sns.countplot(x=beh["pulling_awareness"], hue=beh["pulling_awareness"],
+                          legend=False, ax=axs[1], palette="flare")
             axs[1].set_title("Awareness Level")
-            summary_data["Most Common Awareness Level"] = (
-                beh["pulling_awareness"].mode()[0] if not beh["pulling_awareness"].mode().empty else "N/A"
-            )
-
+            summary_data["Most Common Awareness Level"] = beh["pulling_awareness"].mode()[0]
         plt.tight_layout()
         plt.savefig(os.path.join(OUT_PNG, "behaviour_freq_awareness.png"), dpi=150)
         plt.close(fig)
@@ -158,8 +152,9 @@ if not beh.empty:
 # ──────────────────────────────
 try:
     numeric_dfs = []
+    # ✅ Use the existing open connection
     for tbl in ["demographics", "hair_pulling_behaviours_patterns"]:
-        df = safe_read(tbl)
+        df = safe_read(tbl, conn)
         if not df.empty:
             numeric_dfs.append(df.select_dtypes(include="number"))
 
@@ -181,6 +176,8 @@ try:
             summary_data["Strongest Correlation"] = f"{top_corr[0]} vs {top_corr[1]} ({corr_pairs.iloc[0]:.2f})"
 except Exception as e:
     log(f"❌ Error generating correlation heatmap: {e}")
+finally:
+    conn.close()  # ✅ Close safely after all SQL operations are done
 
 # ──────────────────────────────
 # 4️⃣ How Long Since Last Pull
@@ -213,18 +210,15 @@ try:
 
     with open(md_path, "w", encoding="utf-8") as md:
         md.write("# 🧠 TrichMind Exploratory Data Analysis Report\n")
-        md.write(f"_Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_\n\n")
-
+        md.write(f"_Generated on {datetime.now():%Y-%m-%d %H:%M:%S}_\n\n")
         md.write("## 📊 Key Findings\n\n")
         for k, v in summary_data.items():
             md.write(f"- **{k}:** {v}\n")
-
         md.write("\n## 🖼️ Generated Visualizations\n")
         md.write("- demographics.png — Participant demographics overview\n")
         md.write("- behaviour_freq_awareness.png — Behavioral patterns\n")
         md.write("- corr_heatmap.png — Correlation relationships\n")
         md.write("- no_pull_streak_text.png — Recovery streak distribution\n")
-
         md.write("\n## 📁 Output Folder\n")
         md.write(f"`{EDA_DIR}`\n")
 
