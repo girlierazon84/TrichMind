@@ -3,7 +3,6 @@
 # ──────────────────────────────
 # Enforce LF (Unix-style) line endings across all systems
 * text=auto eol=lf
-
 # Treat Python, Markdown, JSON, and YAML files as text for diffs
 *.py text diff=python
 *.ipynb text
@@ -12,7 +11,6 @@
 *.yaml text
 *.json text
 *.toml text
-
 # ──────────────────────────────
 # Git Large File Storage (LFS)
 # ──────────────────────────────
@@ -26,7 +24,6 @@
 *.npy filter=lfs diff=lfs merge=lfs -text
 *.npz filter=lfs diff=lfs merge=lfs -text
 *.csv filter=lfs diff=lfs merge=lfs -text
-
 # ──────────────────────────────
 # Image & Binary Assets
 # ──────────────────────────────
@@ -37,20 +34,17 @@
 *.gif filter=lfs diff=lfs merge=lfs -text
 *.svg filter=lfs diff=lfs merge=lfs -text
 *.pdf filter=lfs diff=lfs merge=lfs -text
-
 # ──────────────────────────────
 # Documentation & Presentations
 # ──────────────────────────────
 *.pptx filter=lfs diff=lfs merge=lfs -text
 *.docx filter=lfs diff=lfs merge=lfs -text
 *.rtf filter=lfs diff=lfs merge=lfs -text
-
 # ──────────────────────────────
 # Logging & Output
 # ──────────────────────────────
 *.log text
 *.txt text
-
 # ──────────────────────────────
 # Exclude notebooks from merge conflicts
 # ──────────────────────────────
