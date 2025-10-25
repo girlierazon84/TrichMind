@@ -1,12 +1,12 @@
 ────────────────────────────────────────────────────────
-🧪 TrichMind Model Validation — 2025-10-25 22:51:56
+🧪 TrichMind Model Validation — 2025-10-25 23:16:58
 📂 Model Path: C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\artifacts\training_outputs\best_models\best_relapse_risk_predictor_model.pkl
 ────────────────────────────────────────────────────────
 🚀 Loading model and encoder...
 📂 Loading preprocessed dataset...
 📈 Generating predictions and probabilities...
 📊 Computing evaluation metrics...
-✅ Validation metrics saved → C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\artifacts\validation_outputs\metrics\validation_metrics.csv
+✅ Validation metrics saved → C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\artifacts\validation_outputs\metrics_csv\validation_metrics.csv
 📈 Validation history updated → C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\artifacts\validation_outputs\performance_history\validation_performance_history.csv
 📉 Generating ROC curve visualization...
 ✅ ROC curve saved → C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\artifacts\validation_outputs\figure-png\roc.png
@@ -21,11 +21,11 @@
     high       NaN        1.0     1.0 1.0  1.0
      low       NaN        1.0     1.0 1.0  1.0
 moderate       NaN        1.0     1.0 1.0  1.0
-⏱️ Runtime: 0.77 seconds
+⏱️ Runtime: 0.71 seconds
 📝 Log saved → C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\artifacts\validation_outputs\logs\validation_log.txt
 
 📈 Validation Performance Trend (last 10 runs):
-2025-10-25 22:51:56 | Acc: 1.000 ██████████████████████████████████████████████████
+2025-10-25 23:16:58 | Acc: 1.000 ██████████████████████████████████████████████████
                       | F1 : 1.000 ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
 ────────────────────────────────────────────────────────
 🎉 Validation finished successfully!
