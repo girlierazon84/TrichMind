@@ -43,12 +43,13 @@ DB_PATH = os.path.join(BASE_DIR, "artifacts", "database", "ttm_database.db")
 # Unified training outputs folder
 TRAIN_DIR = os.path.join(BASE_DIR, "artifacts", "training_outputs")
 MODEL_DIR = os.path.join(TRAIN_DIR, "best_models")
-LOG_PATH = os.path.join(TRAIN_DIR, "training_log.txt")
-METRICS_PATH = os.path.join(TRAIN_DIR, "training_metrics.csv")
-HISTORY_PATH = os.path.join(TRAIN_DIR, "model_performance_history.csv")
+LOG_PATH = os.path.join(TRAIN_DIR, "logs", "training_log.txt")
+METRICS_PATH = os.path.join(TRAIN_DIR, "metrics_csv", "training_metrics.csv")
+HISTORY_PATH = os.path.join(TRAIN_DIR, "performance_csv", "model_performance_history.csv")
+ENCODER_PATH = os.path.join(TRAIN_DIR, "label_encoder")
 
 # Create all necessary directories
-for folder in [TRAIN_DIR, MODEL_DIR]:
+for folder in [TRAIN_DIR, MODEL_DIR, LOG_PATH, METRICS_PATH, HISTORY_PATH, ENCODER_PATH]:
     os.makedirs(folder, exist_ok=True)
 
 SEED = 42
@@ -232,10 +233,10 @@ if __name__ == "__main__":
         final_model, winner, acc, prec, rec, f1 = best_pipe, best_model_name, acc_ml, prec_ml, rec_ml, f1_ml
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    versioned_model_path = os.path.join(MODEL_DIR, f"best_model_{timestamp}.pkl")
+    versioned_model_path = os.path.join(MODEL_DIR, f"best_relapse_risk_predictor_model_{timestamp}.pkl")
 
     joblib.dump(final_model, versioned_model_path)
-    joblib.dump(final_model, os.path.join(MODEL_DIR, "best_model.pkl"))
+    joblib.dump(final_model, os.path.join(MODEL_DIR, "best_relapse_risk_predictor_model.pkl"))
     metrics_df.to_csv(METRICS_PATH, index=False)
 
     # Append to History
