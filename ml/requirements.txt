@@ -1,0 +1,39 @@
+# --------------------------------------------
+# TrichMind Project Dependencies
+# --------------------------------------------
+
+# Frontend (Streamlit Pitch / Dashboard)
+streamlit==1.50.0
+streamlit-autorefresh==1.0.1
+plotly==6.3.1
+matplotlib==3.10.7
+seaborn==0.13.2
+
+# Backend (API Services)
+fastapi==0.119.1
+uvicorn==0.38.0
+pydantic==2.12.3
+
+# Data Science / Machine Learning
+pandas==2.3.3
+numpy==2.3.4
+scikit-learn==1.7.2
+joblib==1.5.2
+tensorflow-cpu==2.20.0
+keras==3.11.3
+scikeras==0.13.0
+
+# --------------------------------------------
+# Installation Instructions
+# --------------------------------------------
+# Create and activate a virtual environment:
+#   python -m venv .venv
+#   source .venv/bin/activate      (Linux/Mac)
+#   .venv\Scripts\activate         (Windows)
+#
+# Then install dependencies:
+#   pip install -r requirements.txt
+#
+# To freeze environment versions:
+#   pip freeze > requirements.lock
+# --------------------------------------------
