@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """
-db_builder.py
+db_builder.py — TrichMind CSV → SQLite Database Loader
 
-This script scans a directory for semicolon-delimited CSV files and loads each
-into a SQLite database as its own table, injecting an `id` column (1,2,3…)
-as a primary‐key–style field. It will try UTF-8 first, then fall back
-to Latin-1 if there are decoding errors.
+Scans a directory for semicolon-delimited CSV files and loads each into
+a SQLite database as its own table. Each table receives a 1-based `id`
+column as a pseudo–primary key.
+
+Key Features:
+    • UTF-8 → Latin-1 fallback for encoding
+    • Automatic directory creation
+    • Full path verification and DB summary
+    • Clean and safe table names
 
 Usage:
-    python database_builder.py
-
-Configuration:
-    CSV_DIR : directory containing your CSV files
-    DB_PATH : path to the SQLite database file to create/update
-    SEPARATOR: delimiter used in your CSV files
+    python db_builder.py
 """
 
 import os
@@ -21,11 +21,16 @@ import re
 import sqlite3
 import pandas as pd
 
-# === Configuration ===
-CSV_DIR   = r"C:\Users\girli\OneDrive\Desktop\Projects\TrichMind_App\ml\assets\csv_files"
-DB_PATH   = r"C:\Users\girli\OneDrive\Desktop\Projects\TrichMind_App\ml\artifacts\database\ttm_database.db"
+# ──────────────────────────────
+# Configuration
+# ──────────────────────────────
+CSV_DIR   = r"C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\assets\csv_files"
+DB_PATH   = r"C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\artifacts\database\ttm_database.db"
 SEPARATOR = ';'  # semicolon-delimited
 
+# ──────────────────────────────
+# Utility Functions
+# ──────────────────────────────
 def sanitize_table_name(filename: str) -> str:
     """
     Create a safe SQLite table name from the CSV filename.
@@ -36,47 +41,77 @@ def sanitize_table_name(filename: str) -> str:
 
 def load_csv_to_sqlite(csv_path: str, conn: sqlite3.Connection):
     """
-    Read a semicolon-delimited CSV (with fallback encoding), inject an `id`
-    column, then write it into the SQLite database under a table named after
-    the file.
+    Load a CSV file into SQLite as a table with an `id` column.
     """
     table_name = sanitize_table_name(csv_path)
-    print(f"⏳ Loading '{csv_path}' into table '{table_name}'...")
+    print(f"⏳ Loading '{csv_path}' → table '{table_name}'...")
 
-    # 1) Load into pandas, try utf-8 then latin-1
+    # 1️⃣ Try to read CSV (UTF-8, fallback Latin-1)
     try:
         df = pd.read_csv(csv_path, sep=SEPARATOR, encoding='utf-8')
     except UnicodeDecodeError:
-        print("⚠️ UTF-8 failed, retrying with Latin-1...")
+        print("⚠️ UTF-8 failed — retrying with Latin-1 encoding...")
         df = pd.read_csv(csv_path, sep=SEPARATOR, encoding='latin-1')
 
-    # 2) Inject an `id` column (1-based)
+    # 2️⃣ Inject ID column
     df.insert(0, 'id', range(1, len(df) + 1))
 
-    # 3) Write to SQLite (replace table if it exists)
-    df.to_sql(table_name, conn, if_exists='replace', index=False)
-    print(f"✅ Table '{table_name}' created with {len(df):,} rows (id as first column).")
+    # 3️⃣ Write to SQLite
+    try:
+        df.to_sql(table_name, conn, if_exists='replace', index=False)
+        print(f"✅ Table '{table_name}' created with {len(df):,} rows.")
+    except Exception as e:
+        print(f"❌ Failed to create table '{table_name}': {e}")
 
+# ──────────────────────────────
+# Main Builder
+# ──────────────────────────────
 def main():
     """
-    Connect to SQLite and load every CSV in CSV_DIR into its own table.
+    Build SQLite database from all CSV files in CSV_DIR.
     """
-    if not os.path.isdir(CSV_DIR):
-        raise FileNotFoundError(f"CSV directory not found: {CSV_DIR}")
+    print("────────────────────────────────────────────────────────────")
+    print("🧩 TrichMind Database Builder — CSV → SQLite")
+    print("────────────────────────────────────────────────────────────")
+    print(f"📂 CSV source directory: {CSV_DIR}")
 
+    if not os.path.isdir(CSV_DIR):
+        raise FileNotFoundError(f"❌ CSV directory not found: {CSV_DIR}")
+
+    # Ensure DB directory exists
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+
+    # Connect to DB
     conn = sqlite3.connect(DB_PATH)
-    print(f"🔌 Connected to SQLite at '{DB_PATH}'")
+    print(f"🔌 Connected to SQLite → {DB_PATH}\n")
 
     try:
-        for fname in os.listdir(CSV_DIR):
-            if fname.lower().endswith('.csv'):
-                full_path = os.path.join(CSV_DIR, fname)
-                load_csv_to_sqlite(full_path, conn)
-    finally:
+        csv_files = [f for f in os.listdir(CSV_DIR) if f.lower().endswith(".csv")]
+        if not csv_files:
+            print("⚠️ No CSV files found in directory.")
+            return
+
+        for fname in csv_files:
+            full_path = os.path.join(CSV_DIR, fname)
+            load_csv_to_sqlite(full_path, conn)
+
+        # Commit all changes
         conn.commit()
+
+        # List all tables for confirmation
+        tables = pd.read_sql("SELECT name FROM sqlite_master WHERE type='table';", conn)
+        print("\n📊 Database Build Summary:")
+        for t in tables['name']:
+            print(f"   • {t}")
+        print(f"\n✅ All CSVs successfully loaded into → {DB_PATH}")
+
+    except Exception as e:
+        print(f"❌ Error while building database: {e}")
+
+    finally:
         conn.close()
-        print("🔒 Database connection closed.")
+        print("🔒 SQLite connection closed.")
+        print("────────────────────────────────────────────────────────────")
 
 if __name__ == "__main__":
     main()
