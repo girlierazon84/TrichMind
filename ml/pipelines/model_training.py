@@ -6,7 +6,7 @@ Trains multiple relapse-risk prediction models based on preprocessed data
 from the TrichMind pipeline. Performs 5-fold cross-validation, trains a
 deep learning MLP, compares results, and logs performance over time.
 
-Outputs:
+Outputs (saved under ml/artifacts/training_outputs/):
     • best_model.pkl + versioned copies (best_model_YYYYMMDD_HHMMSS.pkl)
     • label_encoder.pkl
     • training_log.txt
@@ -29,9 +29,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.neural_network import MLPClassifier
-from sklearn.metrics import (
-    accuracy_score, precision_score, recall_score, f1_score
-)
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from scikeras.wrappers import KerasClassifier
 
 warnings.filterwarnings("ignore")
@@ -41,12 +39,16 @@ warnings.filterwarnings("ignore")
 # ──────────────────────────────
 BASE_DIR = r"C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml"
 DB_PATH = os.path.join(BASE_DIR, "artifacts", "database", "ttm_database.db")
-OUT_DIR = os.path.join(BASE_DIR, "artifacts", "best_models")
-LOG_PATH = os.path.join(BASE_DIR, "artifacts", "logs", "training_log.txt")
-METRICS_PATH = os.path.join(BASE_DIR, "artifacts", "metrics_csv", "training_metrics.csv")
-HISTORY_PATH = os.path.join(BASE_DIR, "artifacts", "metrics_csv", "training_performance_history.csv")
 
-for folder in [OUT_DIR, os.path.dirname(LOG_PATH), os.path.dirname(METRICS_PATH)]:
+# Unified training outputs folder
+TRAIN_DIR = os.path.join(BASE_DIR, "artifacts", "training_outputs")
+MODEL_DIR = os.path.join(TRAIN_DIR, "best_models")
+LOG_PATH = os.path.join(TRAIN_DIR, "training_log.txt")
+METRICS_PATH = os.path.join(TRAIN_DIR, "training_metrics.csv")
+HISTORY_PATH = os.path.join(TRAIN_DIR, "model_performance_history.csv")
+
+# Create all necessary directories
+for folder in [TRAIN_DIR, MODEL_DIR]:
     os.makedirs(folder, exist_ok=True)
 
 SEED = 42
@@ -159,7 +161,7 @@ if __name__ == "__main__":
 
     le = LabelEncoder()
     y_enc = le.fit_transform(y)
-    joblib.dump(le, os.path.join(OUT_DIR, "label_encoder.pkl"))
+    joblib.dump(le, os.path.join(TRAIN_DIR, "label_encoder.pkl"))
     log("✅ Saved label_encoder.pkl")
 
     X_train, X_test, y_train, y_test = train_test_split(
@@ -230,10 +232,10 @@ if __name__ == "__main__":
         final_model, winner, acc, prec, rec, f1 = best_pipe, best_model_name, acc_ml, prec_ml, rec_ml, f1_ml
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    versioned_model_path = os.path.join(OUT_DIR, f"best_model_{timestamp}.pkl")
+    versioned_model_path = os.path.join(MODEL_DIR, f"best_model_{timestamp}.pkl")
 
     joblib.dump(final_model, versioned_model_path)
-    joblib.dump(final_model, os.path.join(OUT_DIR, "best_model.pkl"))
+    joblib.dump(final_model, os.path.join(MODEL_DIR, "best_model.pkl"))
     metrics_df.to_csv(METRICS_PATH, index=False)
 
     # Append to History
