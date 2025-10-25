@@ -82,27 +82,52 @@ def read_table(conn, table_name):
 
 
 def handle_missing_values(df: pd.DataFrame):
-    """Fill missing values (median for numeric, mode for categorical)."""
+    """
+    Detect and fill missing values (median for numeric, mode for categorical).
+    Always exports an imputation summary CSV including Missing_Before and Missing_After.
+    """
     summary_records = []
+    total_missing_before = df.isna().sum().sum()
+
     for col in df.columns:
-        miss_count = df[col].isna().sum()
-        if miss_count == 0:
+        miss_before = df[col].isna().sum()
+        if miss_before == 0:
             continue
+
         if pd.api.types.is_numeric_dtype(df[col]):
             strategy, fill_val = "median", df[col].median()
         else:
             strategy, fill_val = "mode", df[col].mode().iloc[0] if not df[col].mode().empty else "unknown"
+
         df[col].fillna(fill_val, inplace=True)
+        miss_after = df[col].isna().sum()
+
         summary_records.append({
             "Column": col,
-            "Missing_Before": int(miss_count),
+            "Missing_Before": int(miss_before),
+            "Missing_After": int(miss_after),
             "Imputation_Strategy": strategy,
             "Fill_Value": fill_val if not isinstance(fill_val, float) else round(fill_val, 3)
         })
-        logger.info(f"🧮 {col}: filled {miss_count} NaNs ({strategy}) → {fill_val}")
+        logger.info(f"🧮 {col}: filled {miss_before} NaNs ({strategy}) → {fill_val}")
+
+    # Always export summary
     if summary_records:
-        pd.DataFrame(summary_records).to_csv(IMPUTATION_SUMMARY_PATH, index=False)
-        logger.info(f"📊 Imputation summary saved → {IMPUTATION_SUMMARY_PATH}")
+        summary_df = pd.DataFrame(summary_records)
+    else:
+        summary_df = pd.DataFrame([{
+            "Column": "None",
+            "Missing_Before": 0,
+            "Missing_After": 0,
+            "Imputation_Strategy": "N/A",
+            "Fill_Value": "No missing values detected"
+        }])
+        logger.info("✨ No missing values detected — exporting summary with 0 imputed columns.")
+
+    summary_df.to_csv(IMPUTATION_SUMMARY_PATH, index=False)
+    logger.info(f"📊 Imputation summary saved → {IMPUTATION_SUMMARY_PATH} "
+                f"({len(summary_records)} columns imputed, total NaNs before = {int(total_missing_before)})")
+
     return df, summary_records
 
 # ──────────────────────────────
@@ -185,8 +210,8 @@ def generate_correlation_heatmap(df):
             drop_cols.append(col)
     num_df.drop(columns=drop_cols, inplace=True, errors="ignore")
 
-    if num_df.empty:
-        logger.warning("⚠️ No numeric columns left for correlation heatmap.")
+    if num_df.empty or len(num_df.columns) < 3:
+        logger.warning("⚠️ Insufficient numeric columns for meaningful correlation heatmap.")
         return pd.DataFrame()
 
     corr = num_df.corr()
