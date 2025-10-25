@@ -1,0 +1,29 @@
+───────────────────────────────────────────────
+🧠 TrichMind Model Training — 2025-10-25 22:49:40
+📂 Database Path: C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\artifacts\database\ttm_database.db
+───────────────────────────────────────────────
+📥 Loaded preprocessed dataset — 122 rows, 47 cols
+✅ Saved label_encoder.pkl
+
+🏋️ Running 5-Fold Cross-Validation...
+ • LogisticRegression CV Accuracy = 0.805
+ • RandomForest       CV Accuracy = 0.887
+ • GradientBoosting   CV Accuracy = 0.990
+ • MLPClassifier      CV Accuracy = 0.721
+
+✅ Best ML model after CV: GradientBoosting (0.990)
+
+🤖 Training Deep Learning Keras MLP...
+
+🏆 Final Best Model: GradientBoosting
+✅ Saved model → C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\artifacts\training_outputs\best_models\best_relapse_risk_predictor_model_20251025_224945.pkl
+📊 Metrics CSV → C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\artifacts\training_outputs\metrics_csv\training_metrics.csv
+📈 History updated → C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\artifacts\training_outputs\performance_history\training_performance_history.csv
+
+📈 Historical Performance Trend (last 10 runs):
+2025-10-25 22:49:45 | GradientBoosting | Acc: 1.000 ██████████████████████████████████████████████████
+                          | F1 : 1.000 ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+───────────────────────────────────────────────
+⏱️ Runtime: 5.56 seconds
+🎉 Model training complete!
+───────────────────────────────────────────────
