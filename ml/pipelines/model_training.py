@@ -11,7 +11,7 @@ Outputs (saved under ml/artifacts/training_outputs/):
     • label_encoder.pkl
     • logs/training_log.txt
     • metrics_csv/training_metrics.csv
-    • performance_csv/model_performance_history.csv
+    • performance_history/model_performance_history.csv
 """
 
 import os
