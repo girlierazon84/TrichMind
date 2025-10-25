@@ -7,11 +7,11 @@ from the TrichMind pipeline. Performs 5-fold cross-validation, trains a
 deep learning MLP, compares results, and logs performance over time.
 
 Outputs (saved under ml/artifacts/training_outputs/):
-    • best_model.pkl + versioned copies (best_model_YYYYMMDD_HHMMSS.pkl)
+    • best_relapse_risk_predictor_model.pkl + versioned copies
     • label_encoder.pkl
-    • training_log.txt
-    • training_metrics.csv
-    • model_performance_history.csv
+    • logs/training_log.txt
+    • metrics_csv/training_metrics.csv
+    • performance_csv/model_performance_history.csv
 """
 
 import os
@@ -43,13 +43,17 @@ DB_PATH = os.path.join(BASE_DIR, "artifacts", "database", "ttm_database.db")
 # Unified training outputs folder
 TRAIN_DIR = os.path.join(BASE_DIR, "artifacts", "training_outputs")
 MODEL_DIR = os.path.join(TRAIN_DIR, "best_models")
-LOG_PATH = os.path.join(TRAIN_DIR, "logs", "training_log.txt")
-METRICS_PATH = os.path.join(TRAIN_DIR, "metrics_csv", "training_metrics.csv")
-HISTORY_PATH = os.path.join(TRAIN_DIR, "performance_csv", "model_performance_history.csv")
-ENCODER_PATH = os.path.join(TRAIN_DIR, "label_encoder")
+LOG_DIR = os.path.join(TRAIN_DIR, "logs")
+METRICS_DIR = os.path.join(TRAIN_DIR, "metrics_csv")
+PERFORMANCE_DIR = os.path.join(TRAIN_DIR, "performance_history")
+ENCODER_DIR = os.path.join(TRAIN_DIR, "label_encoder")
+
+LOG_PATH = os.path.join(LOG_DIR, "training_log.txt")
+METRICS_PATH = os.path.join(METRICS_DIR, "training_metrics.csv")
+HISTORY_PATH = os.path.join(PERFORMANCE_DIR, "training_performance_history.csv")
 
 # Create all necessary directories
-for folder in [TRAIN_DIR, MODEL_DIR, LOG_PATH, METRICS_PATH, HISTORY_PATH, ENCODER_PATH]:
+for folder in [TRAIN_DIR, MODEL_DIR, LOG_DIR, METRICS_DIR, PERFORMANCE_DIR, ENCODER_DIR]:
     os.makedirs(folder, exist_ok=True)
 
 SEED = 42
@@ -142,8 +146,9 @@ def draw_ascii_trend(history_path: str):
 # ──────────────────────────────
 if __name__ == "__main__":
     start_time = datetime.now()
-    if os.path.exists(LOG_PATH):
-        os.remove(LOG_PATH)
+
+    # Safely clear old log instead of removing (fixes PermissionError)
+    open(LOG_PATH, "w").close()
 
     log("───────────────────────────────────────────────")
     log(f"🧠 TrichMind Model Training — {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -162,7 +167,7 @@ if __name__ == "__main__":
 
     le = LabelEncoder()
     y_enc = le.fit_transform(y)
-    joblib.dump(le, os.path.join(TRAIN_DIR, "label_encoder.pkl"))
+    joblib.dump(le, os.path.join(ENCODER_DIR, "label_encoder.pkl"))
     log("✅ Saved label_encoder.pkl")
 
     X_train, X_test, y_train, y_test = train_test_split(
