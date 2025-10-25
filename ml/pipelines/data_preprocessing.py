@@ -1,26 +1,23 @@
 #!/usr/bin/env python3
 """
 data_preprocessing.py — TrichMind Relapse Risk Model Feature Builder
-(With Auto Scaling, Imputation Summary, Correlation Insights, AI Recommendations & JSON Metadata)
+(With Auto Scaling, Imputation Summary, Correlation Insights & JSON Metadata)
 
 Performs:
-    • Merges demographics, behaviour, and emotions data
-    • Handles missing values with median/mode imputation
+    • Reads demographics, behaviour, and emotions tables from SQLite
+    • Handles missing values (median/mode imputation)
     • Automatically selects StandardScaler or MinMaxScaler
-    • Generates correlation heatmap and Markdown insights
-    • Writes model-ready data to SQLite
-    • Exports preprocessing summary as JSON for dashboards
+    • Generates correlation heatmap (excludes 'id' & constant/binary columns)
+    • Exports metadata (JSON) and logs preprocessing summary
+    • Writes model-ready table back to the same SQLite database
 
-All outputs saved to: ml/artifacts/preprocessed_outputs/
-
-Outputs:
-    - relapse_risk_model_features (SQLite)
-    - scaler.pkl (ml/artifacts/preprocessed_outputs/scaler_model/)
-    - imputation_summary.csv (ml/artifacts/preprocessed_outputs/summary/)
-    - correlation_heatmap.png (ml/artifacts/preprocessed_outputs/figure-png/)
-    - preprocessing_report.md (ml/artifacts/preprocessed_outputs/reports/)
-    - preprocessing_metadata.json (ml/artifacts/preprocessed_outputs/metadata/)
-    - preprocessing_log.txt (ml/artifacts/preprocessed_outputs/logs/)
+Outputs (saved under ml/artifacts/preprocessed_outputs/):
+    - relapse_risk_model_features (SQLite table)
+    - scaler.pkl
+    - imputation_summary.csv
+    - correlation_heatmap.png
+    - preprocessing_metadata.json
+    - preprocessing_log.txt
 """
 
 import os
@@ -46,17 +43,15 @@ PREPROCESSED_DIR = os.path.join(BASE_DIR, "preprocessed_outputs")
 MODEL_DIR = os.path.join(PREPROCESSED_DIR, "scaler_model")
 LOG_DIR = os.path.join(PREPROCESSED_DIR, "logs")
 SUMMARY_DIR = os.path.join(PREPROCESSED_DIR, "summary")
-REPORT_DIR = os.path.join(PREPROCESSED_DIR, "reports")
 PNG_DIR = os.path.join(PREPROCESSED_DIR, "figure-png")
 META_DIR = os.path.join(PREPROCESSED_DIR, "metadata")
 
 LOG_PATH = os.path.join(LOG_DIR, "preprocessing_log.txt")
 IMPUTATION_SUMMARY_PATH = os.path.join(SUMMARY_DIR, "imputation_summary.csv")
-REPORT_PATH = os.path.join(REPORT_DIR, "preprocessing_report.md")
 METADATA_PATH = os.path.join(META_DIR, "preprocessing_metadata.json")
 HEATMAP_PATH = os.path.join(PNG_DIR, "correlation_heatmap.png")
 
-for d in [MODEL_DIR, LOG_DIR, SUMMARY_DIR, REPORT_DIR, PNG_DIR, META_DIR]:
+for d in [MODEL_DIR, LOG_DIR, SUMMARY_DIR, PNG_DIR, META_DIR]:
     os.makedirs(d, exist_ok=True)
 
 # ──────────────────────────────
@@ -73,10 +68,21 @@ if not logger.handlers:
     logger.addHandler(fh)
 
 # ──────────────────────────────
-# Missing Values
+# Helpers
 # ──────────────────────────────
+def read_table(conn, table_name):
+    """Read a table safely from SQLite."""
+    try:
+        df = pd.read_sql(f"SELECT * FROM {table_name}", conn)
+        logger.info(f"📥 Loaded table '{table_name}' — {len(df)} rows, {len(df.columns)} cols")
+        return df
+    except Exception as e:
+        logger.error(f"❌ Failed to load table '{table_name}': {e}")
+        return pd.DataFrame()
+
+
 def handle_missing_values(df: pd.DataFrame):
-    """Detect and fill missing values (median for numeric, mode for categorical)."""
+    """Fill missing values (median for numeric, mode for categorical)."""
     summary_records = []
     for col in df.columns:
         miss_count = df[col].isna().sum()
@@ -103,7 +109,6 @@ def handle_missing_values(df: pd.DataFrame):
 # Feature Engineering
 # ──────────────────────────────
 def tag_relapse_risk(df):
-    """Assign risk levels based on severity and awareness."""
     def _tag(row):
         sev, aw = row.get("pulling_severity", 0), row.get("awareness_level_encoded", 0.0)
         if pd.isna(sev) or pd.isna(aw):
@@ -118,7 +123,6 @@ def tag_relapse_risk(df):
 
 
 def build_features(demo, beh, emo):
-    """Merge data sources and engineer features."""
     df = beh.merge(demo, on="id", how="left", suffixes=("_beh", "_demo")).merge(emo, on="id", how="left")
     df["pulling_frequency_encoded"] = df["pulling_frequency"].map(
         {"Daily": 5, "Several times a week": 4, "Weekly": 3, "Monthly": 2, "Rarely": 1}
@@ -142,10 +146,9 @@ def build_features(demo, beh, emo):
     return df
 
 # ──────────────────────────────
-# Scaling
+# Scaling & Correlation
 # ──────────────────────────────
 def auto_choose_scaler(df):
-    """Determine which scaler to use based on outlier ratio."""
     num_cols = df.select_dtypes(include=["number"]).columns
     if not len(num_cols):
         return "standard", 0.0
@@ -162,7 +165,6 @@ def auto_choose_scaler(df):
 
 
 def scale_features(df, scaler_type):
-    """Apply scaling to numeric columns."""
     num_cols = df.select_dtypes(include=["number"]).columns
     scaler = StandardScaler() if scaler_type == "standard" else MinMaxScaler()
     df[num_cols] = scaler.fit_transform(df[num_cols])
@@ -171,46 +173,36 @@ def scale_features(df, scaler_type):
     logger.info(f"⚖️ {scaler_type.title()}Scaler fitted & saved → {scaler_path}")
     return df
 
-# ──────────────────────────────
-# Correlation & Insights
-# ──────────────────────────────
+
 def generate_correlation_heatmap(df):
-    """Generate and save correlation heatmap."""
-    num_df = df.select_dtypes(include=["number"])
+    """Generate and save correlation heatmap excluding 'id', constant & binary columns."""
+    num_df = df.select_dtypes(include=["number"]).copy()
+
+    # Exclude ID & constant/binary columns
+    drop_cols = []
+    for col in num_df.columns:
+        if col.lower() == "id" or num_df[col].nunique() <= 2:
+            drop_cols.append(col)
+    num_df.drop(columns=drop_cols, inplace=True, errors="ignore")
+
     if num_df.empty:
+        logger.warning("⚠️ No numeric columns left for correlation heatmap.")
         return pd.DataFrame()
+
     corr = num_df.corr()
     plt.figure(figsize=(10, 8))
     sns.heatmap(corr, cmap="coolwarm", center=0)
-    plt.title("Feature Correlation Heatmap")
+    plt.title("Feature Correlation Heatmap (Excluding ID & Binary Columns)")
     plt.tight_layout()
     plt.savefig(HEATMAP_PATH, dpi=200)
     plt.close()
     logger.info(f"🖼️ Correlation heatmap saved → {HEATMAP_PATH}")
     return corr
 
-
-def interpret_correlations(corr_df):
-    """Generate text summary of top correlations."""
-    if corr_df.empty:
-        return ["No strong correlations detected."]
-    top = corr_df.abs().unstack().sort_values(ascending=False).drop_duplicates()
-    top = top[top < 1].head(5)
-    insights = []
-    for (a, b), val in top.items():
-        relation = "positive" if corr_df.loc[a, b] > 0 else "negative"
-        insights.append(
-            f"**{a}** and **{b}** show a {relation} correlation (r = {val:.2f}). "
-            f"As {a.replace('_',' ')} increases, {b.replace('_',' ')} "
-            f"tends to {'increase' if relation=='positive' else 'decrease'}."
-        )
-    return insights
-
 # ──────────────────────────────
-# Metadata & Reporting
+# Metadata Export
 # ──────────────────────────────
 def export_metadata(df, scaler_type, outlier_ratio, imputation_records, corr):
-    """Save preprocessing decisions as JSON metadata."""
     meta = {
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "rows": len(df),
@@ -220,7 +212,6 @@ def export_metadata(df, scaler_type, outlier_ratio, imputation_records, corr):
         "imputed_columns": [r["Column"] for r in imputation_records],
         "database_table": "relapse_risk_model_features",
         "scaler_path": os.path.join(MODEL_DIR, "scaler.pkl"),
-        "report_path": REPORT_PATH,
         "heatmap_path": HEATMAP_PATH
     }
     if not corr.empty:
@@ -242,21 +233,23 @@ def main():
     logger.info(f"🧩 TrichMind Preprocessing — {start:%Y-%m-%d %H:%M:%S}")
     logger.info("──────────────────────────────────────────────")
 
-    data_dir = os.path.join(BASE_DIR, "database")
-    demo = pd.read_csv(os.path.join(data_dir, "demographics.csv"))
-    beh = pd.read_csv(os.path.join(data_dir, "hair_pulling_behaviours_&_patterns.csv"))
-    emo = pd.read_csv(os.path.join(data_dir, "emotions_before_pulling.csv"))
+    conn = sqlite3.connect(DB_PATH)
+    demo = read_table(conn, "demographics")
+    beh = read_table(conn, "hair_pulling_behaviours_patterns")
+    emo = read_table(conn, "emotions_before_pulling")
+
+    if demo.empty or beh.empty or emo.empty:
+        logger.error("❌ Missing required tables in the database.")
+        return
 
     df = build_features(demo, beh, emo)
-    missing_cols = df.columns[df.isna().any()].tolist()
     df, imputation_records = handle_missing_values(df)
     scaler_type, outlier_ratio = auto_choose_scaler(df)
     df_scaled = scale_features(df, scaler_type)
 
-    conn = sqlite3.connect(DB_PATH)
     df_scaled.to_sql("relapse_risk_model_features", conn, if_exists="replace", index=False)
     conn.close()
-    logger.info(f"✅ Saved relapse_risk_model_features → {DB_PATH}")
+    logger.info(f"✅ Saved 'relapse_risk_model_features' to SQLite → {DB_PATH}")
 
     corr = generate_correlation_heatmap(df_scaled)
     export_metadata(df_scaled, scaler_type, outlier_ratio, imputation_records, corr)
