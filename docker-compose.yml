@@ -1,0 +1,98 @@
+# Docker Compose v2+ syntax (no version key needed)
+# TrichMind Full Stack: MongoDB + FastAPI (ML) + Node (Server) + Vite (Client)
+
+services:
+  # 🧱 MongoDB Database
+  mongo:
+    image: mongo:7
+    container_name: trichmind-mongo
+    ports:
+      - "27018:27017"  # host 27018 → container 27017
+    volumes:
+      - mongo:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # 🤖 FastAPI ML Service
+  ml:
+    build: ./ml
+    container_name: trichmind-ml
+    command: uvicorn app:app --host 0.0.0.0 --port 8000
+    environment:
+      - MODEL_PATH=${MODEL_PATH:-artifacts/best_models/best_model.pkl}
+      - ENCODER_PATH=${ENCODER_PATH:-artifacts/best_models/label_encoder.pkl}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:5173,http://127.0.0.1:5173}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ml:/app
+      # If model artifacts live outside ./ml/artifacts, uncomment below:
+      # - "C:/Users/girli/OneDrive/Desktop/Projects/TrichMind_App/ml/artifacts:/app/artifacts:ro"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import json,urllib.request,sys; d=json.load(urllib.request.urlopen('http://localhost:8000/healthz', timeout=3)); sys.exit(0 if d.get('ok') else 1)"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  # 🧠 Node.js + Express (API Server)
+  server:
+    build: ./server
+    container_name: trichmind-server
+    command: sh -c "npm run dev"
+    environment:
+      - NODE_ENV=development
+      - MONGO_URI=${MONGO_URI:-mongodb://mongo:27017/trichmind}
+      - JWT_SECRET=${JWT_SECRET:-super-secret-change-me}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-refresh-secret-change-me}
+      - PORT=${PORT:-8080}
+      - ML_BASE_URL=${ML_BASE_URL:-http://ml:8000}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:5173,http://127.0.0.1:5173}
+      - CLIENT_URL=${CLIENT_URL:-http://localhost:5173}
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-your_email@gmail.com}
+      - SMTP_PASS=${SMTP_PASS:-your_app_password}
+      - RELAPSE_ALERT_THRESHOLD=${RELAPSE_ALERT_THRESHOLD:-0.7}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    depends_on:
+      mongo:
+        condition: service_healthy
+      ml:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # 🌐 Vite Frontend (React Client)
+  client:
+    build: ./client
+    container_name: trichmind-client
+    command: npm run dev -- --host
+    environment:
+      - VITE_API_BASE=${VITE_API_BASE:-http://localhost:8080}
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - server
+    restart: unless-stopped
+
+# Shared volume for MongoDB persistence
+volumes:
+  mongo:
