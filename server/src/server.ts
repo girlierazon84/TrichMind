@@ -3,31 +3,57 @@ import cors from "cors";
 import { connectMongo } from "./config/mongo";
 import { notFound, errorHandler } from "./middlewares/error";
 import { startWeeklySummaryScheduler } from "./utils/scheduler";
-import summaryRoutes from "./routes/summaryRoutes";
 import { logger } from "./utils/logger";
-import authRoutes from "./routes/authRoutes";
-import alertRoutes from "./routes/alertRoutes";
 import { ENV } from "./config/env";
 
+// ──────────────────────────────
+// Route Imports
+// ──────────────────────────────
+import authRoutes from "./routes/authRoutes";
+import alertRoutes from "./routes/alertRoutes";
+import summaryRoutes from "./routes/summaryRoutes";
+import predictRoutes from "./routes/predictRoutes";
+import userRoutes from "./routes/userRoutes";
+import healthRoutes from "./routes/healthRoutes";
+import journalRoutes from "./routes/journalRoutes";
+import triggersInsightsRoutes from "./routes/triggersInsightsRoutes";
+import trichBotRoutes from "./routes/trichBotRoutes";
+import trichGameRoutes from "./routes/trichGameRoutes";
+
+// ──────────────────────────────
+// Initialize Express App
+// ──────────────────────────────
 const app = express();
 
 // Middleware
 app.use(cors({ origin: ENV.CORS_ORIGIN.split(","), credentials: true }));
 app.use(express.json());
 
-// Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/alerts", alertRoutes);
-app.use("/api/summary", summaryRoutes);
+// ──────────────────────────────
+// API Routes
+// ──────────────────────────────
+app.use("/api/auth", authRoutes);                    // 🔐 Authentication
+app.use("/api/alerts", alertRoutes);                 // 🔔 Alerts (relapse risk)
+app.use("/api/summary", summaryRoutes);              // 🗓 Weekly summaries
+app.use("/api/ml", predictRoutes);                   // 🤖 ML Predictions
+app.use("/api/users", userRoutes);                   // 👤 User info
+app.use("/api/health", healthRoutes);                // 🩺 Health logs
+app.use("/api/journal", journalRoutes);              // 📔 Journals
+app.use("/api/triggers", triggersInsightsRoutes);    // ⚡ Triggers insights
+app.use("/api/trichbot", trichBotRoutes);            // 💬 TrichMind Chatbot logs
+app.use("/api/games", trichGameRoutes);              // 🎮 Game sessions
 
+// ──────────────────────────────
 // 404 + Error Handlers
+// ──────────────────────────────
 app.use(notFound);
 app.use(errorHandler);
 
-// Start scheduler
+// ──────────────────────────────
+// Start Scheduler & Server
+// ──────────────────────────────
 startWeeklySummaryScheduler();
 
-// Start server
 connectMongo().then(() => {
     app.listen(ENV.PORT, () => {
         logger.info(`🚀 TrichMind Server running on port ${ENV.PORT}`);
