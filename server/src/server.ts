@@ -4,6 +4,7 @@ import { connectMongo } from "./config/mongo";
 import { notFound, errorHandler } from "./middlewares/error";
 import { logger } from "./utils/logger";
 import authRoutes from "./routes/authRoutes";
+import alertRoutes from "./routes/alertRoutes";
 import { ENV } from "./config/env";
 
 const app = express();
@@ -14,6 +15,7 @@ app.use(express.json());
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/alerts", alertRoutes);
 
 // 404 + Error Handlers
 app.use(notFound);
