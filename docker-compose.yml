@@ -7,7 +7,7 @@ services:
     image: mongo:7
     container_name: trichmind-mongo
     ports:
-      - "27018:27017"  # host 27018 → container 27017
+      - "27018:27017" # host 27018 → container 27017
     volumes:
       - mongo:/data/db
     healthcheck:
@@ -21,17 +21,18 @@ services:
   ml:
     build: ./ml
     container_name: trichmind-ml
-    command: uvicorn app:app --host 0.0.0.0 --port 8000
+    working_dir: /app
+    command: uvicorn inference_api:app --host 0.0.0.0 --port 8000
     environment:
-      - MODEL_PATH=${MODEL_PATH:-artifacts/best_models/best_model.pkl}
-      - ENCODER_PATH=${ENCODER_PATH:-artifacts/best_models/label_encoder.pkl}
+      - MODEL_PATH=${MODEL_PATH:-artifacts/training_outputs/best_models/best_relapse_risk_predictor_model.pkl}
+      - ENCODER_PATH=${ENCODER_PATH:-artifacts/training_outputs/label_encoder/label_encoder.pkl}
       - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:5173,http://127.0.0.1:5173}
     ports:
       - "8000:8000"
     volumes:
       - ./ml:/app
-      # If model artifacts live outside ./ml/artifacts, uncomment below:
-      # - "C:/Users/girli/OneDrive/Desktop/Projects/TrichMind_App/ml/artifacts:/app/artifacts:ro"
+      # Optional: mount external model artifacts
+      # - "C:/Users/girli/OneDrive/Desktop/Portfolio-Projects/TrichMind/ml/artifacts:/app/artifacts:ro"
     healthcheck:
       test:
         [
@@ -43,28 +44,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 20s
+      start_period: 25s
     restart: unless-stopped
 
   # 🧠 Node.js + Express (API Server)
   server:
     build: ./server
     container_name: trichmind-server
+    working_dir: /app
     command: sh -c "npm run dev"
     environment:
-      - NODE_ENV=development
-      - MONGO_URI=${MONGO_URI:-mongodb://mongo:27017/trichmind}
-      - JWT_SECRET=${JWT_SECRET:-super-secret-change-me}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-refresh-secret-change-me}
-      - PORT=${PORT:-8080}
-      - ML_BASE_URL=${ML_BASE_URL:-http://ml:8000}
-      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:5173,http://127.0.0.1:5173}
-      - CLIENT_URL=${CLIENT_URL:-http://localhost:5173}
-      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
-      - SMTP_PORT=${SMTP_PORT:-587}
-      - SMTP_USER=${SMTP_USER:-your_email@gmail.com}
-      - SMTP_PASS=${SMTP_PASS:-your_app_password}
-      - RELAPSE_ALERT_THRESHOLD=${RELAPSE_ALERT_THRESHOLD:-0.7}
+      NODE_ENV: development
+      SERVER_URL: http://server:8080              # For scheduler & alert helper
+      MONGO_URI: mongodb://mongo:27017/trichmind
+      JWT_SECRET: ${JWT_SECRET:-super-secret-change-me}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-refresh-secret-change-me}
+      PORT: 8080
+      ML_BASE_URL: http://ml:8000                 # Internal DNS (FastAPI)
+      CORS_ORIGIN: http://localhost:5173,http://127.0.0.1:5173
+      CLIENT_URL: http://localhost:5173
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-your_email@gmail.com}
+      SMTP_PASS: ${SMTP_PASS:-your_app_password}
+      RELAPSE_ALERT_THRESHOLD: ${RELAPSE_ALERT_THRESHOLD:-0.7}
     ports:
       - "8080:8080"
     volumes:
@@ -75,22 +78,30 @@ services:
         condition: service_healthy
       ml:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/auth/me || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
     restart: unless-stopped
 
   # 🌐 Vite Frontend (React Client)
   client:
     build: ./client
     container_name: trichmind-client
+    working_dir: /app
     command: npm run dev -- --host
     environment:
-      - VITE_API_BASE=${VITE_API_BASE:-http://localhost:8080}
+      - VITE_API_BASE=http://server:8080           # Point frontend to backend service
     ports:
       - "5173:5173"
     volumes:
       - ./client:/app
       - /app/node_modules
     depends_on:
-      - server
+      server:
+        condition: service_healthy
     restart: unless-stopped
 
 # Shared volume for MongoDB persistence
