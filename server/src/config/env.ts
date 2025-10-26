@@ -37,4 +37,8 @@ export const ENV = {
     MODEL_ARTIFACT_PATH:
         process.env.MODEL_ARTIFACT_PATH ||
         "C:\\Users\\girli\\OneDrive\\Desktop\\Portfolio-Projects\\TrichMind\\ml\\artifacts\\training_outputs\\best_models",
+
+    // ...
+    RELAPSE_ALERT_THRESHOLD: Number(process.env.RELAPSE_ALERT_THRESHOLD || 0.7),
+
 } as const;
