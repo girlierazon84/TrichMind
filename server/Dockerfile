@@ -1,24 +1,21 @@
 # ---------------------------
-# 🧠 TrichMind Backend (Node + TypeScript)
+# 🧠 TrichMind Backend (Dev)
 # ---------------------------
-
-# 1️⃣ Base Image
-FROM node:20-alpine AS base
+FROM node:20-alpine
 WORKDIR /app
-ENV NODE_ENV=production
 
-# 2️⃣ Install dependencies separately for caching
+# Install build tools for native modules if needed
+RUN apk add --no-cache python3 make g++
+
+# Copy package files and install all deps
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install
 
-# 3️⃣ Copy source code
+# Copy full project
 COPY . .
 
-# 4️⃣ Build TypeScript → JavaScript
-RUN npm run build
-
-# 5️⃣ Expose port
+# Expose app port
 EXPOSE 8080
 
-# 6️⃣ Default startup command
-CMD ["node", "dist/server.js"]
+# Run in dev mode with nodemon + ts-node
+CMD ["npm", "run", "dev"]
