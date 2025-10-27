@@ -7,7 +7,7 @@ services:
     image: mongo:7
     container_name: trichmind-mongo
     ports:
-      - "27018:27017" # host 27018 → container 27017
+      - "27018:27017"  # host 27018 → container 27017
     volumes:
       - mongo:/data/db
     healthcheck:
@@ -31,8 +31,6 @@ services:
       - "8000:8000"
     volumes:
       - ./ml:/app
-      # Optional: mount external model artifacts
-      # - "C:/Users/girli/OneDrive/Desktop/Portfolio-Projects/TrichMind/ml/artifacts:/app/artifacts:ro"
     healthcheck:
       test:
         [
@@ -55,12 +53,12 @@ services:
     command: sh -c "npm run dev"
     environment:
       NODE_ENV: development
-      SERVER_URL: http://server:8080              # For scheduler & alert helper
+      SERVER_URL: http://server:8080
       MONGO_URI: mongodb://mongo:27017/trichmind
       JWT_SECRET: ${JWT_SECRET:-super-secret-change-me}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-refresh-secret-change-me}
       PORT: 8080
-      ML_BASE_URL: http://ml:8000                 # Internal DNS (FastAPI)
+      ML_BASE_URL: http://ml:8000
       CORS_ORIGIN: http://localhost:5173,http://127.0.0.1:5173
       CLIENT_URL: http://localhost:5173
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
@@ -88,21 +86,21 @@ services:
 
   # 🌐 Vite Frontend (React Client)
   client:
-    build: ./client
+    build:
+      context: ./client
+      dockerfile: Dockerfile
     container_name: trichmind-client
     working_dir: /app
-    command: npm run dev -- --host
     environment:
-      - VITE_API_BASE=http://server:8080           # Point frontend to backend service
+      - VITE_API_BASE=http://server:8080
+      - VITE_APP_NAME=TrichMind
     ports:
       - "5173:5173"
-    volumes:
-      - ./client:/app
-      - /app/node_modules
     depends_on:
       server:
         condition: service_healthy
     restart: unless-stopped
+    # Note: No bind-mounts — this runs the *built* app (production mode)
 
 # Shared volume for MongoDB persistence
 volumes:
