@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "styled-components";
 import { MOTIF } from "./theme";
-import { GlobalStyle } from "../src/utils/global/styling/GlobalStyle";
+import { GlobalStyle } from "./utils/global/styling/GlobalStyle";
+
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegistrationPage";
@@ -9,8 +10,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 
 function App() {
   return (
-    <div className="App">
-      <ThemeProvider theme={MOTIF}>
+    <ThemeProvider theme={MOTIF}>
       <GlobalStyle />
       <BrowserRouter>
         <Routes>
@@ -21,7 +21,6 @@ function App() {
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
-    </div>
   );
 }
 
