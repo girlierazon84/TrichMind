@@ -6,6 +6,7 @@
   "description": "TrichMind MERN + TypeScript backend — secure REST API for ML-powered trichotillomania insights.",
   "main": "dist/server.js",
   "scripts": {
+    "dev:stack": "docker compose -f docker-compose.dev.yml up --build",
     "dev": "nodemon --watch src --exec ts-node src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
