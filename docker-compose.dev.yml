@@ -1,0 +1,69 @@
+# TrichMind Dev Stack: Run frontend locally with hot reload,
+# while backend (Node), ML (FastAPI), and MongoDB run in Docker.
+
+services:
+  # 🧱 MongoDB
+  mongo:
+    image: mongo:7
+    container_name: trichmind-mongo-dev
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # 🤖 FastAPI ML Service
+  ml:
+    build: ./ml
+    container_name: trichmind-ml-dev
+    working_dir: /app
+    command: uvicorn inference_api:app --host 0.0.0.0 --port 8000
+    environment:
+      - MODEL_PATH=${MODEL_PATH:-artifacts/training_outputs/best_models/best_relapse_risk_predictor_model.pkl}
+      - ENCODER_PATH=${ENCODER_PATH:-artifacts/training_outputs/label_encoder/label_encoder.pkl}
+      - CORS_ORIGIN=http://localhost:5173,http://127.0.0.1:5173
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ml:/app
+    restart: unless-stopped
+
+  # 🧠 Node.js API Server
+  server:
+    build: ./server
+    container_name: trichmind-server-dev
+    working_dir: /app
+    command: sh -c "npm run dev"
+    environment:
+      NODE_ENV: development
+      SERVER_URL: http://localhost:8080
+      MONGO_URI: mongodb://mongo:27017/trichmind
+      JWT_SECRET: ${JWT_SECRET:-super-secret-change-me}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-refresh-secret-change-me}
+      PORT: 8080
+      ML_BASE_URL: http://ml:8000
+      CORS_ORIGIN: http://localhost:5173,http://127.0.0.1:5173
+      CLIENT_URL: http://localhost:5173
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-your_email@gmail.com}
+      SMTP_PASS: ${SMTP_PASS:-your_app_password}
+      RELAPSE_ALERT_THRESHOLD: ${RELAPSE_ALERT_THRESHOLD:-0.7}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    depends_on:
+      - mongo
+      - ml
+    restart: unless-stopped
+
+# Shared volume for MongoDB persistence
+volumes:
+  mongo:
