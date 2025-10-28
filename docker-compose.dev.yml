@@ -1,5 +1,6 @@
-# TrichMind Dev Stack: Run frontend locally with hot reload,
-# while backend (Node), ML (FastAPI), and MongoDB run in Docker.
+# -------------------------------------------------------
+# TrichMind Dev Stack (Local Frontend + Docker Backend)
+# -------------------------------------------------------
 
 services:
   # 🧱 MongoDB
@@ -64,6 +65,24 @@ services:
       - ml
     restart: unless-stopped
 
-# Shared volume for MongoDB persistence
+  # 🌐 Frontend (Hot Reload Mode)
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      target: dev
+    container_name: trichmind-client-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_BASE=http://server:8080
+    depends_on:
+      - server
+    restart: unless-stopped
+
 volumes:
   mongo:
