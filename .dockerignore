@@ -1,0 +1,59 @@
+# -------------------------------------------------------
+# 🐳 Docker Ignore for TrichMind Full Stack
+# -------------------------------------------------------
+
+# Node dependencies
+node_modules
+**/node_modules
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build and cache folders
+dist
+build
+.cache
+.vite
+coverage
+__pycache__
+*.pyc
+
+# Local databases or data
+*.db
+*.sqlite
+/data
+/tmp
+
+# System / editor files
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+*.swp
+
+# Python virtual envs
+venv
+.env/
+.env.bak/
+
+# Artifacts and backups
+*.bak
+*.old
+*.zip
+*.tar
+*.tar.gz
+
+# Docker
+Dockerfile.dev
+docker-compose.override.yml
