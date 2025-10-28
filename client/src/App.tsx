@@ -5,7 +5,7 @@ import { GlobalStyle } from "./utils/global/styling/GlobalStyle";
 
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegistrationPage";
+import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 
 function App() {
