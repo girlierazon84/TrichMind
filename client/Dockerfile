@@ -1,36 +1,52 @@
 # -------------------------------------------------------
-# 1️⃣ Base image — lightweight Node 20 Alpine
+# 1️⃣ Base Stage — Common setup
 # -------------------------------------------------------
-FROM node:20-alpine AS build
+FROM node:20-alpine AS base
 
 WORKDIR /app
 
-# Copy package files first for caching
+# Copy dependency files for caching
 COPY package*.json ./
 
-# Install dependencies (use npm ci for reproducibility)
+# Install dependencies
 RUN npm ci
 
-# Copy project source
+# Copy full project
 COPY . .
 
-# Build production files (output goes to /app/dist)
+# -------------------------------------------------------
+# 2️⃣ Build Stage — for production builds
+# -------------------------------------------------------
+FROM base AS build
 RUN npm run build
 
 # -------------------------------------------------------
-# 2️⃣ Production stage — use a simple static server
+# 3️⃣ Dev Stage — for local hot reload (Vite)
 # -------------------------------------------------------
-FROM node:20-alpine AS serve
+FROM base AS dev
+
+EXPOSE 5173
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+# -------------------------------------------------------
+# 4️⃣ Prod Stage — serve static files
+# -------------------------------------------------------
+FROM node:20-alpine AS prod
 
 WORKDIR /app
 
-# Install a minimal static file server
+# Install a lightweight static server
 RUN npm install -g serve
 
-# Copy built frontend from previous stage
+# Copy build output from the build stage
 COPY --from=build /app/dist ./dist
 
 EXPOSE 5173
+CMD ["serve", "-s", "dist", "-l", "5173"]
 
-# Serve the built app
-CMD ["npm", "run", "dev:stack"]
+# -------------------------------------------------------
+# 5️⃣ Dynamic Entrypoint — choose mode automatically
+# -------------------------------------------------------
+# Use NODE_ENV to decide which stage to run at runtime
+# docker build --target dev   -t trichmind-client-dev .
+# docker build --target prod  -t trichmind-client-prod .
