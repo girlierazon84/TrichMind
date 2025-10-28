@@ -6,9 +6,9 @@ import { startWeeklySummaryScheduler } from "./utils/scheduler";
 import { logger } from "./utils/logger";
 import { ENV } from "./config/env";
 
-// ──────────────────────────────
+// -----------------------------
 // Route Imports
-// ──────────────────────────────
+// -----------------------------
 import authRoutes from "./routes/authRoutes";
 import alertRoutes from "./routes/alertRoutes";
 import summaryRoutes from "./routes/summaryRoutes";
@@ -20,18 +20,20 @@ import triggersInsightsRoutes from "./routes/triggersInsightsRoutes";
 import trichBotRoutes from "./routes/trichBotRoutes";
 import trichGameRoutes from "./routes/trichGameRoutes";
 
-// ──────────────────────────────
+// ------------------------------
 // Initialize Express App
-// ──────────────────────────────
+// ------------------------------
 const app = express();
 
-// Middleware
+// -----------------------------
+// ✅ Middleware
+// -----------------------------
 app.use(cors({ origin: ENV.CORS_ORIGIN.split(","), credentials: true }));
 app.use(express.json());
 
-// ──────────────────────────────
-// API Routes
-// ──────────────────────────────
+// -----------------------------
+// ✅ API Routes
+// -----------------------------
 app.use("/api/auth", authRoutes);                    // 🔐 Authentication
 app.use("/api/alerts", alertRoutes);                 // 🔔 Alerts (relapse risk)
 app.use("/api/summary", summaryRoutes);              // 🗓 Weekly summaries
@@ -43,17 +45,20 @@ app.use("/api/triggers", triggersInsightsRoutes);    // ⚡ Triggers insights
 app.use("/api/trichbot", trichBotRoutes);            // 💬 TrichMind Chatbot logs
 app.use("/api/games", trichGameRoutes);              // 🎮 Game sessions
 
-// ──────────────────────────────
-// 404 + Error Handlers
-// ──────────────────────────────
+// -----------------------------
+// ✅ 404 + Error Handlers
+// -----------------------------
 app.use(notFound);
 app.use(errorHandler);
 
-// ──────────────────────────────
-// Start Scheduler & Server
-// ──────────────────────────────
+// --------------------------------------
+// 🕒 Scheduler (Weekly Summary Emails)
+// --------------------------------------
 startWeeklySummaryScheduler();
 
+// -----------------------------
+// 🚀 Start Server
+// -----------------------------
 connectMongo().then(() => {
     app.listen(ENV.PORT, () => {
         logger.info(`🚀 TrichMind Server running on port ${ENV.PORT}`);
