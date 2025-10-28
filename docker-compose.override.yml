@@ -1,20 +1,20 @@
 # -------------------------------------------------------
 # 🧠 TrichMind Docker Compose Override
-# This file automatically adjusts behavior for dev vs prod
+# Dynamically switches between DEV and PROD behavior
 # -------------------------------------------------------
 
 services:
   # 🧠 API Server (Node.js)
   server:
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      - NODE_ENV=${NODE_ENV:-development}
     command: >
       sh -c "
       if [ \"$NODE_ENV\" = 'production' ]; then
-        echo '🚀 Running server in PRODUCTION mode';
-        npm run start
+        echo '🚀 Running TrichMind Server in PRODUCTION mode...';
+        npm run build && npm start
       else
-        echo '🧩 Running server in DEVELOPMENT mode';
+        echo '🧩 Running TrichMind Server in DEVELOPMENT mode (hot reload)...';
         npm run dev
       fi
       "
@@ -22,16 +22,16 @@ services:
   # 🌐 Client (Vite Frontend)
   client:
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
-      VITE_API_BASE: http://server:8080
-      VITE_APP_NAME: TrichMind
+      - NODE_ENV=${NODE_ENV:-development}
+      - VITE_API_BASE=http://server:8080
+      - VITE_APP_NAME=TrichMind
     command: >
       sh -c "
       if [ \"$NODE_ENV\" = 'production' ]; then
-        echo '🌐 Serving built Vite app (Production)';
-        npx serve -s dist -l 5173
+        echo '🌐 Serving TrichMind frontend (Production Build)...';
+        npm run build && npx serve -s dist -l 5173
       else
-        echo '🧠 Starting Vite Dev Server (Hot Reload)';
+        echo '⚡ Starting TrichMind Vite Dev Server (Hot Reload)...';
         npm run dev -- --host
       fi
       "
