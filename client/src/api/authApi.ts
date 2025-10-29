@@ -1,3 +1,4 @@
+// client/src/api/authApi.ts
 import { axiosClient } from "./axiosClient";
 
 export interface RegisterData {
