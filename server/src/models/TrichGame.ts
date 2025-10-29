@@ -1,3 +1,4 @@
+// server/src/models/TrichGame.ts
 import { Schema, model, Document, Types } from "mongoose";
 
 export interface IGameSession extends Document {
