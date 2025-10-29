@@ -1,3 +1,4 @@
+// server/src/models/HealthLog.ts
 import { Schema, model, Document, Types } from "mongoose";
 
 export interface IHealthLog extends Document {
