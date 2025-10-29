@@ -1,3 +1,4 @@
+// server/src/models/TriggersInsights.ts
 import { Schema, model, Document, Types } from "mongoose";
 
 export interface ITrigger extends Document {
