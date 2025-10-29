@@ -1,3 +1,4 @@
+// server/src/models/TrichBot.ts
 import { Schema, model, Document, Types } from "mongoose";
 
 export interface ITrichBotMessage extends Document {
