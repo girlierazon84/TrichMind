@@ -1,3 +1,4 @@
+// server/src/models/JournalEntry.ts
 import { Schema, model, Document, Types } from "mongoose";
 
 export interface IJournalEntry extends Document {
