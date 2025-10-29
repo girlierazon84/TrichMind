@@ -1,3 +1,4 @@
+// client/src/api/axiosClient.ts
 import axios from "axios";
 
 // Base URL (from environment variable or fallback)
