@@ -3,7 +3,6 @@
 import { User, IUser } from "../models/User";
 import { RegisterDTO, LoginDTO } from "../schemas/userSchema";
 import { loggerService } from "./loggerService";
-import bcrypt from "bcryptjs";
 
 export const userService = {
     async register(data: RegisterDTO): Promise<IUser> {
