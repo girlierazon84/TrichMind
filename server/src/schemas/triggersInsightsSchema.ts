@@ -1,4 +1,5 @@
 // server/src/schemas/triggersInsightsSchema.ts
+
 import { z } from "zod";
 
 /**
