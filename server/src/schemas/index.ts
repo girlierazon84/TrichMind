@@ -1,4 +1,5 @@
 // server/src/schemas/index.ts
+
 export * from "./userSchema";
 export * from "./healthSchema";
 export * from "./journalSchema";
