@@ -6,7 +6,7 @@ import {
     createSession,
     listSessions,
     updateSession,
-} from "../controllers/gameController";
+} from "../controllers/trichGameController";
 import {
     GameSessionCreateDTO,
     GameSessionUpdateDTO,
