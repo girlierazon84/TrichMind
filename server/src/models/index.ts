@@ -1,6 +1,6 @@
 // server/src/models/index.ts
 
-export { default as User } from "./User";
+export { User } from "./User";
 export { default as HealthLog } from "./HealthLog";
 export { default as JournalEntry } from "./JournalEntry";
 export { default as Trigger } from "./TriggersInsights";
