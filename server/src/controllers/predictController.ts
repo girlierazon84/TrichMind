@@ -1,37 +1,40 @@
 // server/src/controllers/predictController.ts
+
 import { Request, Response } from "express";
-import axios from "axios";
-import { Predict } from "../models/Predict";
-import { PredictDTO } from "../schemas/predictSchema";
 import { asyncHandler } from "../utils/asyncHandler";
-import { ENV } from "../config/env";
-import { logger } from "../utils/logger";
+import { PredictDTO } from "../schemas/predictSchema";
+import { predictService } from "../services/predictService";
+import { loggerService } from "../services/loggerService";
 
 /**
- * Sends prediction request to FastAPI ML model and stores response.
+ * 🧠 Predict relapse risk via FastAPI ML model
+ * Stores response in the database through predictService
  */
 export const predictRelapseRisk = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.auth?.userId!;
     const input = PredictDTO.parse(req.body);
 
-    try {
-        const { data } = await axios.post(`${ENV.ML_BASE_URL}/predict`, input);
-        const { risk_score, risk_bucket, confidence, model_version } = data;
+    await loggerService.logInfo("Prediction request initiated", { userId, inputPreview: input.emotion });
 
-        const saved = await Predict.create({
+    try {
+        const prediction = await predictService.predict(userId, input);
+        await loggerService.logInfo("Prediction completed", {
             userId,
-            ...input,
-            risk_score,
-            risk_bucket,
-            confidence,
-            model_version,
-            served_by: "FastAPI",
+            risk_score: prediction.risk_score,
+            bucket: prediction.risk_bucket,
         });
 
-        logger.info(`🧠 Prediction logged for user ${userId}`);
-        res.status(201).json({ ok: true, prediction: saved });
+        res.status(201).json({ ok: true, prediction });
     } catch (err: any) {
-        logger.error(`❌ Prediction error: ${err.message}`);
-        res.status(502).json({ error: "Prediction service unavailable" });
+        await loggerService.log("Prediction service failed", "error", "ml", {
+            userId,
+            error: err.message,
+        });
+
+        res.status(502).json({
+            ok: false,
+            error: "Prediction service unavailable",
+            details: err.message,
+        });
     }
 });
