@@ -45,4 +45,5 @@ const HealthLogSchema = new Schema<IHealthLog>(
 // ⚡ Optimize queries by user + date
 HealthLogSchema.index({ userId: 1, date: -1 });
 
-export default model<IHealthLog>("HealthLog", HealthLogSchema);
+// ✅ Use named export (no default)
+export const HealthLog = model<IHealthLog>("HealthLog", HealthLogSchema);
