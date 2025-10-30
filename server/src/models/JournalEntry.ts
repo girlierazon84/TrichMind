@@ -5,7 +5,7 @@ export interface IJournalEntry extends Document {
     userId: Types.ObjectId;
     prompt?: string;
     text: string;
-    mood?: string;             // e.g. Calm/Sad/Happy/Stressed
+    mood?: string;             // e.g., Calm / Sad / Happy / Stressed
     stress?: number;           // 0..10
     calm?: number;             // 0..10
     happy?: number;            // 0..10
@@ -16,18 +16,25 @@ export interface IJournalEntry extends Document {
 
 const JournalEntrySchema = new Schema<IJournalEntry>(
     {
-        userId: { type: Schema.Types.ObjectId, ref: "User", index: true, required: true },
+        userId: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+            index: true,
+            required: true,
+        },
         prompt: { type: String, trim: true },
         text: { type: String, trim: true, default: "" },
         mood: { type: String, trim: true },
         stress: { type: Number, min: 0, max: 10 },
         calm: { type: Number, min: 0, max: 10 },
         happy: { type: Number, min: 0, max: 10 },
-        urgeIntensity: { type: Number, min: 0, max: 10 }
+        urgeIntensity: { type: Number, min: 0, max: 10 },
     },
     { timestamps: true }
 );
 
+// ⚡ Optimize retrieval of latest entries per user
 JournalEntrySchema.index({ userId: 1, createdAt: -1 });
 
-export default model<IJournalEntry>("JournalEntry", JournalEntrySchema);
+// ✅ Named export — no default export
+export const JournalEntry = model<IJournalEntry>("JournalEntry", JournalEntrySchema);
