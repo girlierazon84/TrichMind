@@ -1,6 +1,10 @@
 // server/src/models/TrichBot.ts
 import { Schema, model, Document, Types } from "mongoose";
 
+/**
+ * 🤖 TrichBot Message Model
+ * Stores all AI chat interactions, user prompts, and bot responses.
+ */
 export interface ITrichBotMessage extends Document {
     userId: Types.ObjectId;
     prompt: string;                        // user message
@@ -21,20 +25,22 @@ const TrichBotSchema = new Schema<ITrichBotMessage>(
         response: { type: String, required: true, trim: true },
         tips: [{ type: String, trim: true }],
         riskScore: { type: Number, min: 0, max: 1 },
-        intent: { type: String },
+        intent: { type: String, trim: true },
         modelInfo: {
-            name: { type: String },
-            version: { type: String }
+            name: { type: String, trim: true },
+            version: { type: String, trim: true },
         },
         feedback: {
             helpful: { type: Boolean },
             rating: { type: Number, min: 1, max: 5 },
-            comment: { type: String, trim: true }
-        }
+            comment: { type: String, trim: true },
+        },
     },
     { timestamps: true }
 );
 
+// ⚡ Optimize queries by user and recency
 TrichBotSchema.index({ userId: 1, createdAt: -1 });
 
-export default model<ITrichBotMessage>("TrichBotMessage", TrichBotSchema);
+// ✅ Use named export for consistency
+export const TrichBotMessage = model<ITrichBotMessage>("TrichBotMessage", TrichBotSchema);
