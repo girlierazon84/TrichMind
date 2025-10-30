@@ -1,7 +1,7 @@
 // server/src/controllers/predictController.ts
 import { Request, Response } from "express";
 import axios from "axios";
-import Predict from "../models/Predict";
+import { Predict } from "../models/Predict";
 import { PredictDTO } from "../schemas/predictSchema";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ENV } from "../config/env";
