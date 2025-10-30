@@ -3,20 +3,20 @@ import { Router } from "express";
 import { authentication } from "../middlewares/authMiddleware";
 import { validate } from "../middlewares/validateMiddleware";
 import {
-    createTrigger,
-    listTriggers,
-    updateTrigger,
+    createTriggersInsights,
+    listTriggersInsights,
+    updateTriggersInsights,
 } from "../controllers/triggersInsightsController";
 import {
-    TriggerCreateDTO,
-    TriggerUpdateDTO,
-    TriggerListQuery,
+    TriggersInsightsCreateDTO,
+    TriggersInsightsUpdateDTO,
+    TriggersInsightsListQuery,
 } from "../schemas/triggersInsightsSchema";
 
 const router = Router();
 
-router.post("/", authentication(), validate(TriggerCreateDTO), createTrigger);
-router.get("/", authentication(), validate(TriggerListQuery, "query"), listTriggers);
-router.put("/:id", authentication(), validate(TriggerUpdateDTO), updateTrigger);
+router.post("/", authentication(), validate(TriggersInsightsCreateDTO), createTriggersInsights);
+router.get("/", authentication(), validate(TriggersInsightsListQuery, "query"), listTriggersInsights);
+router.put("/:id", authentication(), validate(TriggersInsightsUpdateDTO), updateTriggersInsights);
 
 export default router;
