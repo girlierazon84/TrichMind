@@ -1,4 +1,5 @@
 // server/src/schemas/journalSchema.ts
+
 import { z } from "zod";
 
 /**
