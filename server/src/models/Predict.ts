@@ -33,7 +33,12 @@ export interface IPredict extends Document {
 
 const PredictSchema = new Schema<IPredict>(
     {
-        userId: { type: Schema.Types.ObjectId, ref: "User", index: true, required: true },
+        userId: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+            index: true,
+            required: true,
+        },
 
         age: { type: Number, min: 0, max: 120, required: true },
         age_of_onset: { type: Number, min: 0, max: 120, required: true },
@@ -59,7 +64,8 @@ const PredictSchema = new Schema<IPredict>(
     { timestamps: true }
 );
 
-// Index for fast recent predictions per user
+// ⚡ Optimize queries by user and creation time
 PredictSchema.index({ userId: 1, createdAt: -1 });
 
-export default model<IPredict>("Predict", PredictSchema);
+// ✅ Named export — no default export
+export const Predict = model<IPredict>("Predict", PredictSchema);
