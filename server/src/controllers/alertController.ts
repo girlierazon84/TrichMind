@@ -1,7 +1,7 @@
 // server/src/controllers/alertController.ts
 import { Request, Response } from "express";
 import { User } from "../models/User";
-import AlertLog from "../models/AlertLog";
+import { AlertLog } from "../models/AlertLog";
 import { ENV } from "../config/env";
 import { buildRelapseAlertEmail } from "../templates/relapseAlertEmail";
 import { sendMail } from "../utils/mailer";
