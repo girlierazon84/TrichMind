@@ -1,6 +1,6 @@
 // server/src/controllers/botController.ts
 import { Request, Response } from "express";
-import TrichBotMessage from "../models/TrichBot";
+import { TrichBotMessage } from "../models/TrichBot";
 import { TrichBotCreateDTO, TrichBotListQuery } from "../schemas/trichBotSchema";
 import { asyncHandler } from "../utils/asyncHandler";
 
