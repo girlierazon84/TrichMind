@@ -1,4 +1,5 @@
 // server/src/schemas/trichGameSchema.ts
+
 import { z } from "zod";
 
 /**
