@@ -10,7 +10,6 @@ import { buildWelcomeEmail } from "../templates/welcomeEmail";
 import { buildResetPasswordEmail } from "../templates/resetPasswordEmail";
 import { loggerService } from "../services/loggerService";
 import { userService } from "../services/userService";
-import { IUser } from "../models/User";
 
 /* ─────────────────────────────────────────────────────────────
  * 🔐 Generate Access & Refresh Tokens
