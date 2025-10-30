@@ -17,15 +17,17 @@ const SummaryLogSchema = new Schema<ISummaryLog>(
         userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
         weekOf: { type: Date, required: true },
         avgRisk: { type: Number, min: 0, max: 1 },
-        topCoping: { type: String },
-        streakDays: { type: Number },
-        totalSessions: { type: Number },
+        topCoping: { type: String, trim: true },
+        streakDays: { type: Number, min: 0 },
+        totalSessions: { type: Number, min: 0 },
         sentAt: { type: Date, default: Date.now },
         status: { type: String, enum: ["sent", "failed"], default: "sent" },
     },
     { timestamps: true }
 );
 
+// ⚡ Optimize lookups per user and week
 SummaryLogSchema.index({ userId: 1, weekOf: -1 });
 
-export default model<ISummaryLog>("SummaryLog", SummaryLogSchema);
+// ✅ Use named export for consistency
+export const SummaryLog = model<ISummaryLog>("SummaryLog", SummaryLogSchema);
