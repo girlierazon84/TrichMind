@@ -1,7 +1,7 @@
 // server/src/controllers/summaryController.ts
 import { Request, Response } from "express";
 import { User } from "../models/User";
-import SummaryLog from "../models/SummaryLog";
+import { SummaryLog } from "../models/SummaryLog";
 import { sendMail } from "../utils/mailer";
 import { buildWeeklySummaryEmail } from "../templates/weeklySummaryEmail";
 import { logger } from "../utils/logger";
