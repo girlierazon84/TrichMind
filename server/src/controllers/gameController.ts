@@ -1,6 +1,6 @@
 // server/src/controllers/gameController.ts
 import { Request, Response } from "express";
-import GameSession from "../models/TrichGame";
+import { GameSession } from "../models/TrichGame";
 import { GameSessionCreateDTO, GameSessionUpdateDTO, GameSessionListQuery } from "../schemas/trichGameSchema";
 import { asyncHandler } from "../utils/asyncHandler";
 
