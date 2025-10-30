@@ -1,73 +1,87 @@
 // server/src/controllers/healthController.ts
+
 import { Request, Response } from "express";
-import HealthLog from "../models/HealthLog";
-import { HealthCreateSchema, HealthUpdateSchema, HealthListQuerySchema } from "../schemas/healthSchema";
-import { logger } from "../utils/logger";
 import { asyncHandler } from "../utils/asyncHandler";
-import axios from "axios";
-import { ENV } from "../config/env";
+import { HealthCreateSchema, HealthUpdateSchema, HealthListQuerySchema } from "../schemas/healthSchema";
+import { healthService } from "../services/healthService";
+import { loggerService } from "../services/loggerService";
 
 /**
- * Create a new health log and send to ML model for relapse prediction
+ * 🩺 Create a new health log and request ML relapse-risk prediction
  */
 export const createHealthLog = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.auth?.userId!;
     const body = HealthCreateSchema.parse(req.body);
 
-    const log = await HealthLog.create({ userId, ...body });
+    // 1️⃣ Create health log
+    const log = await healthService.createHealthLog(userId, body);
 
+    // 2️⃣ Attempt ML prediction enrichment
     try {
-        // Send data to FastAPI ML service for prediction
-        const { data: prediction } = await axios.post(`${ENV.ML_BASE_URL}/predict`, {
-            age: 30,
-            pulling_severity: body.stressLevel,
-            pulling_frequency_encoded: 1,
-            awareness_level_encoded: 0.5,
-            successfully_stopped_encoded: 0,
-            how_long_stopped_days_est: 0,
-            emotion: "neutral",
+        const enriched = await healthService.enrichWithPrediction(log);
+        await loggerService.logInfo("Health log created & enriched", {
+            userId,
+            logId: log._id,
+            riskScore: enriched?.relapseRisk?.score,
         });
 
-        if (prediction?.risk_score) {
-            log.relapseRisk = {
-                score: prediction.risk_score,
-                bucket: prediction.risk_bucket || "unknown",
-                confidence: prediction.confidence || null,
-            };
-            await log.save();
-        }
+        return res.status(201).json({ ok: true, log: enriched });
     } catch (err: any) {
-        logger.warn(`⚠️ ML prediction failed: ${err.message}`);
-    }
+        await loggerService.log(
+            "Health log created (ML failed)",
+            "warning",
+            "ml",
+            {
+                userId,
+                error: err.message,
+            },
+            userId
+        );
 
-    res.status(201).json({ ok: true, log });
+        return res.status(201).json({
+            ok: true,
+            log,
+            warning: "Health log created, but ML enrichment failed",
+        });
+    }
 });
 
 /**
- * Get recent logs
+ * 📋 Get recent health logs (with pagination and sorting)
  */
 export const listHealthLogs = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.auth?.userId!;
     const query = HealthListQuerySchema.parse(req.query);
 
-    const skip = (query.page - 1) * query.limit;
-    const logs = await HealthLog.find({ userId })
-        .sort(query.sort.replace("-", "") as any)
-        .skip(skip)
-        .limit(query.limit);
+    const logs = await healthService.getHealthLogs(userId, query);
+
+    await loggerService.logInfo("Health logs fetched", {
+        userId,
+        count: logs.length,
+        sort: query.sort,
+    });
 
     res.json({ ok: true, count: logs.length, logs });
 });
 
 /**
- * Update an existing log
- */
-export const updateHealthLog = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const data = HealthUpdateSchema.parse(req.body);
+ * 🔄 Update an existing health log
+    if (!updated) {
+        await loggerService.log(
+            "Health log not found for update",
+            "warning",
+            "system",
+            { id }
+        );
+        return res.status(404).json({ ok: false, error: "Health log not found" });
+    }
 
-    const updated = await HealthLog.findByIdAndUpdate(id, data, { new: true });
-    if (!updated) return res.status(404).json({ error: "Health log not found" });
+    const updated = await healthService.updateHealthLog(id, data);
+    if (!updated) {
+        await loggerService.logWarn("Health log not found for update", { id });
+        return res.status(404).json({ ok: false, error: "Health log not found" });
+    }
 
+    await loggerService.logInfo("Health log updated", { id });
     res.json({ ok: true, updated });
-});
+ **/
