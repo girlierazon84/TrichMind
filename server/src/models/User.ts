@@ -1,8 +1,10 @@
 // server/src/models/User.ts
-import { Schema, model, Document } from "mongoose";
+
+import { Schema, model, Document, Types } from "mongoose";
 import bcrypt from "bcryptjs";
 
 export interface IUser extends Document {
+    _id: Types.ObjectId; // ✅ Add this line
     email: string;
     password: string;
     displayName?: string;
@@ -36,7 +38,7 @@ const UserSchema = new Schema<IUser>(
     { timestamps: true }
 );
 
-// Hash password
+// 🔐 Hash password before save
 UserSchema.pre("save", async function (next) {
     const self = this as IUser;
     if (!self.isModified("password")) return next();
@@ -44,12 +46,12 @@ UserSchema.pre("save", async function (next) {
     next();
 });
 
-// Compare password
+// 🔑 Compare password
 UserSchema.methods.compare = function (pw: string) {
     return bcrypt.compare(pw, this.password);
 };
 
-// Auto-calculate years_since_onset
+// 🧮 Auto-calculate years_since_onset
 UserSchema.pre("save", function (next) {
     const self = this as IUser;
     if (self.date_of_birth && typeof self.age_of_onset === "number") {
@@ -65,4 +67,4 @@ UserSchema.pre("save", function (next) {
     next();
 });
 
-export default model<IUser>("User", UserSchema);
+export const User = model<IUser>("User", UserSchema); // ✅ Named export
