@@ -1,6 +1,6 @@
 // server/src/controllers/journalController.ts
 import { Request, Response } from "express";
-import JournalEntry from "../models/JournalEntry";
+import { JournalEntry } from "../models/JournalEntry";
 import { JournalCreateDTO, JournalUpdateDTO, JournalListQuery } from "../schemas/journalSchema";
 import { asyncHandler } from "../utils/asyncHandler";
 
