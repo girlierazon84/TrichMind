@@ -1,36 +1,65 @@
-// server/src/controllers/triggersController.ts
-import { Request, Response } from "express";
-import { Trigger } from "../models/TriggersInsights";
-import { TriggerCreateDTO, TriggerUpdateDTO, TriggerListQuery } from "../schemas/triggersInsightsSchema";
-import { asyncHandler } from "../utils/asyncHandler";
+// server/src/controllers/triggersInsightsController.ts
 
-export const createTrigger = asyncHandler(async (req: Request, res: Response) => {
+import { Request, Response } from "express";
+import { asyncHandler } from "../utils/asyncHandler";
+import { triggersInsightsService } from "../services/triggersInsightsService";
+import {
+    TriggersInsightsCreateDTO,
+    TriggersInsightsUpdateDTO,
+    TriggersInsightsListQuery,
+} from "../schemas/triggersInsightsSchema";
+import { loggerService } from "../services/loggerService";
+
+/**
+ * ➕ Create a new trigger insight entry
+ */
+export const createTriggersInsights = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.auth?.userId!;
-    const data = TriggerCreateDTO.parse({ ...req.body, userId });
-    const trigger = await Trigger.create(data);
+    const data = TriggersInsightsCreateDTO.parse(req.body);
+
+    const trigger = await triggersInsightsService.create(userId, data);
+
+    await loggerService.logInfo("Triggers & Insights created!", {
+        userId,
+        triggerId: trigger._id,
+        name: trigger.name,
+    });
+
     res.status(201).json({ ok: true, trigger });
 });
 
-export const listTriggers = asyncHandler(async (req: Request, res: Response) => {
+/**
+ * 📋 List all trigger insights for a user (with pagination & search)
+ */
+export const listTriggersInsights = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.auth?.userId!;
-    const query = TriggerListQuery.parse(req.query);
-    const skip = (query.page - 1) * query.limit;
+    const query = TriggersInsightsListQuery.parse(req.query);
 
-    const filter: any = { userId };
-    if (query.search) filter.name = { $regex: query.search, $options: "i" };
+    const triggers = await triggersInsightsService.list(userId, query);
 
-    const triggers = await Trigger.find(filter)
-        .sort(query.sort)
-        .skip(skip)
-        .limit(query.limit);
+    await loggerService.logInfo("Fetched triggers & insights!", {
+        userId,
+        count: triggers.length,
+        search: query.search,
+    });
 
-    res.json({ ok: true, count: triggers.length, triggers });
+    res.status(200).json({ ok: true, count: triggers.length, triggers });
 });
 
-export const updateTrigger = asyncHandler(async (req: Request, res: Response) => {
+/**
+ * ✏️ Update an existing trigger insight
+ */
+export const updateTriggersInsights = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const data = TriggerUpdateDTO.parse(req.body);
-    const updated = await Trigger.findByIdAndUpdate(id, data, { new: true });
-    if (!updated) return res.status(404).json({ error: "Trigger not found" });
-    res.json({ ok: true, updated });
+    const data = TriggersInsightsUpdateDTO.parse(req.body);
+
+    const updated = await triggersInsightsService.update(id, data);
+
+    if (!updated) {
+        await loggerService.log("Triggers & Insights not found!", "warning", "system", { id });
+        return res.status(404).json({ ok: false, error: "Triggers & Insights not found!" });
+    }
+
+    await loggerService.logInfo("Triggers & Insights updated!", { id });
+    res.status(200).json({ ok: true, updated });
 });
