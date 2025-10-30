@@ -1,6 +1,6 @@
 // server/src/services/loggerService.ts
 
-import LogEvent, { ILogEvent } from "../models/LogModel";
+import { LogEvent, ILogEvent } from "../models/LogModel";
 
 /**
  * 🧠 loggerService
