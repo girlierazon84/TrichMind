@@ -1,7 +1,7 @@
 // server/src/routes/userRoutes.ts
 import { Router } from "express";
 import { authentication } from "../middlewares/authMiddleware";
-import User from "../models/User";
+import { User } from "../models/User";
 import HealthLog from "../models/HealthLog";
 import { asyncHandler } from "../utils/asyncHandler";
 
