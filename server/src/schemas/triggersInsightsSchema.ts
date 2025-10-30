@@ -6,21 +6,21 @@ import { z } from "zod";
  * ⚡ Trigger schema
  * Used for identifying behavioral or environmental triggers.
  */
-export const TriggerCreateDTO = z.object({
+export const TriggersInsightsCreateDTO = z.object({
     userId: z.string().min(1),
     name: z.string().min(1).trim(),
     frequency: z.number().min(0).default(0),
 });
-export type TriggerCreateDTO = z.infer<typeof TriggerCreateDTO>;
+export type TriggersInsightsCreateDTO = z.infer<typeof TriggersInsightsCreateDTO>;
 
-export const TriggerUpdateDTO = TriggerCreateDTO.partial();
-export type TriggerUpdateDTO = z.infer<typeof TriggerUpdateDTO>;
+export const TriggersInsightsUpdateDTO = TriggersInsightsCreateDTO.partial();
+export type TriggersInsightsUpdateDTO = z.infer<typeof TriggersInsightsUpdateDTO>;
 
-export const TriggerListQuery = z.object({
+export const TriggersInsightsListQuery = z.object({
     userId: z.string().optional(),
     search: z.string().optional(),
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(200).default(50),
     sort: z.string().default("-frequency"),
 });
-export type TriggerListQuery = z.infer<typeof TriggerListQuery>;
+export type TriggersInsightsListQuery = z.infer<typeof TriggersInsightsListQuery>;
