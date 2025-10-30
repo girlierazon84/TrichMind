@@ -1,6 +1,6 @@
 // server/src/controllers/triggersController.ts
 import { Request, Response } from "express";
-import Trigger from "../models/TriggersInsights";
+import { Trigger } from "../models/TriggersInsights";
 import { TriggerCreateDTO, TriggerUpdateDTO, TriggerListQuery } from "../schemas/triggersInsightsSchema";
 import { asyncHandler } from "../utils/asyncHandler";
 
