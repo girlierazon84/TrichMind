@@ -1,4 +1,5 @@
 // server/src/schemas/healthSchema.ts
+
 import { z } from "zod";
 
 /**
