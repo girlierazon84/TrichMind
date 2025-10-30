@@ -2,7 +2,7 @@
 import { Router } from "express";
 import { authentication } from "../middlewares/authMiddleware";
 import { User } from "../models/User";
-import HealthLog from "../models/HealthLog";
+import { HealthLog } from "../models/HealthLog";
 import { asyncHandler } from "../utils/asyncHandler";
 
 const router = Router();
