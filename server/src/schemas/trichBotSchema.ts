@@ -1,4 +1,5 @@
 // server/src/schemas/trichBotSchema.ts
+
 import { z } from "zod";
 
 /**
