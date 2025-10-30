@@ -10,7 +10,7 @@ import {
     resetPassword,
 } from "../controllers/authController";
 import { RegisterDTO, LoginDTO } from "../schemas/userSchema";
-import User from "../models/User";
+import { User } from "../models/User";
 
 const router = Router();
 
