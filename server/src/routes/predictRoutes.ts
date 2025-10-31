@@ -13,37 +13,63 @@ router.post(
     validate(PredictDTO),
     asyncHandler(async (req, res) => {
         try {
-            console.log("📤 Sending request to ML:", ENV.ML_BASE_URL);
+            console.log("📦 Incoming ML prediction payload:", JSON.stringify(req.body, null, 2));
+            console.log("📤 Forwarding ML prediction request to:", `${ENV.ML_BASE_URL}/predict`);
 
             const { data } = await axios.post(`${ENV.ML_BASE_URL}/predict`, req.body, {
                 timeout: 10000,
+                headers: { "Content-Type": "application/json" },
             });
 
-            console.log("📥 ML Prediction Response:", data);
-            return res.json(data);
-        } catch (error: any) {
-            console.error("❌ ML connection error:", error.message);
+            console.log("📥 ✅ ML Service responded successfully:", data);
 
+            return res.status(200).json({
+                ok: true,
+                prediction: data,
+            });
+        } catch (error: any) {
+            console.error("❌ ML prediction error:", error.message);
+
+            // 🔌 Connection refused or ML service offline
             if (error.code === "ECONNREFUSED") {
                 return res.status(502).json({
                     ok: false,
-                    error: "Cannot connect to ML service at " + ENV.ML_BASE_URL,
+                    error: `Cannot connect to ML service at ${ENV.ML_BASE_URL}`,
                 });
             }
 
-            if (error.response) {
-                return res.status(error.response.status).json({
+            // ⏱ Timeout error
+            if (error.code === "ECONNABORTED") {
+                return res.status(504).json({
                     ok: false,
-                    error: error.response.data?.error || "ML backend returned error.",
+                    error: "ML service timed out. Please try again later.",
                 });
             }
 
+            // 🧠 Error returned from FastAPI
+            if (error.response) {
+                const { status, data } = error.response;
+                console.error("🧠 ML backend returned:", JSON.stringify(data, null, 2));
+
+                return res.status(status).json({
+                    ok: false,
+                    error:
+                        data?.detail ||
+                        data?.error ||
+                        data?.message ||
+                        "ML backend returned an internal error.",
+                    trace: data?.trace || undefined, // optional debug trace from FastAPI
+                });
+            }
+
+            // 🧩 Unknown unexpected error
             return res.status(500).json({
                 ok: false,
                 error: "Unexpected error connecting to ML service.",
+                details: error?.stack || error?.message,
             });
         }
-    })
+    }),
 );
 
 export default router;
