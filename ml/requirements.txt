@@ -13,6 +13,7 @@ seaborn==0.13.2
 fastapi==0.119.1
 uvicorn==0.38.0
 pydantic==2.12.3
+python-multipart==0.0.20
 
 # Data Science / Machine Learning
 pandas==2.3.3
