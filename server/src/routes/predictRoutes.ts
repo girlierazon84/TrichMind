@@ -12,12 +12,10 @@ router.post(
     "/predict",
     validate(PredictDTO),
     asyncHandler(async (req, res) => {
-        const mlUrl = `${ENV.ML_BASE_URL.replace(/\/+$/, "")}/predict`;
-        console.log("📤 Forwarding ML request to:", mlUrl);
-        console.log("📦 Payload:", req.body);
-
         try {
-            const { data } = await axios.post(mlUrl, req.body, {
+            console.log("📤 [ML] Incoming prediction request:", req.body);
+
+            const { data } = await axios.post(`${ENV.ML_BASE_URL}/predict`, req.body, {
                 headers: { "Content-Type": "application/json" },
                 timeout: 10000,
             });
@@ -50,7 +48,7 @@ router.post(
             if (error.code === "ECONNREFUSED") {
                 return res.status(502).json({
                     ok: false,
-                    error: `Cannot connect to ML service at ${mlUrl}`,
+                    error: `Cannot connect to ML service at ${ENV.ML_BASE_URL}`,
                 });
             }
 
