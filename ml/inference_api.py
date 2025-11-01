@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """
+inference_api.py
+
 ✅ TrichMind ML Inference API — Relapse Risk Prediction (with Logging)
 
 Provides:
@@ -20,10 +22,11 @@ import joblib
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional, List
+from contextlib import asynccontextmanager
 
 # ──────────────────────────────
 # Paths & Config
@@ -53,12 +56,44 @@ ALLOWED_ORIGINS: List[str] = (
 )
 
 # ──────────────────────────────
+# Globals
+# ──────────────────────────────
+model = None
+label_encoder = None
+
+# ──────────────────────────────
+# Lifespan Event (modern startup)
+# ──────────────────────────────
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Load model and encoder at startup; cleanup on shutdown."""
+    global model, label_encoder
+
+    if not os.path.exists(MODEL_PATH):
+        raise RuntimeError(f"MODEL_PATH not found: {MODEL_PATH}")
+    if not os.path.exists(ENCODER_PATH):
+        raise RuntimeError(f"ENCODER_PATH not found: {ENCODER_PATH}")
+
+    model = joblib.load(MODEL_PATH)
+    label_encoder = joblib.load(ENCODER_PATH)
+
+    print(f"[startup] ✅ Model loaded successfully")
+    print(f" ├─ Model: {os.path.basename(MODEL_PATH)}")
+    print(f" ├─ Features: {len(getattr(model, 'feature_names_in_', []))}")
+    print(f" └─ Encoder: {os.path.basename(ENCODER_PATH)}")
+
+    yield
+
+    print("[shutdown] 🧹 Cleaning up ML inference resources...")
+
+# ──────────────────────────────
 # FastAPI Setup
 # ──────────────────────────────
 app = FastAPI(
     title="TrichMind Relapse Risk Predictor API",
-    version="3.2.0",
+    version="3.3.0",
     description="Predicts relapse risk probability for Trichotillomania patients using trained ML models.",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -68,9 +103,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-model = None
-label_encoder = None
 
 # ──────────────────────────────
 # Input Schema
@@ -94,7 +126,6 @@ class PredictIn(BaseModel):
 # Helpers
 # ──────────────────────────────
 def encode_emotion(raw: str) -> float:
-    """Encodes emotion string to numeric label using the trained encoder."""
     global label_encoder
     if not raw:
         raw = "unknown"
@@ -107,14 +138,13 @@ def encode_emotion(raw: str) -> float:
 
 
 def build_feature_frame(input_data: List[PredictIn] | PredictIn) -> pd.DataFrame:
-    """Converts input objects (single or batch) to a DataFrame matching the trained model."""
     if isinstance(input_data, PredictIn):
         input_data = [input_data]
 
     rows = []
     for p in input_data:
         emo = encode_emotion(p.emotion)
-        row = {
+        rows.append({
             "pulling_severity": p.pulling_severity,
             "pulling_frequency_encoded": p.pulling_frequency_encoded,
             "awareness_level_encoded": p.awareness_level_encoded,
@@ -128,8 +158,7 @@ def build_feature_frame(input_data: List[PredictIn] | PredictIn) -> pd.DataFrame
             "depression_level": p.depression_level,
             "coping_strategies_effective": p.coping_strategies_effective,
             "sleep_quality_score": p.sleep_quality_score,
-        }
-        rows.append(row)
+        })
 
     X = pd.DataFrame(rows)
     for col in getattr(model, "feature_names_in_", []):
@@ -137,8 +166,8 @@ def build_feature_frame(input_data: List[PredictIn] | PredictIn) -> pd.DataFrame
             X[col] = 0.0
     return X[getattr(model, "feature_names_in_", X.columns)]
 
+
 def log_inference(entry: dict):
-    """Append a prediction entry to the inference log CSV."""
     header = [
         "timestamp",
         "request_type",
@@ -154,26 +183,6 @@ def log_inference(entry: dict):
         if write_header:
             writer.writeheader()
         writer.writerow(entry)
-
-# ──────────────────────────────
-# Startup — Load Model
-# ──────────────────────────────
-@app.on_event("startup")
-def _load_artifacts():
-    """Load model and encoder at startup."""
-    global model, label_encoder
-    if not os.path.exists(MODEL_PATH):
-        raise RuntimeError(f"MODEL_PATH not found: {MODEL_PATH}")
-    if not os.path.exists(ENCODER_PATH):
-        raise RuntimeError(f"ENCODER_PATH not found: {ENCODER_PATH}")
-
-    model = joblib.load(MODEL_PATH)
-    label_encoder = joblib.load(ENCODER_PATH)
-
-    print(f"[startup] ✅ Model loaded successfully")
-    print(f" ├─ Model: {os.path.basename(MODEL_PATH)}")
-    print(f" ├─ Features: {len(getattr(model, 'feature_names_in_', []))}")
-    print(f" └─ Encoder: {os.path.basename(ENCODER_PATH)}")
 
 # ──────────────────────────────
 # Health Checks
@@ -192,9 +201,12 @@ def healthz():
 # Single Prediction
 # ──────────────────────────────
 @app.post("/predict")
-def predict(p: PredictIn):
+def predict(request: Request, p: PredictIn):
     """Predict relapse-risk probability for one record."""
     try:
+        print(f"\n📥 Incoming /predict request from {request.client.host}")
+        print(f"🧠 Payload: {p.model_dump()}")
+
         X = build_feature_frame(p)
         relapse_prob = (
             float(model.predict_proba(X)[0, 1])
@@ -212,7 +224,8 @@ def predict(p: PredictIn):
             "n_features_used": len(X.columns),
         }
 
-        # Log the inference
+        print(f"✅ Prediction result: {result}\n")
+
         log_inference({
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "request_type": "single",
@@ -230,11 +243,10 @@ def predict(p: PredictIn):
         raise HTTPException(status_code=500, detail=str(e))
 
 # ──────────────────────────────
-# Batch Prediction
+# Batch & CSV Prediction
 # ──────────────────────────────
 @app.post("/batch_predict")
 def batch_predict(data: List[PredictIn]):
-    """Accepts a list of records and returns relapse-risk predictions for each."""
     try:
         X = build_feature_frame(data)
         probs = (
@@ -254,7 +266,6 @@ def batch_predict(data: List[PredictIn]):
                 "confidence": confidence
             })
 
-        # Log batch inference summary
         log_inference({
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "request_type": "batch",
@@ -271,19 +282,15 @@ def batch_predict(data: List[PredictIn]):
         print(f"❌ Batch prediction error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# ──────────────────────────────
-# CSV Upload Prediction
-# ──────────────────────────────
+
 @app.post("/batch_predict_csv")
 async def batch_predict_csv(file: UploadFile = File(...)):
-    """Upload a CSV for batch inference. Logs summary automatically."""
     try:
         contents = await file.read()
         df = pd.read_csv(io.StringIO(contents.decode("utf-8")))
         records = [PredictIn(**row) for row in df.to_dict(orient="records")]
         response = batch_predict(records)
 
-        # Log CSV inference
         log_inference({
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "request_type": "csv",
