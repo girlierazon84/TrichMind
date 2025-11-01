@@ -12,13 +12,14 @@ router.post(
     "/predict",
     validate(PredictDTO),
     asyncHandler(async (req, res) => {
-        try {
-            console.log("📦 Incoming ML prediction payload:", JSON.stringify(req.body, null, 2));
-            console.log("📤 Forwarding ML prediction request to:", `${ENV.ML_BASE_URL}/predict`);
+        const mlUrl = `${ENV.ML_BASE_URL.replace(/\/+$/, "")}/predict`;
+        console.log("📤 Forwarding ML request to:", mlUrl);
+        console.log("📦 Payload:", req.body);
 
-            const { data } = await axios.post(`${ENV.ML_BASE_URL}/predict`, req.body, {
-                timeout: 10000,
+        try {
+            const { data } = await axios.post(mlUrl, req.body, {
                 headers: { "Content-Type": "application/json" },
+                timeout: 10000,
             });
 
             console.log("📥 ✅ ML Service responded successfully:", data);
@@ -28,48 +29,53 @@ router.post(
                 prediction: data,
             });
         } catch (error: any) {
-            console.error("❌ ML prediction error:", error.message);
+            console.error("❌ ML connection error:", error.message);
 
-            // 🔌 Connection refused or ML service offline
+            // 🔎 Detailed Axios debugging info
+            if (error.isAxiosError) {
+                console.error("🔍 Axios error details:", {
+                    code: error.code,
+                    message: error.message,
+                    url: error.config?.url,
+                    method: error.config?.method,
+                    sentData: error.config?.data,
+                    responseStatus: error.response?.status,
+                    responseData: error.response?.data,
+                });
+            } else {
+                console.error("🔍 Non-Axios error caught:", error);
+            }
+
+            // Connection refused
             if (error.code === "ECONNREFUSED") {
                 return res.status(502).json({
                     ok: false,
-                    error: `Cannot connect to ML service at ${ENV.ML_BASE_URL}`,
+                    error: `Cannot connect to ML service at ${mlUrl}`,
                 });
             }
 
-            // ⏱ Timeout error
-            if (error.code === "ECONNABORTED") {
-                return res.status(504).json({
-                    ok: false,
-                    error: "ML service timed out. Please try again later.",
-                });
-            }
-
-            // 🧠 Error returned from FastAPI
+            // Received a response with an error status
             if (error.response) {
-                const { status, data } = error.response;
-                console.error("🧠 ML backend returned:", JSON.stringify(data, null, 2));
-
-                return res.status(status).json({
+                console.error("🧠 ML backend responded with error:", error.response.data);
+                return res.status(error.response.status).json({
                     ok: false,
                     error:
-                        data?.detail ||
-                        data?.error ||
-                        data?.message ||
-                        "ML backend returned an internal error.",
-                    trace: data?.trace || undefined, // optional debug trace from FastAPI
+                        error.response.data?.detail ||
+                        error.response.data?.error ||
+                        error.response.data?.message ||
+                        "ML backend returned an error response.",
                 });
             }
 
-            // 🧩 Unknown unexpected error
+            // Unknown error fallback
             return res.status(500).json({
                 ok: false,
                 error: "Unexpected error connecting to ML service.",
-                details: error?.stack || error?.message,
             });
         }
-    }),
+    })
 );
+router.get("/ping", (_req, res) => res.json({ ok: true, msg: "ML route reachable" }));
+
 
 export default router;
