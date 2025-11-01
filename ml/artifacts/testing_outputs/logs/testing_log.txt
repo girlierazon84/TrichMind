@@ -1,0 +1,28 @@
+────────────────────────────────────────────────────────
+🧠 TrichMind Model Testing — 2025-11-02 00:44:05
+📂 Model Path: C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\artifacts\training_outputs\best_models\best_relapse_risk_predictor_model.pkl
+────────────────────────────────────────────────────────
+🚀 Loading best model and label encoder...
+📂 Loading preprocessed dataset...
+🔍 Running predictions on test set...
+
+📊 Model Performance on Test Set:
+   Accuracy : 1.000
+   Precision: 1.000
+   Recall   : 1.000
+   F1-score : 1.000
+
+🧩 Detailed Classification Report saved → C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\artifacts\testing_outputs\testing_reports\testing_classification_report.txt
+
+✅ Testing metrics saved → C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\artifacts\testing_outputs\metrics_csv\testing_metrics.csv
+📈 Testing history updated → C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\artifacts\testing_outputs\performance_history\testing_performance_history.csv
+
+⏱️ Total Runtime: 0.05 seconds
+📝 Log saved → C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\artifacts\testing_outputs\logs\testing_log.txt
+
+📈 Testing Performance Trend (last 10 runs):
+2025-11-02 00:44:05 | Acc: 1.000 ██████████████████████████████████████████████████
+                      | F1 : 1.000 ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+────────────────────────────────────────────────────────
+🎉 Model testing completed successfully.
+────────────────────────────────────────────────────────
