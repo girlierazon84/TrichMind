@@ -29,7 +29,7 @@ services:
       - ENCODER_PATH=${ENCODER_PATH:-artifacts/training_outputs/label_encoder/label_encoder.pkl}
       - CORS_ORIGIN=http://localhost:5173,http://127.0.0.1:5173
     ports:
-      - "8000:8000"
+      - "8000:8000" # ✅ Expose FastAPI ML to your host for local testing
     volumes:
       - ./ml:/app
     restart: unless-stopped
@@ -39,7 +39,17 @@ services:
     build: ./server
     container_name: trichmind-server-dev
     working_dir: /app
-    command: sh -c "npm run dev"
+    # 👇 Smart switch between local vs container ML endpoint
+    command: >
+      sh -c "
+      if [ \"$NODE_ENV\" = 'production' ]; then
+        echo '🚀 Running TrichMind Server (Production Mode)...';
+        npm run build && npm start;
+      else
+        echo '🧩 Running TrichMind Server (Development Mode)...';
+        npm run dev;
+      fi
+      "
     environment:
       NODE_ENV: development
       SERVER_URL: http://localhost:8080
@@ -47,7 +57,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:-super-secret-change-me}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-refresh-secret-change-me}
       PORT: 8080
-      ML_BASE_URL: http://ml:8000
+      # ✅ Use container name in Docker, fallback to localhost for host-based ML
+      ML_BASE_URL: ${ML_BASE_URL:-http://ml:8000}
       CORS_ORIGIN: http://localhost:5173,http://127.0.0.1:5173
       CLIENT_URL: http://localhost:5173
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
@@ -80,6 +91,7 @@ services:
     environment:
       - NODE_ENV=development
       - VITE_API_BASE=http://server:8080
+      - VITE_APP_NAME=TrichMind
     depends_on:
       - server
     restart: unless-stopped
