@@ -29,7 +29,7 @@ services:
       - ENCODER_PATH=${ENCODER_PATH:-artifacts/training_outputs/label_encoder/label_encoder.pkl}
       - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:5173,http://127.0.0.1:5173}
     ports:
-      - "8000:8000"
+      - "8000:8000" # Expose FastAPI to the host machine
     volumes:
       - ./ml:/app
     healthcheck:
@@ -51,7 +51,17 @@ services:
     build: ./server
     container_name: trichmind-server
     working_dir: /app
-    command: sh -c "npm run dev"
+    # 👇 Smart dev/prod startup logic
+    command: >
+      sh -c "
+      if [ \"$NODE_ENV\" = 'production' ]; then
+        echo '🚀 Starting TrichMind Server (PRODUCTION)...';
+        npm run build && npm start;
+      else
+        echo '🧩 Starting TrichMind Server (DEV hot reload)...';
+        npm run dev;
+      fi
+      "
     environment:
       NODE_ENV: production
       SERVER_URL: http://server:8080
@@ -59,7 +69,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:-super-secret-change-me}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-refresh-secret-change-me}
       PORT: 8080
-      ML_BASE_URL: http://ml:8000
+      # ✅ Use container name (ml) when inside Docker, fallback to host (localhost)
+      ML_BASE_URL: ${ML_BASE_URL:-http://ml:8000}
       CORS_ORIGIN: http://localhost:5173,http://127.0.0.1:5173
       CLIENT_URL: http://localhost:5173
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
@@ -85,7 +96,7 @@ services:
       start_period: 25s
     restart: unless-stopped
 
-  # 🌐 Frontend — Vite React (Production mode)
+  # 🌐 Frontend — Vite React (Production)
   client:
     build:
       context: ./client
