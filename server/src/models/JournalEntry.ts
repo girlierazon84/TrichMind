@@ -23,12 +23,14 @@ export interface IJournalEntry extends Document {
 // Define the JournalEntry schema
 const JournalEntrySchema = new Schema<IJournalEntry>(
     {
+        // Reference to the user who created the entry
         userId: {
             type: Schema.Types.ObjectId,
             ref: "User",
             index: true,
             required: true,
         },
+        // The journal prompt presented to the user
         prompt: { type: String, trim: true },
         text: { type: String, trim: true, default: "" },
         mood: { type: String, trim: true },
