@@ -1,7 +1,7 @@
 {
-  "name": "server",
+  "name": "trichmind-app-server",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend server for TrichMind, an application dedicated to supporting individuals with trichotillomania through resources, community features, and self-help tools.",
   "main": "index.js",
   "scripts": {
   "dev": "nodemon src/index.ts",
