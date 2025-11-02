@@ -4,9 +4,9 @@
   "description": "Backend server for TrichMind, an application dedicated to supporting individuals with trichotillomania through resources, community features, and self-help tools.",
   "main": "index.js",
   "scripts": {
-  "dev": "nodemon src/index.ts",
-  "build": "tsc",
-  "start": "node dist/index.js"
+    "dev": "nodemon src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
   },
   "keywords": [
     "trichotillomania",
