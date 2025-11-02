@@ -26,12 +26,14 @@ export interface IHealthLog extends Document {
 // ⚙️ Define HealthLog schema
 const HealthLogSchema = new Schema<IHealthLog>(
     {
+        // Reference to the user who created the log
         userId: {
             type: Schema.Types.ObjectId,
             ref: "User",
             index: true,
             required: true,
         },
+        // Hours of sleep logged for the day
         sleepHours: { type: Number, min: 0, max: 24, default: 7 },
         stressLevel: { type: Number, min: 0, max: 10, default: 5 },
         exerciseMinutes: { type: Number, min: 0, max: 1440, default: 0 },
