@@ -27,9 +27,7 @@
     },
 
     /* ---------- Plugins ---------- */
-    "plugins": [
-      { "name": "next" }
-    ]
+    "plugins": [{ "name": "next" }]
   },
 
   /* ---------- Include/Exclude ---------- */
@@ -38,7 +36,8 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
-, "eslint.config.mjs"  ],
+    ".next/dev/types/**/*.ts",
+    "eslint.config.mjs"
+  ],
   "exclude": ["node_modules"]
 }
