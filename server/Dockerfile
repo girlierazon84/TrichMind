@@ -1,23 +1,24 @@
-# server/Dockerfile - Dockerfile for TrichMind Backend
+# ------------------------------------------------
+# 🧠 TrichMind Backend API (Node.js + Express)
+# ------------------------------------------------
+FROM node:20-alpine AS base
 
-# ---------------------------
-# 🧠 TrichMind Backend (Dev)
-# ---------------------------
-FROM node:20-alpine
 WORKDIR /app
 
-# Install build tools for native modules if needed
+# Install build dependencies
 RUN apk add --no-cache python3 make g++
 
-# Copy package files and install all deps
+# Copy package files first for caching
 COPY package*.json ./
-RUN npm install
 
-# Copy full project
+# Install dependencies
+RUN npm ci
+
+# Copy the full backend source
 COPY . .
 
-# Expose app port
+# Expose backend port
 EXPOSE 8080
 
-# Run in dev mode with nodemon + ts-node
+# Run server in development mode
 CMD ["npm", "run", "dev"]
