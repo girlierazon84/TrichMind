@@ -26,7 +26,7 @@ export const ENV = {
     // --------------------
     // MongoDB Connection
     // --------------------
-    MONGO_URI: required("MONGO_URI", "mongodb://mongo:27018/trichmind"),
+    MONGO_URI: required("MONGO_URI", "mongodb://mongo:27017/trichmind"),
 
     // ----------------------
     // JWT & Authentication
