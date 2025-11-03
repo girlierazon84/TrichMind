@@ -1,0 +1,34 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Build outputs
+dist
+build
+.cache
+
+# Local environment
+.env
+.env.local
+.env.development
+.env.production
+
+# Logs
+logs
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Git & IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# Tests
+coverage
+__tests__
+jest.config.js
