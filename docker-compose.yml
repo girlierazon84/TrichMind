@@ -6,7 +6,7 @@ services:
     image: mongo:7
     container_name: trichmind-mongo
     ports:
-      - "27017:27018"
+      - "27018:27017" # ✅ Host 27018 → Container 27017 (MongoDB default)
     volumes:
       - mongo-data:/data/db
     restart: unless-stopped
@@ -42,13 +42,14 @@ services:
     build: ./client
     container_name: trichmind-client
     ports:
-      - "5000:5000"
+      - "5000:3000" # ✅ Host 5000 → Next.js internal port 3000
     environment:
       - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://server:8080
     depends_on:
       - server
     restart: unless-stopped
 
-# Volumes for persistent MongoDB data
+# 🧱 Persistent volume for MongoDB
 volumes:
   mongo-data:
