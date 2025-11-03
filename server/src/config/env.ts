@@ -26,7 +26,7 @@ export const ENV = {
     // --------------------
     // MongoDB Connection
     // --------------------
-    MONGO_URI: required("MONGO_URI", "mongodb://127.0.0.1:27018/trichmind"),
+    MONGO_URI: required("MONGO_URI", "mongodb://mongo:27018/trichmind"),
 
     // ----------------------
     // JWT & Authentication
@@ -37,20 +37,20 @@ export const ENV = {
     // --------------------
     // FastAPI ML backend
     // --------------------
-    ML_BASE_URL: process.env.ML_BASE_URL || "http://127.0.0.1:8000",
+    ML_BASE_URL: process.env.ML_BASE_URL || "http://ml:8000",
 
     // ------------------------------------------
     // Backend (self-reference) + Frontend URLs
     // ------------------------------------------
-    SERVER_URL: process.env.SERVER_URL || "http://localhost:8080",
+    SERVER_URL: process.env.SERVER_URL || "http://server:8080",
 
     // -----------------
     // Frontend / CORS
     // -----------------
-    CLIENT_URL: process.env.CLIENT_URL || "http://localhost:5173",
+    CLIENT_URL: process.env.CLIENT_URL || "http://localhost:5000",
     CORS_ORIGIN:
         process.env.CORS_ORIGIN ||
-        "http://localhost:5173,http://127.0.0.1:5173,http://192.168.1.208:5173",
+        "http://localhost:5000,http://client:5000",
 
     // -----------------------------
     // SMTP (Email configuration)
