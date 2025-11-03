@@ -1,0 +1,74 @@
+### 🧠 TrichMind ML API — Health Check
+GET http://127.0.0.1:8000/healthz
+Accept: application/json
+
+###
+
+### 🔍 Single Relapse-Risk Prediction
+POST http://127.0.0.1:8000/predict
+Content-Type: application/json
+
+{
+  "pulling_severity": 7,
+  "pulling_frequency_encoded": 4,
+  "awareness_level_encoded": 0.3,
+  "how_long_stopped_days_est": 30,
+  "successfully_stopped_encoded": 0,
+  "years_since_onset": 10,
+  "age": 25,
+  "age_of_onset": 15,
+  "emotion": "anxious",
+  "anxiety_level": 0.8,
+  "depression_level": 0.6,
+  "coping_strategies_effective": 0,
+  "sleep_quality_score": 5
+}
+
+###
+
+### 🧩 Batch Prediction (multiple records)
+POST http://127.0.0.1:8000/batch_predict
+Content-Type: application/json
+
+[
+  {
+    "pulling_severity": 8,
+    "pulling_frequency_encoded": 5,
+    "awareness_level_encoded": 0.2,
+    "how_long_stopped_days_est": 10,
+    "successfully_stopped_encoded": 0,
+    "years_since_onset": 12,
+    "age": 28,
+    "age_of_onset": 16,
+    "emotion": "stressed",
+    "anxiety_level": 0.9,
+    "depression_level": 0.7,
+    "coping_strategies_effective": 0,
+    "sleep_quality_score": 4
+  },
+  {
+    "pulling_severity": 4,
+    "pulling_frequency_encoded": 3,
+    "awareness_level_encoded": 0.6,
+    "how_long_stopped_days_est": 120,
+    "successfully_stopped_encoded": 1,
+    "years_since_onset": 5,
+    "age": 22,
+    "age_of_onset": 17,
+    "emotion": "calm",
+    "anxiety_level": 0.3,
+    "depression_level": 0.2,
+    "coping_strategies_effective": 1,
+    "sleep_quality_score": 8
+  }
+]
+
+###
+
+### 📄 CSV Batch Upload (example)
+POST http://127.0.0.1:8000/batch_predict_csv
+Content-Type: multipart/form-data
+
+# Attach your CSV file here:
+# Replace the path below with your own CSV
+file=@C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\sample_batch.csv
