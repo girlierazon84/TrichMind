@@ -44,9 +44,9 @@ COPY --from=build /app/next.config.ts ./next.config.ts
 # Expose app port (Next.js runs internally on 3000)
 EXPOSE 5000
 
-# Start Next.js production server on port 5000
-ENV PORT=5000
-CMD ["npm", "start"]
+# Start Next.js production server on port 5050
+ENV PORT=5050
+CMD ["npm", "run", "dev"]
 
 # -------------------------------------------------------
 # 🧠 Usage
