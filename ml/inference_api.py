@@ -2,13 +2,16 @@
 """
 inference_api.py
 
-✅ TrichMind ML Inference API — Relapse Risk Prediction (with Logging)
+✅ TrichMind ML Inference API — Relapse Risk Prediction (with Logging & Dynamic Class Detection)
 
 Provides:
     • /predict — Single relapse-risk prediction
     • /batch_predict — Multiple predictions (list)
     • /batch_predict_csv — CSV upload for batch inference
     • /live, /healthz — Service checks
+
+Supports both binary and multiclass relapse-risk models.
+Automatically identifies the “high-risk” probability column dynamically.
 
 Logs all predictions to:
     ml/artifacts/inference_outputs/logs/inference_log.csv
@@ -46,6 +49,7 @@ ENCODER_PATH = os.getenv(
     os.path.join(ML_DIR, "label_encoder", "label_encoder.pkl")
 )
 LOG_PATH = os.path.join(LOG_DIR, "inference_log.csv")
+TARGET_CLASS = os.getenv("TARGET_CLASS", "high").lower()
 
 # Allow frontend origins
 CORS_ENV = os.getenv("CORS_ORIGIN")
@@ -80,10 +84,10 @@ async def lifespan(app: FastAPI):
     print(f"[startup] ✅ Model loaded successfully")
     print(f" ├─ Model: {os.path.basename(MODEL_PATH)}")
     print(f" ├─ Features: {len(getattr(model, 'feature_names_in_', []))}")
+    print(f" ├─ Classes: {getattr(model, 'classes_', 'N/A')}")
     print(f" └─ Encoder: {os.path.basename(ENCODER_PATH)}")
 
     yield
-
     print("[shutdown] 🧹 Cleaning up ML inference resources...")
 
 # ──────────────────────────────
@@ -91,7 +95,7 @@ async def lifespan(app: FastAPI):
 # ──────────────────────────────
 app = FastAPI(
     title="TrichMind Relapse Risk Predictor API",
-    version="3.3.0",
+    version="3.4.0",
     description="Predicts relapse risk probability for Trichotillomania patients using trained ML models.",
     lifespan=lifespan,
 )
@@ -126,6 +130,7 @@ class PredictIn(BaseModel):
 # Helpers
 # ──────────────────────────────
 def encode_emotion(raw: str) -> float:
+    """Safely encode emotion using label_encoder."""
     global label_encoder
     if not raw:
         raw = "unknown"
@@ -138,6 +143,7 @@ def encode_emotion(raw: str) -> float:
 
 
 def build_feature_frame(input_data: List[PredictIn] | PredictIn) -> pd.DataFrame:
+    """Convert PredictIn objects to a properly ordered DataFrame for model input."""
     if isinstance(input_data, PredictIn):
         input_data = [input_data]
 
@@ -167,7 +173,36 @@ def build_feature_frame(input_data: List[PredictIn] | PredictIn) -> pd.DataFrame
     return X[getattr(model, "feature_names_in_", X.columns)]
 
 
+def get_high_risk_proba(m, X):
+    """Get probability of 'high' class dynamically based on model.classes_."""
+    if not hasattr(m, "predict_proba"):
+        return m.predict(X).astype(float)
+
+    classes = list(getattr(m, "classes_", []))
+    if not classes:
+        return m.predict_proba(X)[:, -1]  # fallback
+
+    # Try to find target class dynamically
+    target_idx = None
+    for label in classes:
+        if str(label).lower() in {TARGET_CLASS, "1", "yes", "positive"}:
+            target_idx = classes.index(label)
+            break
+
+    if target_idx is None:
+        # Fallback to highest numeric label or last column
+        try:
+            numeric = [float(c) for c in classes]
+            target_idx = numeric.index(max(numeric))
+        except Exception:
+            target_idx = -1
+
+    probs = m.predict_proba(X)
+    return probs[:, target_idx]
+
+
 def log_inference(entry: dict):
+    """Append inference event to CSV log."""
     header = [
         "timestamp",
         "request_type",
@@ -208,11 +243,8 @@ def predict(request: Request, p: PredictIn):
         print(f"🧠 Payload: {p.model_dump()}")
 
         X = build_feature_frame(p)
-        relapse_prob = (
-            float(model.predict_proba(X)[0, 1])
-            if hasattr(model, "predict_proba")
-            else float(model.predict(X)[0])
-        )
+        probs = get_high_risk_proba(model, X)
+        relapse_prob = float(probs[0])
 
         bucket = "high" if relapse_prob >= 0.7 else "medium" if relapse_prob >= 0.3 else "low"
         confidence = round(abs(relapse_prob - 0.5) * 2, 3)
@@ -247,13 +279,10 @@ def predict(request: Request, p: PredictIn):
 # ──────────────────────────────
 @app.post("/batch_predict")
 def batch_predict(data: List[PredictIn]):
+    """Handle batch predictions from JSON list."""
     try:
         X = build_feature_frame(data)
-        probs = (
-            model.predict_proba(X)[:, 1]
-            if hasattr(model, "predict_proba")
-            else model.predict(X)
-        )
+        probs = get_high_risk_proba(model, X)
 
         results = []
         for i, prob in enumerate(probs):
@@ -285,6 +314,7 @@ def batch_predict(data: List[PredictIn]):
 
 @app.post("/batch_predict_csv")
 async def batch_predict_csv(file: UploadFile = File(...)):
+    """Handle CSV file upload for batch predictions."""
     try:
         contents = await file.read()
         df = pd.read_csv(io.StringIO(contents.decode("utf-8")))
