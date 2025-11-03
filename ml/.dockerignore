@@ -1,0 +1,47 @@
+# Python cache & compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Logs & temp
+*.log
+logs/
+*.tmp
+*.bak
+
+# Jupyter / notebooks
+*.ipynb_checkpoints
+notebooks/
+
+# Build / output
+build/
+dist/
+*.egg-info/
+
+# Datasets & model artifacts (only include what's needed)
+data/
+experiments/
+artifacts/
+!artifacts/training_outputs/best_models/
+!artifacts/training_outputs/label_encoder/
+
+# Git & IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
