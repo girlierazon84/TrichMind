@@ -1,0 +1,54 @@
+version: "3.9"
+
+services:
+  # 🍃 MongoDB Database
+  mongo:
+    image: mongo:7
+    container_name: trichmind-mongo
+    ports:
+      - "27017:27018"
+    volumes:
+      - mongo-data:/data/db
+    restart: unless-stopped
+
+  # 🤖 FastAPI ML Inference Service
+  ml:
+    build: ./ml
+    container_name: trichmind-ml
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - TZ=Europe/Stockholm
+    depends_on:
+      - mongo
+    restart: unless-stopped
+
+  # 🧱 Node.js Backend API
+  server:
+    build: ./server
+    container_name: trichmind-server
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./server/.env
+    depends_on:
+      - mongo
+      - ml
+    restart: unless-stopped
+
+  # ⚛️ Next.js Frontend
+  client:
+    build: ./client
+    container_name: trichmind-client
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - server
+    restart: unless-stopped
+
+# Volumes for persistent MongoDB data
+volumes:
+  mongo-data:
