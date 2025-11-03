@@ -1,23 +1,24 @@
-// eslint.config.mjs
+// client/eslint.config.mjs
+
 import { defineConfig } from "eslint/config";
-import next from "eslint-config-next";
 import js from "@eslint/js";
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
 
 export default defineConfig([
-  // ✅ Base ESLint rules for modern JavaScript
+  // ✅ JavaScript base config
   js.configs.recommended,
 
-  // ✅ Next.js + React + TypeScript integration
-  ...next(["core-web-vitals", "typescript"]),
+  // ✅ Next.js + React rules
+  ...nextCoreWebVitals,
+  ...nextTypescript,
 
   {
-    // ✅ Custom rules or overrides
     ignores: [".next/**", "out/**", "build/**", "next-env.d.ts"],
-
     rules: {
-      "react/react-in-jsx-scope": "off", // not needed in Next.js
-      "@next/next/no-html-link-for-pages": "off", // optional if using App Router
-      "react/no-unescaped-entities": "off",
-    },
-  },
+      "react/react-in-jsx-scope": "off",
+      "@next/next/no-html-link-for-pages": "off",
+      "react/no-unescaped-entities": "off"
+    }
+  }
 ]);
