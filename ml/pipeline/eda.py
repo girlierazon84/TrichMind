@@ -13,7 +13,7 @@ Generates:
     - EDA_report.md
     - eda_log.txt
 
-Outputs: /ml/artifacts/eda/
+Outputs: ml/artifacts/eda/
 """
 
 import os
@@ -24,20 +24,20 @@ import seaborn as sns
 from datetime import datetime
 
 # ──────────────────────────────
-# Directories
+# Import central config
 # ──────────────────────────────
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ARTIFACTS_DIR = os.path.join(BASE_DIR, "artifacts")
-DB_PATH = os.path.join(ARTIFACTS_DIR, "database", "ttm_database.db")
+from common.config import EDA_DIR, DB_PATH
 
-EDA_DIR = os.path.join(ARTIFACTS_DIR, "eda")
-OUT_PNG = os.path.join(EDA_DIR, "figures")
-OUT_SUMMARY = os.path.join(EDA_DIR, "summary")
-OUT_REPORT = os.path.join(EDA_DIR, "report")
-LOG_PATH = os.path.join(EDA_DIR, "eda_log.txt")
+# ──────────────────────────────
+# Output Directories
+# ──────────────────────────────
+OUT_PNG = EDA_DIR / "figures"
+OUT_SUMMARY = EDA_DIR / "summary"
+OUT_REPORT = EDA_DIR / "report"
+LOG_PATH = EDA_DIR / "eda_log.txt"
 
 for d in [EDA_DIR, OUT_PNG, OUT_SUMMARY, OUT_REPORT]:
-    os.makedirs(d, exist_ok=True)
+    d.mkdir(parents=True, exist_ok=True)
 
 sns.set_theme(style="whitegrid", palette="crest")
 
@@ -45,16 +45,17 @@ sns.set_theme(style="whitegrid", palette="crest")
 # Logging Helper
 # ──────────────────────────────
 def log(msg: str):
-    """Prints and writes a timestamped log entry."""
+    """Prints and writes timestamped log entries."""
     ts = datetime.now().strftime("%H:%M:%S")
     formatted = f"[{ts}] {msg}"
     print(formatted)
     with open(LOG_PATH, "a", encoding="utf-8") as f:
         f.write(formatted + "\n")
 
+
 # Reset previous logs
-if os.path.exists(LOG_PATH):
-    os.remove(LOG_PATH)
+if LOG_PATH.exists():
+    LOG_PATH.unlink()
 
 log("──────────────────────────────────────────────")
 log(f"🧠 TrichMind EDA Session — {datetime.now():%Y-%m-%d %H:%M:%S}")
@@ -63,7 +64,7 @@ log("─────────────────────────
 # ──────────────────────────────
 # Database Connection
 # ──────────────────────────────
-if not os.path.exists(DB_PATH):
+if not DB_PATH.exists():
     raise FileNotFoundError(f"❌ Database not found at: {DB_PATH}")
 
 with sqlite3.connect(DB_PATH) as conn:
@@ -71,7 +72,7 @@ with sqlite3.connect(DB_PATH) as conn:
     log(f"📋 Found tables: {tables}")
 
     def safe_read(tbl: str) -> pd.DataFrame:
-        """Safely read a SQLite table."""
+        """Safely read table if exists."""
         if tbl in tables:
             df = pd.read_sql(f"SELECT * FROM {tbl}", conn)
             if "id" in df.columns:
@@ -101,6 +102,7 @@ if not demo.empty:
             ("education_level", "Education Level", "count"),
             ("family_history", "Family History", "count"),
         ]
+
         for i, (col, title, kind) in enumerate(features):
             if col in demo.columns:
                 ax = axs[i]
@@ -109,13 +111,18 @@ if not demo.empty:
                     summary_data["Mean Age"] = demo[col].mean().round(2)
                     summary_data["Median Age"] = demo[col].median().round(2)
                 else:
-                    sns.countplot(y=demo[col], order=demo[col].value_counts().index,
-                                    ax=ax, palette="crest", legend=False)
+                    sns.countplot(
+                        y=demo[col],
+                        order=demo[col].value_counts().index,
+                        ax=ax,
+                        palette="crest",
+                        legend=False,
+                    )
                     summary_data[f"Top {title}"] = demo[col].mode().iat[0] if not demo[col].mode().empty else "N/A"
                 ax.set_title(title)
                 ax.set_xlabel("")
         plt.tight_layout()
-        plt.savefig(os.path.join(OUT_PNG, "demographics.png"), dpi=150)
+        plt.savefig(OUT_PNG / "demographics.png", dpi=150)
         plt.close(fig)
         log("✅ demographics.png saved.")
     except Exception as e:
@@ -136,7 +143,7 @@ if not beh.empty:
             axs[1].set_title("Pulling Awareness Level")
             summary_data["Top Awareness Level"] = beh["pulling_awareness"].mode().iat[0]
         plt.tight_layout()
-        plt.savefig(os.path.join(OUT_PNG, "behaviour_freq_awareness.png"), dpi=150)
+        plt.savefig(OUT_PNG / "behaviour_freq_awareness.png", dpi=150)
         plt.close(fig)
         log("✅ behaviour_freq_awareness.png saved.")
     except Exception as e:
@@ -160,7 +167,7 @@ try:
         sns.heatmap(corr, cmap="vlag", center=0, annot=False, ax=ax)
         ax.set_title("Correlation Heatmap (Numeric Features)")
         plt.tight_layout()
-        plt.savefig(os.path.join(OUT_PNG, "corr_heatmap.png"), dpi=150)
+        plt.savefig(OUT_PNG / "corr_heatmap.png", dpi=150)
         plt.close(fig)
         log("✅ corr_heatmap.png saved.")
         top_pair = corr.unstack().sort_values(ascending=False).drop_duplicates()
@@ -182,7 +189,7 @@ if not beh.empty and "how_long_stopped" in beh.columns:
         plt.xlabel("Duration (text values)")
         plt.ylabel("Count")
         plt.tight_layout()
-        plt.savefig(os.path.join(OUT_PNG, "no_pull_streak_text.png"), dpi=150)
+        plt.savefig(OUT_PNG / "no_pull_streak_text.png", dpi=150)
         plt.close()
         log("✅ no_pull_streak_text.png saved.")
         summary_data["Entries with 'how_long_stopped'"] = beh["how_long_stopped"].notna().sum()
@@ -194,8 +201,8 @@ if not beh.empty and "how_long_stopped" in beh.columns:
 # ──────────────────────────────
 try:
     summary_df = pd.DataFrame(list(summary_data.items()), columns=["Metric", "Value"])
-    csv_path = os.path.join(OUT_SUMMARY, "EDA_summary.csv")
-    md_path = os.path.join(OUT_REPORT, "EDA_report.md")
+    csv_path = OUT_SUMMARY / "EDA_summary.csv"
+    md_path = OUT_REPORT / "EDA_report.md"
 
     summary_df.to_csv(csv_path, index=False)
     log(f"✅ Summary CSV saved → {csv_path}")
