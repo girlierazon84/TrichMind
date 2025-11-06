@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 
-from ml.common.config import (
+from common.config import (
 DB_PATH, SCALER_PATH, FEATURES_JSON, PREPROC_META_JSON,
 IMPUTE_CSV, HEATMAP_PNG, PREPROC_LOG_DIR, PREPROC_FIG_DIR,
 )
