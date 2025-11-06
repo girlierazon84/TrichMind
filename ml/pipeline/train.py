@@ -15,12 +15,12 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-from ml.common.config import (
+from common.config import (
 DB_PATH, FEATURES_JSON, LABEL_ENCODER, MODEL_PATH,
 TRAIN_LOG, TRAIN_METRICS_CSV, TRAIN_HISTORY_CSV
 )
-from ml.common.transformers import ColumnSelector
-from ml.common.risk import LABELS # enforce order ['low','medium','high']
+from common.transformers import ColumnSelector
+from common.risk import LABELS # enforce order ['low','medium','high']
 
 
 # Set random seed for reproducibility
