@@ -1,0 +1,17 @@
+[02:46:33] ──────────────────────────────────────────────
+[02:46:33] 🧠 TrichMind EDA Session — 2025-11-06 02:46:33
+[02:46:33] ──────────────────────────────────────────────
+[02:46:33] 📋 Found tables: ['activities', 'coping_strategies_tried', 'demographics', 'effective_coping_strategies', 'emotions_after_pulling', 'emotions_before_pulling', 'hair_pulling_behaviours_patterns', 'other_mental_health_conditions', 'parts_of_the_body_pulled', 'pulling_environment', 'pulling_triggers', 'seasons_affect_pulling_intensity']
+[02:46:33] ✅ Loaded: demographics (122 rows)
+[02:46:33] ✅ Loaded: hair_pulling_behaviours_patterns (122 rows)
+[02:46:35] ✅ demographics.png saved.
+[02:46:35] ✅ behaviour_freq_awareness.png saved.
+[02:46:35] ✅ Loaded: demographics (122 rows)
+[02:46:35] ✅ Loaded: hair_pulling_behaviours_patterns (122 rows)
+[02:46:35] ✅ corr_heatmap.png saved.
+[02:46:36] ✅ no_pull_streak_text.png saved.
+[02:46:36] ✅ Summary CSV saved → C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\artifacts\eda\summary\EDA_summary.csv
+[02:46:36] ✅ Markdown report saved → C:\Users\girli\OneDrive\Desktop\Portfolio-Projects\TrichMind\ml\artifacts\eda\report\EDA_report.md
+[02:46:36] ──────────────────────────────────────────────
+[02:46:36] 🎉 EDA complete! Figures and reports saved.
+[02:46:36] ──────────────────────────────────────────────
