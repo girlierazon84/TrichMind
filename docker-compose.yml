@@ -6,7 +6,7 @@ services:
     image: mongo:7
     container_name: trichmind-mongo
     ports:
-      - "27018:27017"  # ✅ Host 27018 → Container 27017 (MongoDB default)
+      - "27018:27017"
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -25,7 +25,8 @@ services:
     env_file:
       - ./ml/.env
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/live"]
       interval: 30s
@@ -58,7 +59,7 @@ services:
     build: ./client
     container_name: trichmind-client
     ports:
-      - "5050:5000"  # ✅ Host 5050 → Next.js internal port 5000
+      - "5050:5000" # Host 5050 → Next.js internal port 5000
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=http://server:8080
@@ -72,6 +73,5 @@ services:
       retries: 3
     restart: unless-stopped
 
-# 🧱 Persistent volume for MongoDB
 volumes:
   mongo-data:
