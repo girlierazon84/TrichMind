@@ -33,9 +33,12 @@ class ColumnSelector(BaseEstimator, TransformerMixin):
         cols = self.feature_names if self.feature_names is not None else list(X_df.columns)
 
         # Add any missing columns to preserve model input shape
-        for c in cols:
-            if c not in X_df.columns:
-                X_df[c] = 0.0
+        missing_cols = [c for c in cols if c not in X_df.columns]
+        if missing_cols:
+            X_df = pd.concat(
+                [X_df, pd.DataFrame(0.0, index=X_df.index, columns=missing_cols)],
+                axis=1,
+            )
 
         # Return in correct order
         return X_df[cols]
