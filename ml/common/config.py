@@ -63,10 +63,10 @@ CSV_SEPARATOR = ";"
 
 # Ensure dirs exist
 for p in [DB_DIR, EDA_DIR, PREPROC_DIR, PREPROC_FIG_DIR, PREPROC_LOG_DIR,
-            TRAIN_DIR, MODEL_DIR, ENCODER_DIR, VAL_DIR, VAL_FIG_DIR,
-            TEST_DIR, INFER_DIR, INFER_LOG_DIR, PREPROC_DIR / "summary",
-            TRAIN_DIR / "logs", TRAIN_DIR / "metrics_csv", TRAIN_DIR / "performance_history",
-            VAL_DIR / "logs", VAL_DIR / "metrics_csv", VAL_DIR / "performance_history",
-            TEST_DIR / "logs", TEST_DIR / "metrics_csv", TEST_DIR / "performance_history", TEST_DIR / "testing_reports",
-            SCALER_DIR, PREPROC_META_DIR, DB_DIR]:
-    p.mkdir(parents=True, exist_ok=True)
+                TRAIN_DIR, MODEL_DIR, ENCODER_DIR, VAL_DIR, VAL_FIG_DIR,
+                TEST_DIR, INFER_DIR, INFER_LOG_DIR, PREPROC_DIR / "summary",
+                TRAIN_DIR / "logs", TRAIN_DIR / "metrics_csv", TRAIN_DIR / "performance_history",
+                VAL_DIR / "logs", VAL_DIR / "metrics_csv", VAL_DIR / "performance_history",
+                TEST_DIR / "logs", TEST_DIR / "metrics_csv", TEST_DIR / "performance_history", TEST_DIR / "testing_reports",
+                SCALER_DIR, PREPROC_META_DIR, DB_DIR]:
+        p.mkdir(parents=True, exist_ok=True)
