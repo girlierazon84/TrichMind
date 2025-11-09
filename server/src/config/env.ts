@@ -15,7 +15,20 @@ const required = (key: string, fallback?: string): string => {
 
 /**----------------------------------------------------------------
 ✅ Centralized environment configuration for the TrichMind backend
+Automatically switches hosts between local and Docker environments
 -------------------------------------------------------------------**/
+
+// Detect if running locally vs. Docker
+const isLocal =
+    process.env.NODE_ENV === "development" ||
+    process.env.NODE_ENV === "local" ||
+    process.env.NODE_ENV === undefined;
+
+// Default host switching
+const DEFAULT_MONGO_HOST = isLocal ? "localhost" : "mongo";
+const DEFAULT_ML_HOST = isLocal ? "localhost" : "ml";
+const DEFAULT_SERVER_HOST = isLocal ? "localhost" : "server";
+
 export const ENV = {
     // -----------------------
     // Environment Variables
@@ -26,7 +39,10 @@ export const ENV = {
     // --------------------
     // MongoDB Connection
     // --------------------
-    MONGO_URI: required("MONGO_URI", "mongodb://mongo:27017/trichmind"),
+    MONGO_URI: required(
+        "MONGO_URI",
+        `mongodb://${DEFAULT_MONGO_HOST}:27017/trichmind`
+    ),
 
     // ----------------------
     // JWT & Authentication
@@ -37,12 +53,14 @@ export const ENV = {
     // --------------------
     // FastAPI ML backend
     // --------------------
-    ML_BASE_URL: process.env.ML_BASE_URL || "http://ml:8000",
+    ML_BASE_URL:
+        process.env.ML_BASE_URL || `http://${DEFAULT_ML_HOST}:8000`,
 
     // ------------------------------------------
     // Backend (self-reference) + Frontend URLs
     // ------------------------------------------
-    SERVER_URL: process.env.SERVER_URL || "http://server:8080",
+    SERVER_URL:
+        process.env.SERVER_URL || `http://${DEFAULT_SERVER_HOST}:8080`,
 
     // -----------------
     // Frontend / CORS
