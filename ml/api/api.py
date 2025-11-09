@@ -122,7 +122,7 @@ def model_weighted_score(X: pd.DataFrame) -> np.ndarray:
 def rule_based_score(p: PredictIn) -> float:
     """
     Transparent rule:
-      severity (0..10), frequency (0..5), awareness (0..1)
+        severity (0..10), frequency (0..5), awareness (0..1)
     Higher severity + frequency increase risk; higher awareness reduces risk.
     Tunable weights: sev 0.6, freq 0.3, awareness 0.1 (inverted).
     """
