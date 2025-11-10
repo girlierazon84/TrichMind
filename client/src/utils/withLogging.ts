@@ -2,9 +2,14 @@
 
 import { loggerApi, type LogEvent } from "@/services/loggerApi";
 import { toast } from "react-toastify";
+import { safePreview } from "@/utils/safePreview";
 
 /**
  * 🌐 withLogging — wraps async API calls with automatic backend + UI logging
+ * Automatically adds:
+ *  - User context (from localStorage)
+ *  - Route path (from window.location)
+ *  - Browser/device info
  *
  * @param fn   The async API function to wrap
  * @param meta Optional metadata (category, action, toast messages)
@@ -24,19 +29,22 @@ export function withLogging<TArgs extends unknown[], TResult>(
         const endpoint =
             meta?.action || (fn.name ? fn.name.replace(/^bound\s*/, "") : "anonymous");
 
+        // Automatically extract environment + user context
+        const context = buildContext(args[0]);
+
         try {
             const result = await fn(...args);
             const duration = Math.round(performance.now() - start);
 
-            // 🧾 Log success event
+            // 🧾 Log success
             await loggerApi.log({
                 level: "info",
                 category: meta?.category ?? "network",
                 message: `${endpoint} request successful`,
                 context: {
+                    ...context,
                     duration_ms: duration,
                     endpoint,
-                    argsPreview: safePreview(args[0]),
                 },
             });
 
@@ -54,7 +62,7 @@ export function withLogging<TArgs extends unknown[], TResult>(
                 category: meta?.category ?? "network",
                 duration_ms: duration,
                 error: msg,
-                argsPreview: safePreview(args[0]),
+                ...context,
             });
 
             // 🚨 Optional toast feedback
@@ -67,15 +75,48 @@ export function withLogging<TArgs extends unknown[], TResult>(
     };
 }
 
-/** 🧩 Safely preview first argument (avoid large or sensitive data) */
-function safePreview(value: unknown): unknown {
+/**
+ * 🧠 Build unified context for all logs
+ * Includes:
+ *  - User (from localStorage)
+ *  - Current route
+ *  - Browser info
+ *  - First argument preview
+ */
+function buildContext(arg: unknown) {
+    const userContext = getUserContext();
+    const browserContext = getBrowserContext();
+    const route = typeof window !== "undefined" ? window.location.pathname : null;
+
+    return {
+        route,
+        user: userContext,
+        browser: browserContext,
+        argsPreview: safePreview(arg),
+    };
+}
+
+/** 🧍 Retrieve minimal user info (from localStorage or future global store) */
+function getUserContext(): Record<string, string | null> | undefined {
     try {
-        if (typeof value === "object" && value !== null) {
-            const shallow = Object.fromEntries(Object.entries(value).slice(0, 5));
-            return shallow;
-        }
-        return value;
+        const raw = localStorage.getItem("user");
+        if (!raw) return undefined;
+        const user = JSON.parse(raw);
+        return {
+            id: user?.id ?? null,
+            email: user?.email ?? null,
+        };
     } catch {
-        return "[unserializable]";
+        return undefined;
     }
+}
+
+/** 💻 Retrieve basic browser + device info */
+function getBrowserContext() {
+    if (typeof navigator === "undefined") return undefined;
+    return {
+        userAgent: navigator.userAgent,
+        language: navigator.language,
+        platform: navigator.platform,
+    };
 }
