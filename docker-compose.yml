@@ -66,6 +66,8 @@ services:
     depends_on:
       server:
         condition: service_healthy
+    networks:
+      - trichmind-net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000"]
       interval: 30s
