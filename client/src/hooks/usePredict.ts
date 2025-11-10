@@ -5,6 +5,8 @@ import { predictApi } from "@/services/predictApi";
 import { useLogger } from "@/hooks/useLogger";
 import type { PredictPayload, PredictionResponse } from "@/types/ml";
 
+
+/** 🧩 Possible API response variations */
 type WirePrediction =
   | PredictionResponse
   | (Omit<PredictionResponse, "risk_bucket"> & {
@@ -19,24 +21,25 @@ const normalize = (resp: WirePrediction): PredictionResponse => {
 
 /**
  * ⚙️ usePredict — manages prediction flow + local state
- * Includes integrated logging via useLogger
+ * Automatically logs prediction summary & errors via useLogger
  */
 export function usePredict() {
   const [result, setResult] = useState<PredictionResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { log, error: logError } = useLogger(false);
+  const { log, error: logError } = useLogger(false); // disable toasts here for cleaner UX
 
   /** 🔮 Run prediction + normalize + log */
   async function predict(payload: PredictPayload): Promise<PredictionResponse> {
     setLoading(true);
     setError(null);
+
     try {
       const wire = (await predictApi.predict(payload)) as WirePrediction;
       const normalized = normalize(wire);
       setResult(normalized);
 
-      await log("Prediction completed", {
+      await log("Prediction successful", {
         risk_score: normalized.risk_score,
         risk_bucket: normalized.risk_bucket,
         confidence: normalized.confidence,
@@ -47,7 +50,7 @@ export function usePredict() {
       const msg = e instanceof Error ? e.message : "Prediction request failed";
       setError(msg);
 
-      await logError("Prediction hook error", {
+      await logError("Prediction error", {
         message: msg,
         payloadSummary: {
           pulling_severity: payload.pulling_severity,
@@ -56,7 +59,7 @@ export function usePredict() {
         },
       });
 
-      throw e; // rethrow for caller-level handling
+      throw e; // Allow caller to handle UI-specific errors
     } finally {
       setLoading(false);
     }
