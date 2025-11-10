@@ -1,7 +1,7 @@
 // client/src/hooks/usePredict.ts
 
 import { useState } from "react";
-import { api } from "@/services/api";
+import { axiosClient } from "@/services/axiosClient";
 
 export interface PredictInput {
   pulling_severity: number;
@@ -36,7 +36,7 @@ export function usePredict(endpoint: string = "/predict") {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.post<{ prediction: PredictResponse }>(
+      const { data } = await axiosClient.post<{ prediction: PredictResponse }>(
         endpoint,
         payload
       );
