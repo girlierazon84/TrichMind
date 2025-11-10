@@ -7,6 +7,7 @@ import { GlobalStyle } from "@/styles/GlobalStyle";
 import { usePredict } from "@/hooks/usePredict";
 import { PredictionForm } from "@/components/PredictionForm";
 import { ResultCard } from "@/components/ResultCard";
+import { BottomNav } from "@/components/BottomNav";
 
 const Page = styled.main`
   min-height: 100dvh;
@@ -38,6 +39,7 @@ export default function App() {
           {result && <ResultCard result={result} />}
         </Container>
       </Page>
+      <BottomNav />
     </ThemeProvider>
   );
 }
