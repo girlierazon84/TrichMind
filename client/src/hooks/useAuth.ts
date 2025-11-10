@@ -9,6 +9,7 @@ import {
     ResetPasswordData,
     AuthResponse,
 } from "@/services/authApi";
+import { useLogger } from "@/hooks/useLogger";
 
 interface User {
     id: string;
@@ -19,6 +20,7 @@ interface User {
 /**
  * 🧠 useAuth — authentication lifecycle hook
  * Handles register, login, logout, token persistence, forgot/reset password
+ * Now integrated with centralized logging
  */
 export function useAuth() {
     const [user, setUser] = useState<User | null>(null);
@@ -26,6 +28,8 @@ export function useAuth() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+
+    const { log, warn, error: logError } = useLogger(false); // disable toasts here for cleaner UX
 
     /** 🔐 Attach or clear Authorization header */
     const setAuthHeader = (jwt: string | null) => {
@@ -39,7 +43,8 @@ export function useAuth() {
         setToken(null);
         setUser(null);
         setAuthHeader(null);
-    }, []);
+        log("User logged out", { time: new Date().toISOString() });
+    }, [log]);
 
     /** 📥 Auto-load user if token exists */
     const fetchUser = useCallback(async () => {
@@ -48,11 +53,12 @@ export function useAuth() {
         try {
             const data = await authApi.me(token);
             setUser(data);
+            log("User authenticated", { userId: data.id });
         } catch {
-            console.warn("Token invalid or expired — logging out.");
+            warn("Token invalid or expired — logging out.");
             logout();
         }
-    }, [token, logout]);
+    }, [token, logout, log, warn]);
 
     useEffect(() => {
         if (token) fetchUser();
@@ -71,11 +77,13 @@ export function useAuth() {
                 setAuthHeader(res.token);
                 setUser(res.user);
                 setSuccess("Registration successful!");
+                log("New user registered", { userId: res.user.id, email: res.user.email });
             }
             return res;
         } catch (err) {
             const msg = err instanceof Error ? err.message : "Registration failed";
             setError(msg);
+            logError("Registration failed", { email: data.email, message: msg });
             return null;
         } finally {
             setLoading(false);
@@ -95,11 +103,13 @@ export function useAuth() {
                 setAuthHeader(res.token);
                 setUser(res.user);
                 setSuccess("Login successful!");
+                log("User logged in", { userId: res.user.id });
             }
             return res;
         } catch (err) {
             const msg = err instanceof Error ? err.message : "Login failed";
             setError(msg);
+            logError("Login attempt failed", { email: data.email, message: msg });
             return null;
         } finally {
             setLoading(false);
@@ -114,10 +124,12 @@ export function useAuth() {
         try {
             const res = await authApi.forgotPassword(email);
             setSuccess(res.message || "Reset link sent to your email.");
+            log("Password reset requested", { email });
             return true;
         } catch (err) {
             const msg = err instanceof Error ? err.message : "Failed to send reset email.";
             setError(msg);
+            logError("Password reset request failed", { email, message: msg });
             return false;
         } finally {
             setLoading(false);
@@ -132,10 +144,12 @@ export function useAuth() {
         try {
             const res = await authApi.resetPassword(data);
             setSuccess(res.message || "Password reset successfully.");
+            log("Password successfully reset", { token: data.token });
             return true;
         } catch (err) {
             const msg = err instanceof Error ? err.message : "Failed to reset password.";
             setError(msg);
+            logError("Password reset failed", { message: msg });
             return false;
         } finally {
             setLoading(false);
@@ -148,8 +162,10 @@ export function useAuth() {
         try {
             const data = await authApi.me(token);
             setUser(data);
+            log("Fetched current user", { userId: data.id });
             return data;
         } catch {
+            warn("Failed to fetch user — logging out.");
             logout();
             return null;
         }
