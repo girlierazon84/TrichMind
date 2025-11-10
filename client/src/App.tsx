@@ -18,6 +18,10 @@ const Page = styled.main`
 const Container = styled.div`
   width: 100%;
   max-width: 760px;
+
+  p {
+    color: ${(props) => props.theme.colors.high_risk};
+  }
 `;
 
 export default function App() {
@@ -29,8 +33,8 @@ export default function App() {
       <Page>
         <Container>
           <PredictionForm onSubmit={predict} />
-          {loading && <p>Predicting…</p>}
-          {error && <p style={{ color: "crimson" }}>{error}</p>}
+          {loading && <h5>Predicting…</h5>}
+          {error && <p>{error}</p>}
           {result && <ResultCard result={result} />}
         </Container>
       </Page>
