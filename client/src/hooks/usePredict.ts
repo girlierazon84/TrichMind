@@ -1,23 +1,62 @@
 // client/src/hooks/usePredict.ts
 
 import { useState } from "react";
-import { predictApi, PredictPayload, PredictionResponse } from "@/services/predictApi";
+import { predictApi } from "@/services/predictApi";
+import { useLogger } from "@/hooks/useLogger";
+import type { PredictPayload, PredictionResponse } from "@/types/ml";
 
-/** React hook that wraps the predict API */
+type WirePrediction =
+  | PredictionResponse
+  | (Omit<PredictionResponse, "risk_bucket"> & {
+    risk_bucket: "LOW" | "MEDIUM" | "HIGH";
+  });
+
+/** 🧩 Normalize API variations (uppercase → lowercase buckets) */
+const normalize = (resp: WirePrediction): PredictionResponse => {
+  const bucket = (resp.risk_bucket as string).toLowerCase() as PredictionResponse["risk_bucket"];
+  return { ...resp, risk_bucket: bucket };
+};
+
+/**
+ * ⚙️ usePredict — manages prediction flow + local state
+ * Includes integrated logging via useLogger
+ */
 export function usePredict() {
   const [result, setResult] = useState<PredictionResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { log, error: logError } = useLogger(false);
 
-  async function predict(payload: PredictPayload): Promise<void> {
+  /** 🔮 Run prediction + normalize + log */
+  async function predict(payload: PredictPayload): Promise<PredictionResponse> {
     setLoading(true);
     setError(null);
     try {
-      const res = await predictApi.predict(payload);
-      setResult(res);
+      const wire = (await predictApi.predict(payload)) as WirePrediction;
+      const normalized = normalize(wire);
+      setResult(normalized);
+
+      await log("Prediction completed", {
+        risk_score: normalized.risk_score,
+        risk_bucket: normalized.risk_bucket,
+        confidence: normalized.confidence,
+      });
+
+      return normalized;
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Prediction request failed";
       setError(msg);
+
+      await logError("Prediction hook error", {
+        message: msg,
+        payloadSummary: {
+          pulling_severity: payload.pulling_severity,
+          frequency: payload.pulling_frequency_encoded,
+          age: payload.age,
+        },
+      });
+
+      throw e; // rethrow for caller-level handling
     } finally {
       setLoading(false);
     }
