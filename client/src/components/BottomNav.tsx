@@ -1,5 +1,6 @@
 // client/src/components/BottomNav.tsx
 
+import React from "react";
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import styled from "styled-components";
@@ -73,7 +74,7 @@ const navItems: ReadonlyArray<NavConfig> = [
     { to: "/trichbot", icon: trichBotIcon, label: "Bot" },
 ] as const;
 
-export default function BottomNav() {
+export function BottomNav() {
     const [visible, setVisible] = useState<boolean>(true);
 
     useEffect(() => {
