@@ -1,7 +1,6 @@
 // client/src/services/authApi.ts
-
 import { axiosClient } from "./axiosClient";
-import { loggerApi } from "./loggerApi";
+import { withLogging } from "@/utils/withLogging";
 
 export interface RegisterData {
     email: string;
@@ -12,10 +11,6 @@ export interface RegisterData {
 export interface LoginData {
     email: string;
     password: string;
-}
-
-export interface ForgotPasswordData {
-    email: string;
 }
 
 export interface ResetPasswordData {
@@ -32,105 +27,68 @@ export interface AuthResponse {
     };
 }
 
-/**
- * 🌐 Auth API — handles register, login, and password management
- * Now includes structured logging via loggerApi
- */
+async function rawRegister(data: RegisterData): Promise<AuthResponse> {
+    const res = await axiosClient.post<AuthResponse>("/auth/register", data);
+    return res.data;
+}
+
+async function rawLogin(data: LoginData): Promise<AuthResponse> {
+    const res = await axiosClient.post<AuthResponse>("/auth/login", data);
+    return res.data;
+}
+
+async function rawForgotPassword(email: string): Promise<{ message: string }> {
+    const res = await axiosClient.post<{ message: string }>("/auth/forgot-password", { email });
+    return res.data;
+}
+
+async function rawResetPassword(data: ResetPasswordData): Promise<{ message: string }> {
+    const res = await axiosClient.post<{ message: string }>("/auth/reset-password", data);
+    return res.data;
+}
+
+async function rawMe(token: string) {
+    const res = await axiosClient.get("/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+}
+
 export const authApi = {
-    /** 🧾 Register a new user */
-    register: async (data: RegisterData): Promise<AuthResponse> => {
-        const start = performance.now();
-        try {
-            const res = await axiosClient.post<AuthResponse>("/auth/register", data);
-            await loggerApi.log({
-                category: "auth",
-                level: "info",
-                message: "User registration successful",
-                context: { email: data.email, duration: performance.now() - start },
-            });
-            return res.data;
-        } catch (err) {
-            await loggerApi.error("User registration failed", {
-                email: data.email,
-                error: err instanceof Error ? err.message : String(err),
-            });
-            throw err;
-        }
-    },
+    register: withLogging(rawRegister, {
+        category: "auth",
+        action: "register",
+        showToast: true,
+        successMessage: "Registration successful!",
+        errorMessage: "Registration failed. Please try again.",
+    }),
 
-    /** 🔑 Log in user */
-    login: async (data: LoginData): Promise<AuthResponse> => {
-        const start = performance.now();
-        try {
-            const res = await axiosClient.post<AuthResponse>("/auth/login", data);
-            await loggerApi.log({
-                category: "auth",
-                level: "info",
-                message: "User login successful",
-                context: { email: data.email, duration: performance.now() - start },
-            });
-            return res.data;
-        } catch (err) {
-            await loggerApi.error("User login failed", {
-                email: data.email,
-                error: err instanceof Error ? err.message : String(err),
-            });
-            throw err;
-        }
-    },
+    login: withLogging(rawLogin, {
+        category: "auth",
+        action: "login",
+        showToast: true,
+        successMessage: "Login successful!",
+        errorMessage: "Login failed. Please check your credentials.",
+    }),
 
-    /** 📧 Request a password reset link */
-    forgotPassword: async (email: string): Promise<{ message: string }> => {
-        try {
-            const res = await axiosClient.post<{ message: string }>("/auth/forgot-password", { email });
-            await loggerApi.warn("Password reset requested", { email });
-            return res.data;
-        } catch (err) {
-            await loggerApi.error("Password reset request failed", {
-                email,
-                error: err instanceof Error ? err.message : String(err),
-            });
-            throw err;
-        }
-    },
+    forgotPassword: withLogging(rawForgotPassword, {
+        category: "auth",
+        action: "forgotPassword",
+        showToast: true,
+        successMessage: "Reset link sent to your email.",
+        errorMessage: "Failed to send reset email.",
+    }),
 
-    /** 🔁 Reset password with valid token */
-    resetPassword: async (data: ResetPasswordData): Promise<{ message: string }> => {
-        try {
-            const res = await axiosClient.post<{ message: string }>("/auth/reset-password", data);
-            await loggerApi.log({
-                category: "auth",
-                level: "info",
-                message: "Password reset successful",
-                context: { token: data.token.slice(0, 6) + "***" },
-            });
-            return res.data;
-        } catch (err) {
-            await loggerApi.error("Password reset failed", {
-                error: err instanceof Error ? err.message : String(err),
-            });
-            throw err;
-        }
-    },
+    resetPassword: withLogging(rawResetPassword, {
+        category: "auth",
+        action: "resetPassword",
+        showToast: true,
+        successMessage: "Password reset successfully.",
+        errorMessage: "Failed to reset password.",
+    }),
 
-    /** 🧠 Get current authenticated user */
-    me: async (token: string) => {
-        try {
-            const res = await axiosClient.get("/auth/me", {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            await loggerApi.log({
-                category: "auth",
-                level: "debug",
-                message: "Fetched authenticated user",
-                context: { tokenPreview: token.slice(0, 6) + "***" },
-            });
-            return res.data;
-        } catch (err) {
-            await loggerApi.error("Fetching user session failed", {
-                error: err instanceof Error ? err.message : String(err),
-            });
-            throw err;
-        }
-    },
+    me: withLogging(rawMe, {
+        category: "auth",
+        action: "me",
+    }),
 };
