@@ -35,5 +35,12 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Expose port 5000
 EXPOSE 5000
 
+# -------------------------------------------------------
+# 🛠️ Stage 3: Development Server
+# -------------------------------------------------------
+CMD [ "npm", "run", "dev", "--host" ]
+
+# Start the server
+# CMD [ "npm", "start" ]
 # Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# CMD ["nginx", "-g", "daemon off;"]
