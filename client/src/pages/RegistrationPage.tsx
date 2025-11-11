@@ -24,3 +24,5 @@ export const RegistrationPage: React.FC = () => {
     </RegistrationContainer>
   );
 }
+
+export default RegistrationPage;
