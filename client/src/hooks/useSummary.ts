@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { summaryApi, type SummaryLog } from "@/services/summaryApi";
-import { useLogger } from "@/hooks/useLogger";
+import { summaryApi, type SummaryLog } from "@/services";
+import { useLogger } from "@/hooks";
 
 export function useSummary() {
     const [loading, setLoading] = useState(false);
