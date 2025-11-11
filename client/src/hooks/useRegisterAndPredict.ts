@@ -1,9 +1,10 @@
 // client/src/hooks/useRegisterAndPredict.ts
+
 import { useState } from "react";
-import { useAuth, usePredict } from "@/hooks";
+import { useLogger, useAuth, usePredict} from "@/hooks";
 import type { PredictionResponse, PredictPayload } from "@/types/ml";
 
-interface RegisterFormData {
+export interface RegisterFormData {
     email: string;
     password: string;
     displayName?: string;
@@ -18,34 +19,52 @@ interface RegisterFormData {
     emotion?: string;
 }
 
+/**
+ * 🧩 useRegisterAndPredict — Unified hook for:
+ *  - Registering a new user (if not already logged in)
+ *  - Immediately running relapse-risk prediction
+ *  - Returning prediction results and state
+ */
 export function useRegisterAndPredict() {
-    const { register } = useAuth();
-    const { predict, loading: predictLoading, error: predictError } = usePredict();
+    const { register, isAuthenticated, user } = useAuth();
+    const { predict, loading: predicting, error: predictError } = usePredict();
+    const { log, error: logError } = useLogger(false);
 
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [prediction, setPrediction] = useState<PredictionResponse | null>(null);
 
+    /** 🧮 Compute user age from date of birth */
     const calculateAge = (dob?: string): number => {
         if (!dob) return 0;
         const diff = Date.now() - new Date(dob).getTime();
         return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
     };
 
+    /**
+     * 🔄 Register new user (if needed) + run prediction
+     */
     async function registerAndPredict(form: RegisterFormData): Promise<PredictionResponse | null> {
         setSubmitting(true);
         setSubmitError(null);
         setPrediction(null);
 
         try {
-            // 1) Register (your useAuth.register should set token & auth header)
-            await register({
-                email: form.email.trim(),
-                password: form.password,
-                displayName: form.displayName?.trim(),
-            });
+            // ──────────────── Step 1: Register only if not already authenticated
+            if (!isAuthenticated) {
+                const registered = await register({
+                    email: form.email.trim(),
+                    password: form.password,
+                    displayName: form.displayName?.trim(),
+                });
 
-            // 2) Build payload
+                if (!registered?.token) throw new Error("Registration failed");
+                await log("User registered successfully", { email: form.email });
+            } else {
+                await log("Existing authenticated user detected", { userId: user?.id });
+            }
+
+            // ──────────────── Step 2: Build ML model payload
             const payload: PredictPayload = {
                 pulling_severity: Number(form.pulling_severity || 0),
                 pulling_frequency_encoded: Number(form.pulling_frequency_encoded || 0),
@@ -58,13 +77,23 @@ export function useRegisterAndPredict() {
                 emotion: form.emotion?.trim() || "neutral",
             };
 
-            // 3) Predict and keep the value
-            const predicted = await predict(payload);
-            setPrediction(predicted);
-            return predicted;
+            // ──────────────── Step 3: Run ML prediction
+            const result = await predict(payload);
+            setPrediction(result);
+
+            await log("Prediction completed", {
+                userId: user?.id || "guest",
+                emotion: payload.emotion,
+            });
+
+            return result;
         } catch (e) {
             const msg = e instanceof Error ? e.message : "Register & Predict failed";
             setSubmitError(msg);
+            await logError("Register & Predict process failed", {
+                error: msg,
+                email: form.email,
+            });
             return null;
         } finally {
             setSubmitting(false);
@@ -76,7 +105,7 @@ export function useRegisterAndPredict() {
         submitting,
         submitError,
         prediction,
-        predicting: predictLoading,
+        predicting,
         predictError,
     };
 }
