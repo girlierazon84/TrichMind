@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 /**
  * 🔒 ProtectedRoute — restricts access to authenticated users only.
  */
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const { isAuthenticated, loading } = useAuth();
 
     if (loading) return <p>Loading...</p>;
@@ -13,3 +13,5 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
     return <>{children}</>;
 }
+
+export default ProtectedRoute;
