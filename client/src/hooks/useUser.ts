@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { userApi, type UpdateProfileData } from "@/services/userApi";
-import { useAuth } from "@/hooks/useAuth";
-import { useLogger } from "@/hooks/useLogger";
+import { userApi, type UpdateProfileData } from "@/services";
+import { useLogger, useAuth } from "@/hooks";
 
 
 /**
