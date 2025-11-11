@@ -2,12 +2,8 @@
 
 import React, { useState } from "react";
 import styled from "styled-components";
-import { ThemedButton } from "@/components/ThemeButton";
-import { useRegisterAndPredict } from "@/hooks/useRegisterAndPredict";
-import { useAuth } from "@/hooks/useAuth";
-import { useUser } from "@/hooks/useUser";
-import { FormInput } from "@/components/FormInput";
-import { ResultCard } from "@/components/ResultCard";
+import { ThemeButton, FormInput, ResultCard } from "@/components";
+import { useRegisterAndPredict, useAuth, useUser} from "@/hooks";
 
 // ──────────────────────────────
 // Styled Components
@@ -201,9 +197,9 @@ export const RegisterPredictForm: React.FC = () => {
         Successfully stopped before?
       </label>
 
-      <ThemedButton type="submit" disabled={submitting}>
+      <ThemeButton type="submit" disabled={submitting}>
         {submitting ? "Submitting..." : "Register & Predict"}
-      </ThemedButton>
+      </ThemeButton>
 
       {submitError && <ErrorMessage>{submitError}</ErrorMessage>}
       {prediction && (
