@@ -3,6 +3,9 @@
 import React from "react";
 import styled from "styled-components";
 
+// ──────────────────────────────
+// Types
+// ──────────────────────────────
 interface FormInputProps {
     label?: string;
     type?: string;
@@ -15,6 +18,10 @@ interface FormInputProps {
     error?: string;
     icon?: React.ReactNode;
 }
+
+// ──────────────────────────────
+// Styled Components
+// ──────────────────────────────
 
 /** 🌿 Wrapper for label + input + error message */
 const InputWrapper = styled.div`
@@ -32,13 +39,13 @@ const Label = styled.label`
     color: ${({ theme }) => theme.colors.text_primary};
 `;
 
-/** ✍️ Styled input field */
-const InputField = styled.input<{ hasError?: boolean }>`
+/** ✍️ Styled input field — uses transient prop `$hasError` */
+const InputField = styled.input<{ $hasError?: boolean }>`
     padding: 0.75rem 1rem;
     font-size: 1rem;
     border: 2px solid
-        ${({ hasError, theme }) =>
-            hasError ? theme.colors.high_risk : theme.colors.fourthly};
+        ${({ $hasError, theme }) =>
+            $hasError ? theme.colors.high_risk : theme.colors.fourthly};
     border-radius: 12px;
     outline: none;
     background-color: ${({ theme }) => theme.colors.card_bg};
@@ -84,6 +91,10 @@ const InputContainer = styled.div`
     }
 `;
 
+// ──────────────────────────────
+// Component
+// ──────────────────────────────
+
 export const FormInput: React.FC<FormInputProps> = ({
     label,
     type = "text",
@@ -100,8 +111,7 @@ export const FormInput: React.FC<FormInputProps> = ({
     const accessibleLabel = label || name.replace(/_/g, " ");
     const accessiblePlaceholder =
         placeholder || `Enter ${accessibleLabel.toLowerCase()}`;
-    const accessibleTitle = `${accessibleLabel}${required ? " (required)" : ""
-        }`;
+    const accessibleTitle = `${accessibleLabel}${required ? " (required)" : ""}`;
 
     return (
         <InputWrapper>
@@ -117,7 +127,7 @@ export const FormInput: React.FC<FormInputProps> = ({
                     onChange={onChange}
                     required={required}
                     disabled={disabled}
-                    hasError={!!error}
+                    $hasError={!!error}
                     aria-invalid={!!error}
                     aria-describedby={error ? `${name}-error` : undefined}
                 />
