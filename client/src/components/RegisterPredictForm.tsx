@@ -45,8 +45,13 @@ const SuccessMessage = styled.p`
 // ──────────────────────────────
 // Component
 // ──────────────────────────────
-export default function RegisterPredictForm() {
-  const { registerAndPredict, submitting, submitError, prediction } = useRegisterAndPredict();
+export const RegisterPredictForm: React.FC = () => {
+  const {
+    registerAndPredict,
+    submitting,
+    submitError,
+    prediction
+  } = useRegisterAndPredict();
 
   const [form, setForm] = useState({
     email: "",
