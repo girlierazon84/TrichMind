@@ -1,6 +1,6 @@
 // client/src/services/userApi.ts
 
-import { axiosClient } from "./axiosClient";
+import { axiosClient } from "@/services";
 import { withLogging } from "@/utils/withLogging";
 
 export interface UpdateProfileData {
