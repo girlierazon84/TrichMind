@@ -1,6 +1,6 @@
 // client/src/services/trichBotApi.ts
 
-import { axiosClient } from "./axiosClient";
+import { axiosClient } from "@/services";
 import { withLogging } from "@/utils/withLogging";
 
 
