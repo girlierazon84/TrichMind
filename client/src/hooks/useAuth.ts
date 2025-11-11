@@ -1,15 +1,15 @@
 // client/src/hooks/useAuth.ts
 
 import { useState, useEffect, useCallback } from "react";
-import { axiosClient } from "@/services/axiosClient";
 import {
+    axiosClient,
     authApi,
     RegisterData,
     LoginData,
     ResetPasswordData,
     AuthResponse,
-} from "@/services/authApi";
-import { useLogger } from "@/hooks/useLogger";
+} from "@/services";
+import { useLogger } from "@/hooks";
 
 interface User {
     id: string;
