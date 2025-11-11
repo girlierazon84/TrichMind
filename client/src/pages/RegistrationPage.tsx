@@ -1,6 +1,6 @@
 // client/src/pages/RegistrationPage.tsx
-import styled from "styled-components";
 
+import styled from "styled-components";
 import RegisterPredictForm from "@/components/RegisterPredictForm";
 
 const RegistrationContainer = styled.main`
