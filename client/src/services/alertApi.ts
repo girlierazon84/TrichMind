@@ -1,8 +1,7 @@
 // client/src/services/alertApi.ts
 
-import { axiosClient } from "./axiosClient";
 import { withLogging } from "@/utils/withLogging";
-import type { LogEvent } from "@/services/loggerApi";
+import { axiosClient , type LogEvent } from "@/services";
 
 export interface AlertLog {
     _id?: string;
