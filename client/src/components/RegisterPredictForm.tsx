@@ -21,6 +21,10 @@ const FormContainer = styled.form`
     font-size: 0.9rem;
     margin-bottom: 0.5rem;
   }
+
+  label{
+    text-align: justify;
+  }
 `;
 
 const SectionTitle = styled.h3`
@@ -28,6 +32,7 @@ const SectionTitle = styled.h3`
   font-weight: 600;
   color: ${({ theme }) => theme.colors.primary};
   margin-bottom: 0.5rem;
+  text-align: left;
 `;
 
 const ErrorMessage = styled.p`
