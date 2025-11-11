@@ -1,8 +1,8 @@
 // client/src/hooks/useTriggers.ts
 
 import { useState } from "react";
-import { triggersApi, type TriggerData } from "@/services/triggersInsightsApi";
-import { useLogger } from "@/hooks/useLogger";
+import { triggersApi, type TriggerData } from "@/services";
+import { useLogger } from "@/hooks";
 
 
 export function useTriggers() {
