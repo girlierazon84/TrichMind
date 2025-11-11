@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import { ThemedButton } from "@/components/ThemeButton";
 import { useRegisterAndPredict } from "@/hooks/useRegisterAndPredict";
+import { useAuth } from "@/hooks/useAuth";
+import { useUser } from "@/hooks/useUser";
 import { FormInput } from "@/components/FormInput";
 import { ResultCard } from "@/components/ResultCard";
 
@@ -46,11 +48,13 @@ const SuccessMessage = styled.p`
 // Component
 // ──────────────────────────────
 export const RegisterPredictForm: React.FC = () => {
+  const { register } = useAuth(); // ✅ From your auth lifecycle
+  const { updateProfile } = useUser(); // optional — to sync user profile fields
   const {
     registerAndPredict,
     submitting,
     submitError,
-    prediction
+    prediction,
   } = useRegisterAndPredict();
 
   const [form, setForm] = useState({
@@ -71,7 +75,7 @@ export const RegisterPredictForm: React.FC = () => {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value, type } = e.target as HTMLInputElement | HTMLSelectElement;
+    const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
     setForm((prev) => ({
       ...prev,
@@ -81,6 +85,24 @@ export const RegisterPredictForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Step 1: register user
+    const authResponse = await register({
+      email: form.email,
+      password: form.password,
+      displayName: form.displayName,
+    });
+
+    if (!authResponse) return; // stop if registration failed
+
+    // Step 2 (optional): update user profile with extra info
+    await updateProfile({
+      emotion: form.emotion,
+      pulling_severity: Number(form.pulling_severity),
+      age: form.date_of_birth ? new Date().getFullYear() - new Date(form.date_of_birth).getFullYear() : undefined,
+    });
+
+    // Step 3: run ML prediction
     await registerAndPredict(form);
   };
 
@@ -192,6 +214,6 @@ export const RegisterPredictForm: React.FC = () => {
       )}
     </FormContainer>
   );
-}
+};
 
 export default RegisterPredictForm;
