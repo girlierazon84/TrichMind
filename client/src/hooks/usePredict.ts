@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { predictApi } from "@/services/predictApi";
-import { alertApi } from "@/services/alertApi";
-import { useLogger } from "@/hooks/useLogger";
+import { predictApi, alertApi } from "@/services";
+import { useLogger } from "@/hooks";
 import type { PredictPayload, PredictionResponse } from "@/types/ml";
 
 /** 🧩 Normalize API variations (uppercase → lowercase buckets) */
