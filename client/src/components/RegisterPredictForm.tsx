@@ -193,3 +193,5 @@ export const RegisterPredictForm: React.FC = () => {
     </FormContainer>
   );
 }
+
+export default RegisterPredictForm;
