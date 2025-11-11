@@ -5,6 +5,7 @@ import { theme } from "@/styles/theme";
 import { GlobalStyle } from "@/styles/GlobalStyle";
 import { RegistrationPage } from "@/pages/RegistrationPage";
 import { BottomNav } from "@/components/BottomNav";
+import { useAuth } from "@/hooks/useAuth";
 
 // ──────────────────────────────
 // Styled Components
@@ -25,21 +26,38 @@ const Container = styled.div`
   text-align: center;
 `;
 
+const WelcomeMessage = styled.h2`
+  color: ${({ theme }) => theme.colors.text_primary};
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 2rem;
+`;
+
 // ──────────────────────────────
-// Main App
+// Main App Component
 // ──────────────────────────────
 export const App = () => {
+  const { user, isAuthenticated } = useAuth();
+
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyle />
       <Page>
         <Container>
-          <RegistrationPage />
+          {!isAuthenticated ? (
+            <RegistrationPage />
+          ) : (
+            <WelcomeMessage>
+              Welcome back, {user?.displayName || user?.email}! 🎉
+            </WelcomeMessage>
+          )}
         </Container>
       </Page>
-      <BottomNav />
+
+      {/* 👇 Only render BottomNav after successful login */}
+      {isAuthenticated && <BottomNav />}
     </ThemeProvider>
   );
-}
+};
 
 export default App;
