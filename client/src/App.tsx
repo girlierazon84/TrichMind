@@ -3,7 +3,7 @@
 import styled, { ThemeProvider } from "styled-components";
 import { theme } from "@/styles/theme";
 import { GlobalStyle } from "@/styles/GlobalStyle";
-import RegistrationPage from "@/pages/RegistrationPage";
+import { RegistrationPage } from "@/pages/RegistrationPage";
 import { BottomNav } from "@/components/BottomNav";
 
 // ──────────────────────────────
@@ -28,7 +28,7 @@ const Container = styled.div`
 // ──────────────────────────────
 // Main App
 // ──────────────────────────────
-export default function App() {
+export const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyle />
