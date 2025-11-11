@@ -3,7 +3,7 @@
 import styled, { ThemeProvider } from "styled-components";
 import { theme } from "@/styles/theme";
 import { GlobalStyle } from "@/styles/GlobalStyle";
-import { RegistrationPage } from "@/pages/RegistrationPage";
+import RegistrationPage from "@/pages/RegistrationPage";
 import { BottomNav } from "@/components/BottomNav";
 
 // ──────────────────────────────
@@ -16,7 +16,7 @@ const Page = styled.main`
   align-items: center;
   justify-content: flex-start;
   padding: 4rem 1rem;
-  background: ${({ theme }) => theme.colors.page_bg || "#f9fafb"};
+  background: ${({ theme }) => theme.colors.page_bg || "#c9e3e4"};
 `;
 
 const Container = styled.div`
