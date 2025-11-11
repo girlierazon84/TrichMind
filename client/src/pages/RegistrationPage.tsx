@@ -1,7 +1,7 @@
 // client/src/pages/RegistrationPage.tsx
 
 import styled from "styled-components";
-import RegisterPredictForm from "@/components/RegisterPredictForm";
+import { RegisterPredictForm } from "@/components/RegisterPredictForm";
 
 const RegistrationContainer = styled.main`
   padding: 2rem;
