@@ -1,8 +1,8 @@
 // client/src/hooks/useTrichBot.ts
 
 import { useState } from "react";
-import { trichBotApi } from "@/services/trichBotApi";
-import { useLogger } from "@/hooks/useLogger";
+import { trichBotApi } from "@/services";
+import { useLogger } from "@/hooks";
 
 export function useTrichBot() {
     const [loading, setLoading] = useState(false);
