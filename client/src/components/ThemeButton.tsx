@@ -1,6 +1,6 @@
 import styled from "styled-components";
 
-export const ThemedButton = styled.button`
+export const ThemeButton = styled.button`
     background: ${({ theme }) => theme.colors.primary};
     color: ${({ theme }) => theme.colors.card_bg};
     border: none;
