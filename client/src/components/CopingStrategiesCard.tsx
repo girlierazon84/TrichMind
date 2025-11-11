@@ -1,5 +1,7 @@
 // client/src/components/CopingStrategiesCard.tsx
 
-export default function CopingStrategiesCard() {
+export const CopingStrategiesCard = () => {
     return <div style={{ padding: "2rem" }}>🧠 Coping Strategies</div>;
 }
+
+export default CopingStrategiesCard;
