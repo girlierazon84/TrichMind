@@ -1,3 +1,5 @@
+// client/src/components/FormInput.tsx
+
 import React from "react";
 import styled from "styled-components";
 
@@ -94,6 +96,13 @@ export const FormInput: React.FC<FormInputProps> = ({
     error,
     icon,
 }) => {
+    // 🧠 Auto-generate accessible fallback text
+    const accessibleLabel = label || name.replace(/_/g, " ");
+    const accessiblePlaceholder =
+        placeholder || `Enter ${accessibleLabel.toLowerCase()}`;
+    const accessibleTitle = `${accessibleLabel}${required ? " (required)" : ""
+        }`;
+
     return (
         <InputWrapper>
             {label && <Label htmlFor={name}>{label}</Label>}
@@ -103,15 +112,18 @@ export const FormInput: React.FC<FormInputProps> = ({
                     name={name}
                     type={type}
                     value={value}
-                    placeholder={placeholder}
+                    placeholder={accessiblePlaceholder}
+                    title={accessibleTitle}
                     onChange={onChange}
                     required={required}
                     disabled={disabled}
                     hasError={!!error}
+                    aria-invalid={!!error}
+                    aria-describedby={error ? `${name}-error` : undefined}
                 />
                 {icon}
             </InputContainer>
-            {error && <ErrorText>{error}</ErrorText>}
+            {error && <ErrorText id={`${name}-error`}>{error}</ErrorText>}
         </InputWrapper>
     );
 };
