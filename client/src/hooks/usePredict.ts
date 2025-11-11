@@ -6,19 +6,22 @@ import { alertApi } from "@/services/alertApi";
 import { useLogger } from "@/hooks/useLogger";
 import type { PredictPayload, PredictionResponse } from "@/types/ml";
 
+/** 🧩 Normalize API variations (uppercase → lowercase buckets) */
 type WirePrediction =
   | PredictionResponse
   | (Omit<PredictionResponse, "risk_bucket"> & {
       risk_bucket: "LOW" | "MEDIUM" | "HIGH";
     });
 
-/** 🧩 Normalize API variations (uppercase → lowercase buckets) */
 const normalize = (resp: WirePrediction): PredictionResponse => {
   const bucket = (resp.risk_bucket as string).toLowerCase() as PredictionResponse["risk_bucket"];
   return { ...resp, risk_bucket: bucket };
 };
 
-/** Pull minimal user context from localStorage (if present) */
+/** 🔧 Configurable threshold for triggering relapse alerts */
+const RELAPSE_ALERT_THRESHOLD = 0.7;
+
+/** 🧠 Retrieve minimal user email (stored post-login) */
 function getLocalUserEmail(): string | undefined {
   try {
     const raw = localStorage.getItem("user");
@@ -32,15 +35,17 @@ function getLocalUserEmail(): string | undefined {
 
 /**
  * ⚙️ usePredict — manages prediction flow + local state
- * Also auto-creates a relapse alert when bucket is "high".
+ * Includes:
+ *  - Logging via useLogger
+ *  - Auto alert creation on high relapse risk
  */
 export function usePredict() {
   const [result, setResult] = useState<PredictionResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { log, error: logError, warn } = useLogger(false); // no toasts here
+  const { log, error: logError, warn } = useLogger(false); // silent backend logging
 
-  /** 🔮 Run prediction + normalize + log (+optional alert) */
+  /** 🔮 Run prediction + log + auto-alert */
   async function predict(payload: PredictPayload): Promise<PredictionResponse> {
     setLoading(true);
     setError(null);
@@ -50,36 +55,39 @@ export function usePredict() {
       const normalized = normalize(wire);
       setResult(normalized);
 
-      await log("Prediction successful", {
+      await log("Prediction completed", {
         risk_score: normalized.risk_score,
         risk_bucket: normalized.risk_bucket,
         confidence: normalized.confidence,
       });
 
-      // 🚨 Auto-create alert when risk is HIGH
-      if (normalized.risk_bucket === "high") {
+      const shouldTriggerAlert =
+        normalized.risk_bucket === "high" || normalized.risk_score >= RELAPSE_ALERT_THRESHOLD;
+
+      if (shouldTriggerAlert) {
         const email = getLocalUserEmail();
         try {
           await alertApi.create({
             score: normalized.risk_score,
             triggeredAt: new Date().toISOString(),
             sent: false,
-            email, // optional
+            email,
           });
 
-          await warn("High-risk alert created", {
+          await warn("Relapse risk alert created", {
             score: normalized.risk_score,
+            risk_bucket: normalized.risk_bucket,
+            threshold: RELAPSE_ALERT_THRESHOLD,
             email: email ?? "(unknown)",
           });
         } catch (alertErr) {
-          // Log alert creation failure but do not block prediction result
-          await logError("Failed to create high-risk alert", {
+          await logError("Failed to create relapse alert", {
             error:
               alertErr instanceof Error
                 ? alertErr.message
                 : String(alertErr),
             score: normalized.risk_score,
-            email: email ?? "(unknown)",
+            risk_bucket: normalized.risk_bucket,
           });
         }
       }
@@ -98,7 +106,7 @@ export function usePredict() {
         },
       });
 
-      throw e; // rethrow for caller-specific handling
+      throw e;
     } finally {
       setLoading(false);
     }
