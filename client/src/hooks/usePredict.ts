@@ -1,6 +1,7 @@
 // client/src/hooks/usePredict.ts
 
 import { useState } from "react";
+import { toast } from "react-toastify";
 import { predictApi } from "@/services/predictApi";
 import { alertApi } from "@/services/alertApi";
 import { useLogger } from "@/hooks/useLogger";
@@ -18,7 +19,7 @@ const normalize = (resp: WirePrediction): PredictionResponse => {
   return { ...resp, risk_bucket: bucket };
 };
 
-/** 🔧 Configurable threshold for triggering relapse alerts */
+/** 🔧 Configurable relapse alert threshold */
 const RELAPSE_ALERT_THRESHOLD = 0.7;
 
 /** 🧠 Retrieve minimal user email (stored post-login) */
@@ -34,18 +35,19 @@ function getLocalUserEmail(): string | undefined {
 }
 
 /**
- * ⚙️ usePredict — manages prediction flow + local state
+ * ⚙️ usePredict — manages prediction flow + alert logic + UI feedback
  * Includes:
- *  - Logging via useLogger
- *  - Auto alert creation on high relapse risk
+ *  - Backend logging (via useLogger)
+ *  - Auto alert creation when relapse risk is high
+ *  - User toast notification for encouragement
  */
 export function usePredict() {
   const [result, setResult] = useState<PredictionResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { log, error: logError, warn } = useLogger(false); // silent backend logging
+  const { log, error: logError, warn } = useLogger(false); // logs only, no UI toasts
 
-  /** 🔮 Run prediction + log + auto-alert */
+  /** 🔮 Run prediction + handle risk & alerts */
   async function predict(payload: PredictPayload): Promise<PredictionResponse> {
     setLoading(true);
     setError(null);
@@ -62,10 +64,13 @@ export function usePredict() {
       });
 
       const shouldTriggerAlert =
-        normalized.risk_bucket === "high" || normalized.risk_score >= RELAPSE_ALERT_THRESHOLD;
+        normalized.risk_bucket === "high" ||
+        normalized.risk_score >= RELAPSE_ALERT_THRESHOLD;
 
       if (shouldTriggerAlert) {
         const email = getLocalUserEmail();
+
+        // 🚨 1️⃣ Save alert backend-side
         try {
           await alertApi.create({
             score: normalized.risk_score,
@@ -90,6 +95,9 @@ export function usePredict() {
             risk_bucket: normalized.risk_bucket,
           });
         }
+
+        // 🌈 2️⃣ Display motivational toast to user
+        showSupportiveToast(normalized);
       }
 
       return normalized;
@@ -113,4 +121,35 @@ export function usePredict() {
   }
 
   return { predict, result, loading, error };
+}
+
+/**
+ * 💬 Supportive toast messages for users when high risk detected
+ * Provides encouragement and positive reinforcement.
+ */
+function showSupportiveToast(result: PredictionResponse) {
+  const msg =
+    result.risk_bucket === "high"
+      ? `⚠️ High relapse risk detected (score: ${(result.risk_score * 100).toFixed(
+          1
+        )}%). Remember to take a calming break, breathe, and use your EmpowerKit tools. 🌿`
+      : result.risk_score >= RELAPSE_ALERT_THRESHOLD
+      ? `🧠 Elevated relapse risk detected (score: ${(result.risk_score * 100).toFixed(
+          1
+        )}%). You’re doing great — consider journaling or using your grounding strategies. ✨`
+      : null;
+
+  if (msg) {
+    toast.warn(msg, {
+      position: "bottom-center",
+      autoClose: 8000,
+      style: {
+        background: "#fff8e1",
+        color: "#3e2723",
+        borderRadius: "10px",
+        border: "1px solid #ffe082",
+        fontWeight: 500,
+      },
+    });
+  }
 }
