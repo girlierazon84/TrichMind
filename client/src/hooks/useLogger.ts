@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { toast } from "react-toastify"; // ✅ you'll need `npm i react-toastify`
-import { loggerApi, type LogEvent} from "@/services/loggerApi";
+import { loggerApi, type LogEvent} from "@/services";
 
 
 /**
