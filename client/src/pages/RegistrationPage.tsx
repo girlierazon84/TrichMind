@@ -1,7 +1,7 @@
 // client/src/pages/RegistrationPage.tsx
 
 import styled from "styled-components";
-import { RegisterPredictForm } from "@/components/RegisterPredictForm.tsx";
+import RegisterPredictForm from "@/components/RegisterPredictForm";
 
 const RegistrationContainer = styled.main`
   min-height: 100dvh;
