@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { healthApi, type HealthLogData } from "@/services/healthApi";
-import { useLogger } from "@/hooks/useLogger";
+import { healthApi, type HealthLogData } from "@/services";
+import { useLogger } from "@/hooks";
 
 
 export function useHealth() {
