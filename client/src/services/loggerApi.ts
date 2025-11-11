@@ -1,6 +1,7 @@
 // client/src/services/loggerApi.ts
 
-import { axiosClient } from "./axiosClient";
+import { axiosClient } from "@/services";
+
 
 /** Log event schema */
 export interface LogEvent {
