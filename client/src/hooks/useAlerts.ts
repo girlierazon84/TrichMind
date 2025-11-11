@@ -1,7 +1,7 @@
 // client/src/hooks/useAlerts.ts
 
 import { useState, useCallback, useEffect } from "react";
-import { alertApi, type AlertLog} from "@/services/alertApi";
+import { alertApi, type AlertLog} from "@/services";
 
 
 /**
