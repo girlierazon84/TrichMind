@@ -1,6 +1,5 @@
 // client/src/pages/RegistrationPage.tsx
 
-import React from "react";
 import styled from "styled-components";
 import { RegisterPredictForm } from "@/components/RegisterPredictForm.tsx";
 
