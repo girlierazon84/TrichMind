@@ -1,5 +1,5 @@
 // client/src/services/authApi.ts
-import { axiosClient } from "./axiosClient";
+import { axiosClient } from "@/services";
 import { withLogging } from "@/utils/withLogging";
 
 export interface RegisterData {
