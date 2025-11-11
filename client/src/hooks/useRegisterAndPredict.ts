@@ -1,7 +1,6 @@
 // client/src/hooks/useRegisterAndPredict.ts
 import { useState } from "react";
-import { useAuth } from "./useAuth";
-import { usePredict } from "./usePredict";
+import { useAuth, usePredict } from "@/hooks";
 import type { PredictionResponse, PredictPayload } from "@/types/ml";
 
 interface RegisterFormData {
