@@ -45,7 +45,7 @@ const SuccessMessage = styled.p`
 // ──────────────────────────────
 // Component
 // ──────────────────────────────
-export function RegisterPredictForm() {
+export default function RegisterPredictForm() {
   const { registerAndPredict, submitting, submitError, prediction } = useRegisterAndPredict();
 
   const [form, setForm] = useState({
