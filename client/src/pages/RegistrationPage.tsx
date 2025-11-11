@@ -1,6 +1,5 @@
 // client/src/pages/RegistrationPage.tsx
 
-import React from "react";
 import styled from "styled-components";
 import { RegisterPredictForm } from "@/components/RegisterPredictForm.tsx";
 
@@ -22,7 +21,7 @@ const Title = styled.h1`
   text-align: center;
 `;
 
-export function RegistrationPage() {
+export default function RegistrationPage() {
   return (
     <RegistrationContainer>
       <Title title="Create Your TrichMind Account">
