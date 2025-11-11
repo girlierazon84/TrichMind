@@ -1,8 +1,8 @@
 // client/src/hooks/useTrichGame.ts
 
 import { useState } from "react";
-import { trichGameApi, type GameSession } from "@/services/trichGameApi";
-import { useLogger } from "@/hooks/useLogger";
+import { trichGameApi, type GameSession } from "@/services";
+import { useLogger } from "@/hooks";
 
 export function useTrichGame() {
     const [loading, setLoading] = useState(false);
