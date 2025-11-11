@@ -1,42 +1,40 @@
 // client/src/App.tsx
 
-import React from "react";
 import styled, { ThemeProvider } from "styled-components";
 import { theme } from "@/styles/theme";
 import { GlobalStyle } from "@/styles/GlobalStyle";
-import { usePredict } from "@/hooks/usePredict";
-import { PredictionForm } from "@/components/PredictionForm";
-import { ResultCard } from "@/components/ResultCard";
+import { RegistrationPage } from "@/pages/RegistrationPage";
 import { BottomNav } from "@/components/BottomNav";
 
+// ──────────────────────────────
+// Styled Components
+// ──────────────────────────────
 const Page = styled.main`
   min-height: 100dvh;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
   padding: 4rem 1rem;
+  background: ${({ theme }) => theme.colors.page_bg || "#f9fafb"};
 `;
 
 const Container = styled.div`
   width: 100%;
   max-width: 760px;
-
-  p {
-    color: ${(props) => props.theme.colors.high_risk};
-  }
+  text-align: center;
 `;
 
+// ──────────────────────────────
+// Main App
+// ──────────────────────────────
 export default function App() {
-  const { predict, result, loading, error } = usePredict("/predict");
-
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyle />
       <Page>
         <Container>
-          <PredictionForm onSubmit={predict} />
-          {loading && <h5>Predicting…</h5>}
-          {error && <p>{error}</p>}
-          {result && <ResultCard result={result} />}
+          <RegistrationPage />
         </Container>
       </Page>
       <BottomNav />
