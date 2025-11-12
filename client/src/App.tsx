@@ -6,6 +6,7 @@ import { GlobalStyle } from "@/styles/GlobalStyle";
 import { RegistrationPage } from "@/pages/RegistrationPage";
 import { BottomNav } from "@/components/BottomNav";
 import { useAuth } from "@/hooks/useAuth";
+import LoginPage from "./pages/LoginPage";
 
 // ──────────────────────────────
 // Styled Components
@@ -45,7 +46,10 @@ export const App = () => {
       <Page>
         <Container>
           {!isAuthenticated ? (
-            <RegistrationPage />
+            <>
+              <RegistrationPage />
+              <LoginPage />
+            </>
           ) : (
             <WelcomeMessage>
               Welcome back, {user?.displayName || user?.email}! 🎉
