@@ -5,7 +5,8 @@ import { toast } from "react-toastify";
 import { summaryApi, type SummaryLog } from "@/services";
 import { useLogger } from "@/hooks";
 
-export function useSummary() {
+
+export const useSummary = () => {
     const [loading, setLoading] = useState(false);
     const { log } = useLogger(false);
 
@@ -23,3 +24,5 @@ export function useSummary() {
 
     return { create, loading };
 }
+
+export default useSummary;
