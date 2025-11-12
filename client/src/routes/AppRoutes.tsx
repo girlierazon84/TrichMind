@@ -1,4 +1,5 @@
 // client/src/routes/AppRoutes.tsx
+
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { RegistrationPage } from "@/pages/RegistrationPage";
 import LoginPage from "@/pages/LoginPage";
