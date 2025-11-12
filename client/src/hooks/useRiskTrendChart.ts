@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { axiosClient } from "@/services";
 
+
 export interface RiskTrendPoint {
     date: string;        // ISO date string (e.g., "2025-11-12")
     risk_score: number;  // risk level (0–1 or 0–100)
