@@ -3,10 +3,9 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { useAuth } from "@/hooks/useAuth";
-import { useLogger } from "@/hooks/useLogger";
+import { useAuth, useLogger } from "@/hooks";
 import { ThemeButton, FormInput } from "@/components";
-import { GlobalStyle } from "@/styles/GlobalStyle";
+import { GlobalStyle } from "@/styles";
 
 
 // ──────────────────────────────
