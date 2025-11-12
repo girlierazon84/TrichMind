@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import styled from "styled-components";
-import { ThemeButton, FormInput, ResultCard } from "@/components";
+import { ThemeButton, FormInput, RiskResultCard } from "@/components";
 import { useRegisterAndPredict, useAuth, useUser } from "@/hooks";
 
 // ──────────────────────────────
@@ -225,7 +225,7 @@ export const RegisterPredictForm: React.FC = () => {
       {prediction && (
         <>
           <SuccessMessage>Prediction Completed 🎯</SuccessMessage>
-          <ResultCard result={prediction} />
+          <RiskResultCard data={prediction} />
         </>
       )}
     </FormContainer>
