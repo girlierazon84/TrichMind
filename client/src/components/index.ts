@@ -6,7 +6,6 @@ export { DailyProgressCard } from './DailyProgressCard';
 export { FormInput } from "./FormInput";
 export { ProtectedRoute } from "./ProtectedRoute";
 export { RegisterPredictForm } from "./RegisterPredictForm";
-export { ResultCard } from "./ResultCard";
 export { RiskResultCard } from "./RiskResultCard";
 export { RiskTrendChart } from "./RiskTrendChart";
 export { ThemeButton } from "./ThemeButton";
