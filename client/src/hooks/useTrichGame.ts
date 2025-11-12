@@ -4,7 +4,8 @@ import { useState } from "react";
 import { trichGameApi, type GameSession } from "@/services";
 import { useLogger } from "@/hooks";
 
-export function useTrichGame() {
+
+export const useTrichGame = () => {
     const [loading, setLoading] = useState(false);
     const { log } = useLogger(false);
 
@@ -21,3 +22,5 @@ export function useTrichGame() {
 
     return { startSession, loading };
 }
+
+export default useTrichGame;
