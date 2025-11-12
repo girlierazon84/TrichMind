@@ -1,11 +1,11 @@
 // client/src/components/index.ts
 
-export { BottomNav } from './BottomNav';
-export { CopingStrategiesCard } from './CopingStrategiesCard';
-export { DailyProgressCard } from './DailyProgressCard';
-export { FormInput } from "./FormInput";
-export { ProtectedRoute } from "./ProtectedRoute";
-export { RegisterPredictForm } from "./RegisterPredictForm";
-export { RiskResultCard } from "./RiskResultCard";
-export { RiskTrendChart } from "./RiskTrendChart";
-export { ThemeButton } from "./ThemeButton";
+export * from './BottomNav';
+export * from './CopingStrategiesCard';
+export * from './DailyProgressCard';
+export * from './FormInput';
+export * from './ProtectedRoute';
+export * from './RegisterPredictForm';
+export * from './RiskResultCard';
+export * from './RiskTrendChart';
+export * from './ThemeButton';
