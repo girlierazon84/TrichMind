@@ -6,6 +6,7 @@ import { predictApi, alertApi } from "@/services";
 import { useLogger } from "@/hooks";
 import type { PredictPayload, PredictionResponse } from "@/types/ml";
 
+
 /** 🧩 Normalize API variations (uppercase → lowercase buckets) */
 type WirePrediction =
   | PredictionResponse
@@ -40,7 +41,7 @@ function getLocalUserEmail(): string | undefined {
  *  - Auto alert creation when relapse risk is high
  *  - User toast notification for encouragement
  */
-export function usePredict() {
+export const usePredict = () => {
   const [result, setResult] = useState<PredictionResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -152,3 +153,5 @@ function showSupportiveToast(result: PredictionResponse) {
     });
   }
 }
+
+export default usePredict;
