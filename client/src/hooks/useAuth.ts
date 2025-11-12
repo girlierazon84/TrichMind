@@ -22,7 +22,7 @@ interface User {
  * Handles register, login, logout, token persistence, forgot/reset password
  * Now integrated with centralized logging
  */
-export function useAuth() {
+export const useAuth = () => {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(localStorage.getItem("access_token"));
     const [loading, setLoading] = useState(false);
@@ -186,3 +186,5 @@ export function useAuth() {
         isAuthenticated: !!user,
     };
 }
+
+export default useAuth;
