@@ -5,7 +5,7 @@ import { triggersApi, type TriggerData } from "@/services";
 import { useLogger } from "@/hooks";
 
 
-export function useTriggers() {
+export const useTriggers = () => {
     const [loading, setLoading] = useState(false);
     const { log } = useLogger(false);
 
@@ -22,3 +22,5 @@ export function useTriggers() {
 
     return { create, loading };
 }
+
+export default useTriggers;
