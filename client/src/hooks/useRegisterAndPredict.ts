@@ -1,4 +1,5 @@
 // client/src/hooks/useRegisterAndPredict.ts
+
 import { useState } from "react";
 import { useLogger, useAuth, usePredict } from "@/hooks";
 import type { PredictionResponse, PredictPayload } from "@/types/ml";
@@ -21,7 +22,7 @@ export interface RegisterFormData {
 /**
  * Register (if needed) + immediately predict.
  */
-export function useRegisterAndPredict() {
+export const useRegisterAndPredict = () => {
     const { register, isAuthenticated, user } = useAuth();
     const { predict, loading: predicting, error: predictError } = usePredict();
     const { log, error: logError } = useLogger(false);
@@ -108,3 +109,5 @@ export function useRegisterAndPredict() {
         predictError,
     };
 }
+
+export default useRegisterAndPredict;
