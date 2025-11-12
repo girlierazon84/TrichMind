@@ -4,7 +4,8 @@ import { useState } from "react";
 import { trichBotApi } from "@/services";
 import { useLogger } from "@/hooks";
 
-export function useTrichBot() {
+
+export const useTrichBot = () => {
     const [loading, setLoading] = useState(false);
     const { log } = useLogger(false);
 
@@ -21,3 +22,5 @@ export function useTrichBot() {
 
     return { sendMessage, loading };
 }
+
+export default useTrichBot;
