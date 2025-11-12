@@ -73,7 +73,7 @@ const navItems: ReadonlyArray<NavConfig> = [
     { to: "/trichbot", icon: trichBotIcon, label: "Bot" },
 ] as const;
 
-export function BottomNav() {
+export const BottomNav = () => {
     const [visible, setVisible] = useState<boolean>(true);
 
     useEffect(() => {
@@ -126,3 +126,5 @@ export function BottomNav() {
         </BottomNavBar>
     );
 }
+
+export default BottomNav;
