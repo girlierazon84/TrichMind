@@ -1,13 +1,17 @@
 // client/src/routes/AppRoutes.tsx
 
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+    BrowserRouter,
+    Routes,
+    Route,
+    Navigate
+} from "react-router-dom";
 import styled from "styled-components";
 import { useAuth } from "@/hooks/useAuth";
-import { RegistrationPage } from "@/pages/RegistrationPage";
-import LoginPage from "@/pages/LoginPage";
+import { RegistrationPage, LoginPage, HomePage } from "@/pages"; // ✅ Add HomePage import
 import { BottomNav } from "@/components/BottomNav";
-import { PrivateRoute } from "@/routes/PrivateRoute";
-import { PublicRoute } from "@/routes/PublicRoute";
+import { PrivateRoute, PublicRoute } from "@/routes";
+
 
 // ──────────────────────────────
 // Styled Components
@@ -28,18 +32,11 @@ const Container = styled.div`
     text-align: center;
 `;
 
-const WelcomeMessage = styled.h2`
-    color: ${({ theme }) => theme.colors.text_primary};
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-top: 2rem;
-`;
-
 // ──────────────────────────────
 // Routes Component
 // ──────────────────────────────
 export const AppRoutes = () => {
-    const { user, isAuthenticated } = useAuth();
+    const { isAuthenticated } = useAuth();
 
     return (
         <BrowserRouter>
@@ -51,9 +48,7 @@ export const AppRoutes = () => {
                             path="/"
                             element={
                                 <PrivateRoute>
-                                    <WelcomeMessage>
-                                        Welcome back, {user?.displayName || user?.email}! 🎉
-                                    </WelcomeMessage>
+                                    <HomePage />  {/* ✅ Render actual HomePage component */}
                                 </PrivateRoute>
                             }
                         />
