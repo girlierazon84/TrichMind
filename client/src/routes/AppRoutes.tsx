@@ -7,6 +7,7 @@ import { RegistrationPage } from "@/pages/RegistrationPage";
 import LoginPage from "@/pages/LoginPage";
 import { BottomNav } from "@/components/BottomNav";
 import { PrivateRoute } from "@/routes/PrivateRoute";
+import { PublicRoute } from "@/routes/PublicRoute";
 
 // ──────────────────────────────
 // Styled Components
@@ -57,33 +58,33 @@ export const AppRoutes = () => {
                             }
                         />
 
-                        {/* 🔐 Login Page */}
+                        {/* 🔐 Login Page (Public) */}
                         <Route
                             path="/login"
                             element={
-                                !isAuthenticated ? <LoginPage /> : <Navigate to="/" replace />
+                                <PublicRoute>
+                                    <LoginPage />
+                                </PublicRoute>
                             }
                         />
 
-                        {/* 📝 Registration Page */}
+                        {/* 📝 Registration Page (Public) */}
                         <Route
                             path="/register"
                             element={
-                                !isAuthenticated ? (
+                                <PublicRoute>
                                     <RegistrationPage />
-                                ) : (
-                                    <Navigate to="/" replace />
-                                )
+                                </PublicRoute>
                             }
                         />
 
-                        {/* 🧭 Fallback */}
+                        {/* 🧭 Catch-all */}
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </Container>
             </Page>
 
-            {/* 🧭 Show bottom nav only when authenticated */}
+            {/* 🧭 Bottom Navigation visible only when authenticated */}
             {isAuthenticated && <BottomNav />}
         </BrowserRouter>
     );
