@@ -40,6 +40,26 @@ export default function HomePage() {
     const [confidence, setConfidence] = useState<number>(0);
     const [bucket, setBucket] = useState<RiskLevel>("MEDIUM");
     const [loading, setLoading] = useState<boolean>(true);
+    const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth <= 768);
+
+    // ──────────────────────────────
+    // 📱 Responsive mode detection
+    // ──────────────────────────────
+    useEffect(() => {
+        const mediaQuery = window.matchMedia("(max-width: 768px)");
+        const handleResize = (e: MediaQueryListEvent | MediaQueryList) => {
+            setIsMobile(e.matches);
+        };
+
+        // Set initial state & subscribe
+        handleResize(mediaQuery);
+        mediaQuery.addEventListener("change", handleResize);
+
+        // Cleanup
+        return () => {
+            mediaQuery.removeEventListener("change", handleResize);
+        };
+    }, []);
 
     // ──────────────────────────────
     // 🧩 Load user & predict risk
@@ -54,7 +74,6 @@ export default function HomePage() {
             try {
                 const { data } = await axiosClient.get("/auth/me");
 
-                // Construct ML-ready payload
                 const featurePayload: FeaturePayload = {
                     pulling_severity: data.pulling_severity ?? 5,
                     pulling_frequency_encoded: data.pulling_frequency_encoded ?? 3,
@@ -67,7 +86,6 @@ export default function HomePage() {
                     emotion_intensity_sum: data.emotion_intensity_sum ?? 4.5,
                 };
 
-                // ML prediction request
                 const res = await axiosClient.post("/ml/predict", featurePayload);
                 const { risk_score, risk_bucket, confidence } = res.data;
 
@@ -109,7 +127,6 @@ export default function HomePage() {
     if (loading) return <p>Loading your personalized home page...</p>;
     if (!user) return <p>Unable to load user profile.</p>;
 
-    // Build the PredictResponse-style data object
     const predictionData = {
         risk_score: riskScore,
         risk_bucket: bucket.toLowerCase(),
@@ -162,10 +179,14 @@ export default function HomePage() {
                 Welcome back, {user.displayName || user.email || "Friend"} 👋
             </h2>
 
-            {/* 🧠 Risk Summary */}
-            <RiskResultCard data={predictionData} quote={quote} />
+            {/* 🧠 Risk Summary (responsive) */}
+            <RiskResultCard
+                data={predictionData}
+                quote={quote}
+                compact={isMobile} // 👈 Auto-compacts on mobile
+            />
 
-            {/* 🔁 Daily Progress (auto-fetched) */}
+            {/* 🔁 Daily Progress */}
             <DailyProgressCardAuto />
 
             {/* 💪 Coping Strategies */}
@@ -174,7 +195,7 @@ export default function HomePage() {
                 notWorked={["Journaling"]}
             />
 
-            {/* 📊 Risk Trend (self-fetching) */}
+            {/* 📊 Risk Trend */}
             <div className="dashboard">
                 <h2>📈 Relapse Risk Analytics</h2>
                 <RiskTrendChart />
