@@ -2,4 +2,4 @@
 
 export * from "./GlobalStyle";
 export * from "./theme";
-export * from "./styled";
+export * from "./styled.d";
