@@ -1,41 +1,89 @@
 // client/src/routes/AppRoutes.tsx
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import styled from "styled-components";
+import { useAuth } from "@/hooks/useAuth";
 import { RegistrationPage } from "@/pages/RegistrationPage";
 import LoginPage from "@/pages/LoginPage";
-import HomePage from "@/pages/HomePage";
 import { BottomNav } from "@/components/BottomNav";
-import { useAuth } from "@/hooks/useAuth";
+import { PrivateRoute } from "@/routes/PrivateRoute";
 
+// ──────────────────────────────
+// Styled Components
+// ──────────────────────────────
+const Page = styled.main`
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 4rem 1rem;
+    background: ${({ theme }) => theme.colors.page_bg || "#c9e3e4"};
+`;
+
+const Container = styled.div`
+    width: 100%;
+    max-width: 760px;
+    text-align: center;
+`;
+
+const WelcomeMessage = styled.h2`
+    color: ${({ theme }) => theme.colors.text_primary};
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-top: 2rem;
+`;
+
+// ──────────────────────────────
+// Routes Component
+// ──────────────────────────────
 export const AppRoutes = () => {
-    const { isAuthenticated } = useAuth();
+    const { user, isAuthenticated } = useAuth();
 
     return (
         <BrowserRouter>
-            <Routes>
-                {/* Public routes */}
-                {!isAuthenticated && (
-                    <>
-                        <Route path="/login" element={<LoginPage />} />
-                        <Route path="/register" element={<RegistrationPage />} />
-                    </>
-                )}
+            <Page>
+                <Container>
+                    <Routes>
+                        {/* 🏠 Protected Home Route */}
+                        <Route
+                            path="/"
+                            element={
+                                <PrivateRoute>
+                                    <WelcomeMessage>
+                                        Welcome back, {user?.displayName || user?.email}! 🎉
+                                    </WelcomeMessage>
+                                </PrivateRoute>
+                            }
+                        />
 
-                {/* Protected routes */}
-                {isAuthenticated && (
-                    <>
-                        <Route path="/" element={<HomePage />} />
-                    </>
-                )}
+                        {/* 🔐 Login Page */}
+                        <Route
+                            path="/login"
+                            element={
+                                !isAuthenticated ? <LoginPage /> : <Navigate to="/" replace />
+                            }
+                        />
 
-                {/* Redirect logic */}
-                <Route
-                    path="*"
-                    element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />}
-                />
-            </Routes>
+                        {/* 📝 Registration Page */}
+                        <Route
+                            path="/register"
+                            element={
+                                !isAuthenticated ? (
+                                    <RegistrationPage />
+                                ) : (
+                                    <Navigate to="/" replace />
+                                )
+                            }
+                        />
 
-            {/* Global bottom nav for logged-in users */}
+                        {/* 🧭 Fallback */}
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                </Container>
+            </Page>
+
+            {/* 🧭 Show bottom nav only when authenticated */}
             {isAuthenticated && <BottomNav />}
         </BrowserRouter>
     );
