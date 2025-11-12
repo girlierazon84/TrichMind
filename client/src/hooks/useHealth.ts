@@ -6,7 +6,7 @@ import { healthApi, type HealthLogData } from "@/services";
 import { useLogger } from "@/hooks";
 
 
-export function useHealth() {
+export const useHealth = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { log, error: logError } = useLogger(false);
@@ -40,3 +40,5 @@ export function useHealth() {
 
     return { create, list, loading, error };
 }
+
+export default useHealth;
