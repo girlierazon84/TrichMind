@@ -5,6 +5,8 @@
 export * from "./useAuth";
 export * from "./usePredict";
 export * from "./useRegisterAndPredict";
+export * from "./useSoberStreak";
+export * from "./useRiskTrendChart";
 
 export * from "./useUser";
 export * from "./useLogger";
