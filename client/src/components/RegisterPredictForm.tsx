@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import { ThemeButton, FormInput, ResultCard } from "@/components";
-import { useRegisterAndPredict, useAuth, useUser} from "@/hooks";
+import { useRegisterAndPredict, useAuth, useUser } from "@/hooks";
 
 // ──────────────────────────────
 // Styled Components
@@ -22,8 +22,14 @@ const FormContainer = styled.form`
     margin-bottom: 0.5rem;
   }
 
-  label{
+  label {
     text-align: justify;
+  }
+
+  ::placeholder {
+    font-style: italic;
+    font-size: 0.85rem;
+    opacity: 0.8;
   }
 `;
 
@@ -49,15 +55,12 @@ const SuccessMessage = styled.p`
 // Component
 // ──────────────────────────────
 export const RegisterPredictForm: React.FC = () => {
-  const { register } = useAuth(); // ✅ From your auth lifecycle
-  const { updateProfile } = useUser(); // optional — to sync user profile fields
-  const {
-    registerAndPredict,
-    submitting,
-    submitError,
-    prediction,
-  } = useRegisterAndPredict();
+  const { register } = useAuth();
+  const { updateProfile } = useUser();
+  const { registerAndPredict, submitting, submitError, prediction } =
+    useRegisterAndPredict();
 
+  // Human-friendly form state
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -66,44 +69,46 @@ export const RegisterPredictForm: React.FC = () => {
     age_of_onset: "",
     years_since_onset: "",
     pulling_severity: "",
-    pulling_frequency_encoded: "",
-    awareness_level_encoded: "",
-    successfully_stopped_encoded: false,
-    how_long_stopped_days_est: "",
+    pulling_frequency: "",
+    pulling_awareness: "",
+    successfully_stopped: "",
+    how_long_stopped_days: "",
     emotion: "",
   });
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value, type } = e.target;
-    const checked = (e.target as HTMLInputElement).checked;
+    const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: value,
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Step 1: register user
+    // Step 1: Register user
     const authResponse = await register({
       email: form.email,
       password: form.password,
       displayName: form.displayName,
     });
 
-    if (!authResponse) return; // stop if registration failed
+    if (!authResponse) return;
 
-    // Step 2 (optional): update user profile with extra info
+    // Step 2: Update user profile (optional)
     await updateProfile({
       emotion: form.emotion,
       pulling_severity: Number(form.pulling_severity),
-      age: form.date_of_birth ? new Date().getFullYear() - new Date(form.date_of_birth).getFullYear() : undefined,
+      age: form.date_of_birth
+        ? new Date().getFullYear() -
+          new Date(form.date_of_birth).getFullYear()
+        : undefined,
     });
 
-    // Step 3: run ML prediction
+    // Step 3: Run prediction — reuse your form object
     await registerAndPredict(form);
   };
 
@@ -129,6 +134,7 @@ export const RegisterPredictForm: React.FC = () => {
       <FormInput
         label="Display Name"
         name="displayName"
+        type="text"
         value={form.displayName}
         onChange={handleChange}
       />
@@ -145,6 +151,8 @@ export const RegisterPredictForm: React.FC = () => {
         label="Age of Onset"
         name="age_of_onset"
         type="number"
+        min={0}
+        max={120}
         value={form.age_of_onset}
         onChange={handleChange}
       />
@@ -152,6 +160,8 @@ export const RegisterPredictForm: React.FC = () => {
         label="Years Since Onset"
         name="years_since_onset"
         type="number"
+        min={0}
+        max={120}
         value={form.years_since_onset}
         onChange={handleChange}
       />
@@ -161,46 +171,51 @@ export const RegisterPredictForm: React.FC = () => {
         label="Pulling Severity (1–10)"
         name="pulling_severity"
         type="number"
+        min={1}
+        max={10}
         value={form.pulling_severity}
         onChange={handleChange}
       />
       <FormInput
-        label="Pulling Frequency Encoded"
-        name="pulling_frequency_encoded"
-        type="number"
-        value={form.pulling_frequency_encoded}
+        label="How often do you pull?"
+        name="pulling_frequency"
+        type="text"
+        placeholder="e.g. daily, weekly, rarely"
+        value={form.pulling_frequency}
         onChange={handleChange}
       />
       <FormInput
-        label="Awareness Level Encoded"
-        name="awareness_level_encoded"
-        type="number"
-        value={form.awareness_level_encoded}
+        label="Awareness while pulling"
+        name="pulling_awareness"
+        type="text"
+        placeholder="e.g. yes, sometimes, no"
+        value={form.pulling_awareness}
+        onChange={handleChange}
+      />
+      <FormInput
+        label="Successfully stopped?"
+        name="successfully_stopped"
+        type="text"
+        placeholder="e.g. yes, no"
+        value={form.successfully_stopped}
         onChange={handleChange}
       />
       <FormInput
         label="How Long Stopped (days)"
-        name="how_long_stopped_days_est"
+        name="how_long_stopped_days"
         type="number"
-        value={form.how_long_stopped_days_est}
+        placeholder="number of days since last pulling episode"
+        value={form.how_long_stopped_days}
         onChange={handleChange}
       />
       <FormInput
-        label="Emotion"
+        label="Current Emotion"
         name="emotion"
+        type="text"
+        placeholder="e.g. anxious, calm, stressed"
         value={form.emotion}
         onChange={handleChange}
-        placeholder="e.g. anxious, calm"
       />
-      <label className="checkbox">
-        <input
-          type="checkbox"
-          name="successfully_stopped_encoded"
-          checked={form.successfully_stopped_encoded}
-          onChange={handleChange}
-        />{" "}
-        Successfully stopped before?
-      </label>
 
       <ThemeButton type="submit" disabled={submitting}>
         {submitting ? "Submitting..." : "Register & Predict"}
