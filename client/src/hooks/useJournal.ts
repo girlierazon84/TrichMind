@@ -5,7 +5,8 @@ import { toast } from "react-toastify";
 import { journalApi, type JournalEntry } from "@/services";
 import { useLogger } from "@/hooks";
 
-export function useJournal() {
+
+export const useJournal = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { log, error: logError } = useLogger(false);
@@ -30,3 +31,5 @@ export function useJournal() {
 
     return { create, loading, error };
 }
+
+export default useJournal;
