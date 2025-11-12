@@ -10,7 +10,7 @@ import { useLogger, useAuth } from "@/hooks";
  * 🧠 useUser — manages user profile CRUD operations
  * Integrates backend logging, toasts, and live Auth state sync.
  */
-export function useUser() {
+export const useUser = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { user, me } = useAuth(); // ✅ to access and refresh auth user state
@@ -88,3 +88,5 @@ export function useUser() {
         error,
     };
 }
+
+export default useUser;
