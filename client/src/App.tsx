@@ -1,12 +1,13 @@
 // client/src/App.tsx
 
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import styled, { ThemeProvider } from "styled-components";
 import { theme } from "@/styles/theme";
 import { GlobalStyle } from "@/styles/GlobalStyle";
 import { RegistrationPage } from "@/pages/RegistrationPage";
+import LoginPage from "@/pages/LoginPage";
 import { BottomNav } from "@/components/BottomNav";
 import { useAuth } from "@/hooks/useAuth";
-import LoginPage from "./pages/LoginPage";
 
 // ──────────────────────────────
 // Styled Components
@@ -43,23 +44,53 @@ export const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyle />
-      <Page>
-        <Container>
-          {!isAuthenticated ? (
-            <>
-              <RegistrationPage />
-              <LoginPage />
-            </>
-          ) : (
-            <WelcomeMessage>
-              Welcome back, {user?.displayName || user?.email}! 🎉
-            </WelcomeMessage>
-          )}
-        </Container>
-      </Page>
+      <BrowserRouter>
+        <Page>
+          <Container>
+            <Routes>
+              {/* 🏠 Default route: redirect depending on auth */}
+              <Route
+                path="/"
+                element={
+                  isAuthenticated ? (
+                    <WelcomeMessage>
+                      Welcome back, {user?.displayName || user?.email}! 🎉
+                    </WelcomeMessage>
+                  ) : (
+                    <Navigate to="/login" replace />
+                  )
+                }
+              />
 
-      {/* 👇 Only render BottomNav after successful login */}
-      {isAuthenticated && <BottomNav />}
+              {/* 🔐 Login page */}
+              <Route
+                path="/login"
+                element={
+                  !isAuthenticated ? <LoginPage /> : <Navigate to="/" replace />
+                }
+              />
+
+              {/* 📝 Registration page */}
+              <Route
+                path="/register"
+                element={
+                  !isAuthenticated ? (
+                    <RegistrationPage />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                }
+              />
+
+              {/* 🧭 Catch-all: redirect to home */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Container>
+        </Page>
+
+        {/* 👇 Render bottom nav only for authenticated users */}
+        {isAuthenticated && <BottomNav />}
+      </BrowserRouter>
     </ThemeProvider>
   );
 };
