@@ -1,4 +1,5 @@
 // client/src/components/CopingStrategiesCard.tsx
+
 import React from "react";
 import styled from "styled-components";
 
