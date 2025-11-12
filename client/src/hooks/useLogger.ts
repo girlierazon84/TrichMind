@@ -9,7 +9,7 @@ import { loggerApi, type LogEvent} from "@/services";
  * 🎯 useLogger — React hook for logging and visual feedback
  * Logs to backend + shows toasts (optional)
  */
-export function useLogger(showToasts = true) {
+export const useLogger = (showToasts = true) => {
     /** 🪵 Info / Debug Log */
     const log = useCallback(
         async (message: string, context?: LogEvent["context"]) => {
@@ -45,3 +45,5 @@ export function useLogger(showToasts = true) {
 
     return { log, warn, error, list };
 }
+
+export default useLogger;
