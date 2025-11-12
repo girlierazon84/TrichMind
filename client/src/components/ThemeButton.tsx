@@ -1,3 +1,5 @@
+// client/src/components/ThemeButton.tsx
+
 import styled from "styled-components";
 
 export const ThemeButton = styled.button`
@@ -16,3 +18,5 @@ export const ThemeButton = styled.button`
         transform: translateY(-2px);
     }
 `;
+
+export default ThemeButton;
