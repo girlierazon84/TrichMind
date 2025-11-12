@@ -1,7 +1,7 @@
 // client/src/pages/HomePage.tsx
-
 import { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import styled from "styled-components";
 import { axiosClient } from "@/services";
 import {
     RiskResultCard,
@@ -10,7 +10,6 @@ import {
     RiskTrendChart,
 } from "@/components";
 import { useAuth } from "@/hooks";
-
 
 // ──────────────────────────────
 // Types
@@ -30,6 +29,107 @@ interface FeaturePayload {
 }
 
 // ──────────────────────────────
+// Styled Layout
+// ──────────────────────────────
+const PageWrapper = styled.div`
+    width: 100%;
+    min-height: 100vh;
+    background: ${({ theme }) => theme.colors.page_bg};
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: ${({ theme }) => theme.spacing(6)};
+    box-sizing: border-box;
+
+    @media (max-width: 768px) {
+        padding: ${({ theme }) => theme.spacing(3)};
+    }
+`;
+
+const Header = styled.header`
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: ${({ theme }) => theme.spacing(6)};
+
+    .logo-link img {
+        height: 50px;
+    }
+
+    .user-menu-wrap summary {
+        list-style: none;
+        cursor: pointer;
+    }
+
+    .user_icon {
+        width: 36px;
+        height: 36px;
+    }
+
+    .user-menu {
+        position: absolute;
+        right: 1rem;
+        top: 3rem;
+        background: ${({ theme }) => theme.colors.card_bg};
+        border-radius: ${({ theme }) => theme.radius.md};
+        box-shadow: ${({ theme }) => theme.colors.card_shadow};
+        display: flex;
+        flex-direction: column;
+        min-width: 140px;
+
+        .menu-item {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            color: ${({ theme }) => theme.colors.text_primary};
+            text-decoration: none;
+            font-size: 0.9rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .menu-item:hover {
+            background: ${({ theme }) => theme.colors.sixthly};
+        }
+    }
+`;
+
+const Section = styled.section`
+    width: 100%;
+    max-width: 960px;
+    background: ${({ theme }) => theme.colors.card_bg};
+    border-radius: ${({ theme }) => theme.radius.lg};
+    padding: ${({ theme }) => theme.spacing(6)};
+    box-shadow: ${({ theme }) => theme.colors.card_shadow};
+    margin-bottom: ${({ theme }) => theme.spacing(6)};
+
+    @media (max-width: 768px) {
+        padding: ${({ theme }) => theme.spacing(4)};
+    }
+`;
+
+const WelcomeText = styled.h2`
+    font-size: 1.6rem;
+    color: ${({ theme }) => theme.colors.text_primary};
+    margin-bottom: ${({ theme }) => theme.spacing(4)};
+    text-align: center;
+
+    @media (max-width: 768px) {
+        font-size: 1.3rem;
+    }
+`;
+
+const DashboardSection = styled.div`
+    width: 100%;
+    max-width: 960px;
+    display: flex;
+    flex-direction: column;
+    gap: ${({ theme }) => theme.spacing(4)};
+`;
+
+// ──────────────────────────────
 // Component
 // ──────────────────────────────
 export default function HomePage() {
@@ -42,28 +142,18 @@ export default function HomePage() {
     const [loading, setLoading] = useState<boolean>(true);
     const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth <= 768);
 
-    // ──────────────────────────────
-    // 📱 Responsive mode detection
-    // ──────────────────────────────
+    // 📱 Responsive layout listener
     useEffect(() => {
         const mediaQuery = window.matchMedia("(max-width: 768px)");
-        const handleResize = (e: MediaQueryListEvent | MediaQueryList) => {
+        const handleResize = (e: MediaQueryListEvent | MediaQueryList) =>
             setIsMobile(e.matches);
-        };
 
-        // Set initial state & subscribe
         handleResize(mediaQuery);
         mediaQuery.addEventListener("change", handleResize);
-
-        // Cleanup
-        return () => {
-            mediaQuery.removeEventListener("change", handleResize);
-        };
+        return () => mediaQuery.removeEventListener("change", handleResize);
     }, []);
 
-    // ──────────────────────────────
     // 🧩 Load user & predict risk
-    // ──────────────────────────────
     useEffect(() => {
         if (!isAuthenticated || !user) {
             navigate("/login");
@@ -73,7 +163,6 @@ export default function HomePage() {
         (async () => {
             try {
                 const { data } = await axiosClient.get("/auth/me");
-
                 const featurePayload: FeaturePayload = {
                     pulling_severity: data.pulling_severity ?? 5,
                     pulling_frequency_encoded: data.pulling_frequency_encoded ?? 3,
@@ -101,9 +190,7 @@ export default function HomePage() {
         })();
     }, [isAuthenticated, navigate, user]);
 
-    // ──────────────────────────────
     // 💬 Motivational message
-    // ──────────────────────────────
     const quote = useMemo(() => {
         switch (bucket) {
             case "LOW":
@@ -116,17 +203,15 @@ export default function HomePage() {
         }
     }, [bucket]);
 
-    // ──────────────────────────────
-    // 🩺 Render UI
-    // ──────────────────────────────
+    // 🩺 Conditional Rendering
     if (!isAuthenticated) {
         navigate("/login");
         return null;
     }
-
     if (loading) return <p>Loading your personalized home page...</p>;
     if (!user) return <p>Unable to load user profile.</p>;
 
+    // ✅ PredictResponse structure
     const predictionData = {
         risk_score: riskScore,
         risk_bucket: bucket.toLowerCase(),
@@ -136,24 +221,16 @@ export default function HomePage() {
     };
 
     return (
-        <div className="homeContainer">
+        <PageWrapper>
             {/* 🧭 Header */}
-            <div className="topBar">
+            <Header>
                 <Link to="/" aria-label="Home" className="logo-link">
-                    <img
-                        src="/assets/images/app_logo.png"
-                        alt="TrichMind"
-                        className="app_logo"
-                    />
+                    <img src="/assets/images/app_logo.png" alt="TrichMind" />
                 </Link>
 
                 <details className="user-menu-wrap">
                     <summary className="user-button" aria-label="Account menu">
-                        <img
-                            src="/assets/icons/user.png"
-                            alt="Account"
-                            className="user_icon"
-                        />
+                        <img src="/assets/icons/user.png" alt="Account" className="user_icon" />
                     </summary>
                     <nav className="user-menu">
                         <Link to="/profile" className="menu-item">
@@ -172,34 +249,36 @@ export default function HomePage() {
                         </button>
                     </nav>
                 </details>
-            </div>
+            </Header>
 
             {/* 🎯 Welcome */}
-            <h2 className="welcome-text">
-                Welcome back, {user.displayName || user.email || "Friend"} 👋
-            </h2>
+            <Section>
+                <WelcomeText>
+                    Welcome back, {user.displayName || user.email || "Friend"} 👋
+                </WelcomeText>
 
-            {/* 🧠 Risk Summary (responsive) */}
-            <RiskResultCard
-                data={predictionData}
-                quote={quote}
-                compact={isMobile} // 👈 Auto-compacts on mobile
-            />
+                {/* 🧠 Risk Summary */}
+                <RiskResultCard data={predictionData} quote={quote} compact={isMobile} />
+            </Section>
 
             {/* 🔁 Daily Progress */}
-            <DailyProgressCardAuto />
+            <Section>
+                <DailyProgressCardAuto />
+            </Section>
 
             {/* 💪 Coping Strategies */}
-            <CopingStrategiesCard
-                worked={["Fidget toy", "Deep breathing"]}
-                notWorked={["Journaling"]}
-            />
+            <Section>
+                <CopingStrategiesCard
+                    worked={["Fidget toy", "Deep breathing"]}
+                    notWorked={["Journaling"]}
+                />
+            </Section>
 
             {/* 📊 Risk Trend */}
-            <div className="dashboard">
+            <DashboardSection>
                 <h2>📈 Relapse Risk Analytics</h2>
                 <RiskTrendChart />
-            </div>
-        </div>
+            </DashboardSection>
+        </PageWrapper>
     );
 }
