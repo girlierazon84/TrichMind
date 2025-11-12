@@ -7,7 +7,7 @@ import { alertApi, type AlertLog} from "@/services";
 /**
  * 🔔 useAlerts — React hook for managing relapse risk alerts
  */
-export function useAlerts() {
+export const useAlerts = () => {
     const [alerts, setAlerts] = useState<AlertLog[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -81,3 +81,5 @@ export function useAlerts() {
         removeAlert,
     };
 }
+
+export default useAlerts
