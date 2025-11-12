@@ -3,16 +3,15 @@ from __future__ import annotations
 import json
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union
 import time, io, sys, csv
 from pathlib import Path
-
 import joblib
 import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException, UploadFile, File, Body
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 # ── Path setup
 HERE = Path(__file__).resolve()
@@ -49,12 +48,83 @@ class PredictIn(BaseModel):
     years_since_onset: float = Field(..., ge=0)
     age: float = Field(..., ge=0)
     age_of_onset: float = Field(..., ge=0)
-    # Optional extras (ignored if not in features)
     emotion_intensity_sum: Optional[float] = 0.0
     anxiety_level: Optional[float] = Field(default=0.5, ge=0, le=1)
     depression_level: Optional[float] = Field(default=0.5, ge=0, le=1)
     coping_strategies_effective: Optional[int] = Field(default=0, ge=0, le=1)
     sleep_quality_score: Optional[float] = Field(default=5, ge=0, le=10)
+
+# ──────────────────────────────
+# 🧩 NEW: Friendly input schema
+# ──────────────────────────────
+class PredictFriendly(BaseModel):
+    age: int = Field(..., ge=0, le=120)
+    age_of_onset: int = Field(..., ge=0, le=120)
+    years_since_onset: Optional[int] = Field(None, ge=0, le=120)
+    pulling_severity: int = Field(..., ge=0, le=10)
+    pulling_frequency: str
+    pulling_awareness: str
+    successfully_stopped: Union[bool, str]
+    how_long_stopped_days: int = Field(..., ge=0)
+    emotion: str = "neutral"
+
+    @validator("pulling_frequency", "pulling_awareness", "emotion", pre=True)
+    def _norm_lower(cls, v):
+        return str(v).strip().lower() if v is not None else v
+
+    @validator("successfully_stopped", pre=True)
+    def _norm_boolish(cls, v):
+        if isinstance(v, bool):
+            return v
+        s = str(v).strip().lower()
+        if s in {"1", "true", "yes", "y"}:
+            return True
+        if s in {"0", "false", "no", "n"}:
+            return False
+        return False
+
+
+# Mappings consistent with your training pipeline
+_FREQ_MAP = {
+    "daily": 5,
+    "several times a week": 4,
+    "several-times-a-week": 4,
+    "several_times_a_week": 4,
+    "weekly": 3,
+    "monthly": 2,
+    "rarely": 1,
+}
+_AWARE_MAP = {
+    "yes": 1.0,
+    "sometimes": 0.5,
+    "no": 0.0,
+}
+
+
+def _encode_friendly_to_encoded(p: PredictFriendly) -> PredictIn:
+    """Convert user-friendly inputs to model-ready encoded payload."""
+    freq_enc = _FREQ_MAP.get(p.pulling_frequency, 0)
+    aware_enc = _AWARE_MAP.get(p.pulling_awareness, 0.0)
+    stopped_enc = 1 if bool(p.successfully_stopped) else 0
+    yso = p.years_since_onset
+    if yso is None:
+        yso = max(0, int(p.age) - int(p.age_of_onset))
+    return PredictIn(
+        pulling_severity=float(p.pulling_severity),
+        pulling_frequency_encoded=int(freq_enc),
+        awareness_level_encoded=float(aware_enc),
+        how_long_stopped_days_est=float(p.how_long_stopped_days),
+        successfully_stopped_encoded=int(stopped_enc),
+        years_since_onset=float(yso),
+        age=float(p.age),
+        age_of_onset=float(p.age_of_onset),
+        emotion_intensity_sum=0.0,
+        anxiety_level=0.5,
+        depression_level=0.5,
+        coping_strategies_effective=0,
+        sleep_quality_score=5.0,
+    )
+
 
 # ── Lifespan
 @asynccontextmanager
@@ -71,6 +141,7 @@ async def lifespan(app: FastAPI):
     INFER_LOG_DIR.mkdir(parents=True, exist_ok=True)
     yield
 
+
 # ── App
 app = FastAPI(title="TrichMind Relapse Risk API", version="6.3.0", lifespan=lifespan)
 app.add_middleware(
@@ -80,6 +151,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ── Helpers
 def to_feature_frame(items: List[PredictIn] | PredictIn) -> pd.DataFrame:
@@ -91,12 +163,14 @@ def to_feature_frame(items: List[PredictIn] | PredictIn) -> pd.DataFrame:
     X[feature_names] = scaler.transform(X[feature_names])
     return X
 
+
 def get_model_inner_and_classes():
     inner = getattr(model, "named_steps", {}).get("clf", model)
     classes = getattr(inner, "classes_", None)
     if classes is None:
         classes = np.array([0, 1, 2], dtype=int)
     return inner, np.array(classes, dtype=int)
+
 
 def build_weights_vector_from_model_classes(model_classes: np.ndarray) -> np.ndarray:
     uniq = np.unique(model_classes.astype(int))
@@ -105,6 +179,7 @@ def build_weights_vector_from_model_classes(model_classes: np.ndarray) -> np.nda
     lookup = {c: float(base[ranks[c]]) for c in uniq}
     return np.array([lookup[int(c)] for c in model_classes], dtype=float)
 
+
 def model_weighted_score(X: pd.DataFrame) -> np.ndarray:
     inner, model_classes = get_model_inner_and_classes()
     if hasattr(inner, "predict_proba"):
@@ -112,38 +187,34 @@ def model_weighted_score(X: pd.DataFrame) -> np.ndarray:
         weights = build_weights_vector_from_model_classes(model_classes)
         return proba @ weights
     preds = inner.predict(X).astype(int)
-    # map predicted numeric class via rank weights
     uniq = np.unique(preds)
     ranks = {c: i for i, c in enumerate(np.sort(uniq))}
     base = [1.0] if len(uniq) == 1 else np.linspace(0.0, 1.0, num=len(uniq))
     lookup = {c: float(base[ranks[c]]) for c in uniq}
     return np.array([lookup[int(c)] for c in preds], dtype=float)
 
+
 def rule_based_score(p: PredictIn) -> float:
-    """
-    Transparent rule:
-        severity (0..10), frequency (0..5), awareness (0..1)
-    Higher severity + frequency increase risk; higher awareness reduces risk.
-    Tunable weights: sev 0.6, freq 0.3, awareness 0.1 (inverted).
-    """
     sev = np.clip(p.pulling_severity / 10.0, 0.0, 1.0)
     freq = np.clip(p.pulling_frequency_encoded / 5.0, 0.0, 1.0)
     inv_aw = np.clip(1.0 - p.awareness_level_encoded, 0.0, 1.0)
     score = 0.6 * sev + 0.3 * freq + 0.1 * inv_aw
     return float(np.clip(score, 0.0, 1.0))
 
+
 def final_score_from_blend(model_score: float, rule_score: float) -> float:
     return float(np.clip((1.0 - ALPHA) * model_score + ALPHA * rule_score, 0.0, 1.0))
 
+
 def confidence_from_score(s: float) -> float:
-    # farther from 0.5 = more confident; linear ramp
     return float(min(1.0, abs(s - 0.5) * 2))
+
 
 def log_inference(row: dict) -> None:
     hdr = [
-        "timestamp","request_type","n_records",
-        "risk_score","risk_bucket","risk_code","confidence",
-        "n_features_used","model_version","runtime_sec"
+        "timestamp", "request_type", "n_records",
+        "risk_score", "risk_bucket", "risk_code", "confidence",
+        "n_features_used", "model_version", "runtime_sec"
     ]
     INFER_LOG_CSV.parent.mkdir(parents=True, exist_ok=True)
     write_header = not INFER_LOG_CSV.exists()
@@ -153,15 +224,22 @@ def log_inference(row: dict) -> None:
             w.writeheader()
         w.writerow({k: row.get(k) for k in hdr})
 
+
 # ── Endpoints
 @app.get("/live")
 def live():
-    return {"status": "alive", "version": MODEL_VERSION, "scoring": f"blend(model={1-ALPHA:.2f}, rule={ALPHA:.2f})"}
+    return {
+        "status": "alive",
+        "version": MODEL_VERSION,
+        "scoring": f"blend(model={1 - ALPHA:.2f}, rule={ALPHA:.2f})"
+    }
+
 
 @app.get("/healthz")
 def healthz():
     ok = all([model is not None, label_encoder is not None, feature_names])
     return {"ok": bool(ok), "n_features": len(feature_names), "model_version": MODEL_VERSION}
+
 
 @app.post("/predict")
 def predict(p: PredictIn):
@@ -172,7 +250,6 @@ def predict(p: PredictIn):
         r_score = rule_based_score(p)
         score = final_score_from_blend(m_score, r_score)
         rr = risk_from_score(score)
-        # override confidence with continuous confidence
         rr_conf = confidence_from_score(score)
 
         runtime = round(time.time() - t0, 3)
@@ -184,11 +261,7 @@ def predict(p: PredictIn):
             "n_features_used": len(feature_names),
             "model_version": MODEL_VERSION,
             "runtime_sec": runtime,
-            "debug": {
-                "model_score": round(m_score, 3),
-                "rule_score": round(r_score, 3),
-                "alpha": ALPHA
-            }
+            "debug": {"model_score": round(m_score, 3), "rule_score": round(r_score, 3), "alpha": ALPHA}
         }
         log_inference({
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -200,71 +273,14 @@ def predict(p: PredictIn):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/batch_predict")
-def batch_predict(items: List[PredictIn]):
-    t0 = time.time()
-    try:
-        X = to_feature_frame(items)
-        m_scores = model_weighted_score(X)
-        r_scores = np.array([rule_based_score(p) for p in items], dtype=float)
-        scores = (1.0 - ALPHA) * m_scores + ALPHA * r_scores
-        scores = np.clip(scores, 0.0, 1.0)
 
-        preds = [risk_from_score(float(s)) for s in scores]
-        outs = []
-        for i, (s, r) in enumerate(zip(scores, preds)):
-            outs.append({
-                "index": i,
-                "risk_score": round(float(s), 3),
-                "risk_bucket": r.bucket,
-                "risk_code": r.code,
-                "confidence": round(confidence_from_score(float(s)), 3)
-            })
+# 🧩 NEW — Friendly endpoint
+@app.post("/predict_friendly")
+def predict_friendly(p: PredictFriendly):
+    """Accepts readable frontend inputs and encodes them internally."""
+    encoded = _encode_friendly_to_encoded(p)
+    return predict(encoded)
 
-        runtime = round(time.time() - t0, 3)
-        log_inference({
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "request_type": "batch",
-            "n_records": len(items),
-            "risk_score": float(np.mean(scores)),
-            "risk_bucket": "mixed",
-            "risk_code": -1,
-            "confidence": float(np.mean([o["confidence"] for o in outs])),
-            "n_features_used": len(feature_names),
-            "model_version": MODEL_VERSION,
-            "runtime_sec": runtime
-        })
-        return {"count": len(outs), "predictions": outs, "avg_runtime_sec": runtime}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/batch_predict_csv")
-async def batch_predict_csv(file: UploadFile = File(...)):
-    try:
-        contents = await file.read()
-        df = pd.read_csv(io.StringIO(contents.decode("utf-8")))
-        records = [PredictIn(**row) for row in df.to_dict(orient="records")]
-        return batch_predict(records)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid CSV: {e}")
-
-@app.post("/debug_model")
-def debug_model(p: PredictIn = Body(...)):
-    X = to_feature_frame(p)
-    inner, model_classes = get_model_inner_and_classes()
-    weights_vec = build_weights_vector_from_model_classes(model_classes)
-    m_score = float(model_weighted_score(X)[0])
-    r_score = rule_based_score(p)
-    return {
-        "model_version": MODEL_VERSION,
-        "feature_count": len(feature_names),
-        "model_classes": list(map(int, model_classes)),
-        "weights_in_model_proba_order": list(map(float, weights_vec)),
-        "model_weighted_score": m_score,
-        "rule_score": r_score,
-        "alpha": ALPHA,
-        "final_weighted_score": final_score_from_blend(m_score, r_score)
-    }
 
 @app.post("/debug_vector")
 def debug_vector(p: PredictIn = Body(...)):
