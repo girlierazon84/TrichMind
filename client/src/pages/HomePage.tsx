@@ -163,7 +163,7 @@ export default function HomePage() {
             </h2>
 
             {/* 🧠 Risk Summary */}
-            <RiskResultCard data={predictionData} quote={quote} variant="detailed" />
+            <RiskResultCard data={predictionData} quote={quote} />
 
             {/* 🔁 Daily Progress (auto-fetched) */}
             <DailyProgressCardAuto />
