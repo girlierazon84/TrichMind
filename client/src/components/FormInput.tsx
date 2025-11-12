@@ -6,16 +6,26 @@ import styled from "styled-components";
 // ──────────────────────────────
 // Types
 // ──────────────────────────────
-interface FormInputProps {
+export interface FormInputProps
+    extends Omit<
+        React.InputHTMLAttributes<HTMLInputElement>,
+        "onChange" | "type" | "value" | "name"
+    > {
+    /** Label displayed above the input */
     label?: string;
-    type?: string;
+    /** HTML input type (text, number, email, etc.) */
+    type?: React.HTMLInputTypeAttribute;
+    /** Unique name/id for the field */
     name: string;
-    value: string;
+    /** Controlled input value */
+    value: string | number;
+    /** Input placeholder text */
     placeholder?: string;
+    /** Change handler */
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    required?: boolean;
-    disabled?: boolean;
+    /** Optional validation message */
     error?: string;
+    /** Optional right-side icon */
     icon?: React.ReactNode;
 }
 
@@ -31,15 +41,16 @@ const InputWrapper = styled.div`
     margin-bottom: 1rem;
 `;
 
-/** 🏷️ Input label styling */
-const Label = styled.label`
+/** 🏷️ Label styling */
+const StyledLabel = styled.label`
     font-size: 0.9rem;
     font-weight: 500;
     margin-bottom: 0.35rem;
     color: ${({ theme }) => theme.colors.text_primary};
+    text-align: justify;
 `;
 
-/** ✍️ Styled input field — uses transient prop `$hasError` */
+/** ✍️ Styled input — uses transient prop `$hasError` */
 const InputField = styled.input<{ $hasError?: boolean }>`
     padding: 0.75rem 1rem;
     font-size: 1rem;
@@ -51,6 +62,12 @@ const InputField = styled.input<{ $hasError?: boolean }>`
     background-color: ${({ theme }) => theme.colors.card_bg};
     color: ${({ theme }) => theme.colors.text_primary};
     transition: all 0.2s ease;
+
+    &::placeholder {
+        font-style: italic;
+        font-size: 0.85rem;
+        opacity: 0.8;
+    }
 
     &:focus {
         border-color: ${({ theme }) => theme.colors.primary};
@@ -94,7 +111,6 @@ const InputContainer = styled.div`
 // ──────────────────────────────
 // Component
 // ──────────────────────────────
-
 export const FormInput: React.FC<FormInputProps> = ({
     label,
     type = "text",
@@ -106,8 +122,8 @@ export const FormInput: React.FC<FormInputProps> = ({
     disabled,
     error,
     icon,
+    ...rest // allows props like min, max, step, autoFocus, etc.
 }) => {
-    // 🧠 Auto-generate accessible fallback text
     const accessibleLabel = label || name.replace(/_/g, " ");
     const accessiblePlaceholder =
         placeholder || `Enter ${accessibleLabel.toLowerCase()}`;
@@ -115,7 +131,7 @@ export const FormInput: React.FC<FormInputProps> = ({
 
     return (
         <InputWrapper>
-            {label && <Label htmlFor={name}>{label}</Label>}
+            {label && <StyledLabel htmlFor={name}>{label}</StyledLabel>}
             <InputContainer>
                 <InputField
                     id={name}
@@ -130,6 +146,7 @@ export const FormInput: React.FC<FormInputProps> = ({
                     $hasError={!!error}
                     aria-invalid={!!error}
                     aria-describedby={error ? `${name}-error` : undefined}
+                    {...rest}
                 />
                 {icon}
             </InputContainer>
