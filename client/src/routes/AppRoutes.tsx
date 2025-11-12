@@ -1,21 +1,12 @@
 // client/src/routes/AppRoutes.tsx
 
-import {
-    BrowserRouter,
-    Routes,
-    Route,
-    Navigate
-} from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import styled from "styled-components";
 import { useAuth } from "@/hooks/useAuth";
-import { RegistrationPage, LoginPage, HomePage } from "@/pages"; // ✅ Add HomePage import
+import { RegistrationPage, LoginPage, HomePage } from "@/pages";
 import { BottomNav } from "@/components/BottomNav";
 import { PrivateRoute, PublicRoute } from "@/routes";
 
-
-// ──────────────────────────────
-// Styled Components
-// ──────────────────────────────
 const Page = styled.main`
     min-height: 100dvh;
     display: flex;
@@ -23,7 +14,7 @@ const Page = styled.main`
     align-items: center;
     justify-content: flex-start;
     padding: 4rem 1rem;
-    background: ${({ theme }) => theme.colors.page_bg || "#c9e3e4"};
+    background: ${({ theme }) => theme.colors.page_bg};
 `;
 
 const Container = styled.div`
@@ -32,28 +23,25 @@ const Container = styled.div`
     text-align: center;
 `;
 
-// ──────────────────────────────
-// Routes Component
-// ──────────────────────────────
 export const AppRoutes = () => {
     const { isAuthenticated } = useAuth();
 
     return (
-        <BrowserRouter>
+        <>
             <Page>
                 <Container>
                     <Routes>
-                        {/* 🏠 Protected Home Route */}
+                        {/* HOME PAGE */}
                         <Route
                             path="/"
                             element={
                                 <PrivateRoute>
-                                    <HomePage />  {/* ✅ Render actual HomePage component */}
+                                    <HomePage />
                                 </PrivateRoute>
                             }
                         />
 
-                        {/* 🔐 Login Page (Public) */}
+                        {/* LOGIN */}
                         <Route
                             path="/login"
                             element={
@@ -63,7 +51,7 @@ export const AppRoutes = () => {
                             }
                         />
 
-                        {/* 📝 Registration Page (Public) */}
+                        {/* REGISTER */}
                         <Route
                             path="/register"
                             element={
@@ -73,14 +61,13 @@ export const AppRoutes = () => {
                             }
                         />
 
-                        {/* 🧭 Catch-all */}
+                        {/* FALLBACK */}
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </Container>
             </Page>
 
-            {/* 🧭 Bottom Navigation visible only when authenticated */}
             {isAuthenticated && <BottomNav />}
-        </BrowserRouter>
+        </>
     );
 };
