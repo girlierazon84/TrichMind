@@ -1,8 +1,8 @@
 // server/src/routes/alertRoutes.ts
 
 import { Router } from "express";
-import { sendRelapseAlert } from "../controllers/alertController";
-import { authentication } from "../middlewares/authMiddleware";
+import { sendRelapseAlert } from "../controllers";
+import { authentication } from "../middlewares";
 
 // Initialize router
 const router = Router();
