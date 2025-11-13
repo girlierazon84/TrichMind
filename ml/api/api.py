@@ -146,12 +146,11 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="TrichMind Relapse Risk API", version="6.3.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["http://localhost:5173"],  # Vite frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 # ── Helpers
 def to_feature_frame(items: List[PredictIn] | PredictIn) -> pd.DataFrame:
