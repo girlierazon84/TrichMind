@@ -2,7 +2,7 @@
 
 import mongoose from "mongoose";
 import { ENV } from "./env";
-import { logger } from "../utils/logger";
+import { logger } from "../utils";
 
 export const connectMongo = async (): Promise<void> => {
     try {
