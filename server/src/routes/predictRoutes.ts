@@ -2,10 +2,10 @@
 
 import { Router } from "express";
 import axios from "axios";
-import { ENV } from "../config/env";
-import { validate } from "../middlewares/validateMiddleware";
-import { PredictDTO } from "../schemas/predictSchema";
-import { asyncHandler } from "../utils/asyncHandler";
+import { ENV } from "../config";
+import { validate } from "../middlewares";
+import { PredictDTO } from "../schemas";
+import { asyncHandler } from "../utils";
 
 const router = Router();
 
