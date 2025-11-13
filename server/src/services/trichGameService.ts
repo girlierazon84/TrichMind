@@ -1,12 +1,13 @@
 // server/src/services/trichGameService.ts
 
-import { GameSession } from "../models/TrichGameModel";
+import { GameSession } from "../models";
 import {
     GameSessionCreateDTO,
     GameSessionUpdateDTO,
     GameSessionListQuery,
-} from "../schemas/trichGameSchema";
+} from "../schemas";
 import { loggerService } from "./loggerService";
+
 
 /**--------------------------------------------------
 🎮 TrichGame Service
