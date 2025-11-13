@@ -1,14 +1,14 @@
 // server/src/controllers/healthController.ts
 
 import { Request, Response } from "express";
-import { asyncHandler } from "../utils/asyncHandler";
+import { asyncHandler } from "../utils";
 import {
     HealthCreateSchema,
     HealthUpdateSchema,
     HealthListQuerySchema,
-} from "../schemas/healthSchema";
-import { healthService } from "../services/healthService";
-import { loggerService } from "../services/loggerService";
+} from "../schemas";
+import { loggerService, healthService } from "../services";
+
 
 /**-------------------------------------------------------------------------
 🩺 Create a new health log
