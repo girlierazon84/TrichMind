@@ -1,10 +1,9 @@
 // server/src/services/alertService.ts
 
-import { AlertLog } from "../models/AlertLog";
-import { User } from "../models/UserModel";
-import { ENV } from "../config/env";
-import { sendMail } from "../utils/mailer";
-import { buildRelapseAlertEmail } from "../templates/relapseAlertEmail";
+import { User, AlertLog } from "../models";
+import { ENV } from "../config";
+import { sendMail } from "../utils";
+import { buildRelapseAlertEmail } from "../templates";
 import { loggerService } from "./loggerService";
 
 
