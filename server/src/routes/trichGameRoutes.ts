@@ -1,18 +1,17 @@
 // server/src/routes/gameRoutes.ts
 
 import { Router } from "express";
-import { authentication } from "../middlewares/authMiddleware";
-import { validate } from "../middlewares/validateMiddleware";
+import { validate, authentication } from "../middlewares";
 import {
     createSession,
     listSessions,
     updateSession,
-} from "../controllers/trichGameController";
+} from "../controllers";
 import {
     GameSessionCreateDTO,
     GameSessionUpdateDTO,
     GameSessionListQuery,
-} from "../schemas/trichGameSchema";
+} from "../schemas";
 
 
 // Initialize router
