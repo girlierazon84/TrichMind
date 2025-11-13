@@ -1,10 +1,10 @@
 // server/src/controllers/predictController.ts
 
 import { Request, Response } from "express";
-import { asyncHandler } from "../utils/asyncHandler";
-import { PredictDTO } from "../schemas/predictSchema";
-import { predictService } from "../services/predictService";
-import { loggerService } from "../services/loggerService";
+import { asyncHandler } from "../utils";
+import { PredictDTO } from "../schemas";
+import { loggerService, predictService } from "../services";
+
 
 /**-----------------------------------------------------
 🧠 Predict relapse risk via FastAPI ML model
