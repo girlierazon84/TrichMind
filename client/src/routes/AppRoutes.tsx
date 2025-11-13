@@ -1,20 +1,26 @@
 // client/src/routes/AppRoutes.tsx
 
-import { Routes, Route, Navigate } from "react-router-dom";
+import {
+    BrowserRouter,
+    Routes, Route,
+    Navigate
+} from "react-router-dom";
 import styled from "styled-components";
-import { useAuth } from "@/hooks/useAuth";
-import { RegistrationPage, LoginPage, HomePage } from "@/pages";
-import { BottomNav } from "@/components/BottomNav";
+import { useAuth } from "@/hooks";
+import {
+    RegistrationPage,
+    LoginPage,
+    HomePage
+} from "@/pages";
+import { BottomNav } from "@/components";
 import { PrivateRoute, PublicRoute } from "@/routes";
+
 
 const Page = styled.main`
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
     padding: 4rem 1rem;
-    background: ${({ theme }) => theme.colors.page_bg};
 `;
 
 const Container = styled.div`
@@ -27,11 +33,10 @@ export const AppRoutes = () => {
     const { isAuthenticated } = useAuth();
 
     return (
-        <>
+        <BrowserRouter>
             <Page>
                 <Container>
                     <Routes>
-                        {/* HOME PAGE */}
                         <Route
                             path="/"
                             element={
@@ -41,7 +46,6 @@ export const AppRoutes = () => {
                             }
                         />
 
-                        {/* LOGIN */}
                         <Route
                             path="/login"
                             element={
@@ -51,7 +55,6 @@ export const AppRoutes = () => {
                             }
                         />
 
-                        {/* REGISTER */}
                         <Route
                             path="/register"
                             element={
@@ -61,13 +64,14 @@ export const AppRoutes = () => {
                             }
                         />
 
-                        {/* FALLBACK */}
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </Container>
             </Page>
 
             {isAuthenticated && <BottomNav />}
-        </>
+        </BrowserRouter>
     );
 };
+
+export default AppRoutes;
