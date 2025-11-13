@@ -1,13 +1,12 @@
 // server/src/routes/trichBotRoutes.ts
 
 import { Router } from "express";
-import { authentication } from "../middlewares/authMiddleware";
-import { validate } from "../middlewares/validateMiddleware";
-import { createMessage, listMessages } from "../controllers/trichBotController";
+import { validate, authentication } from "../middlewares";
+import { createMessage, listMessages } from "../controllers";
 import {
     TrichBotCreateDTO,
     TrichBotListQuery,
-} from "../schemas/trichBotSchema";
+} from "../schemas";
 
 
 // Initialize router
