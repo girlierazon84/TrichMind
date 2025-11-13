@@ -3,13 +3,15 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { Request, Response } from "express";
-import { ENV } from "../config/env";
-import { RegisterDTO, LoginDTO } from "../schemas/userSchema";
-import { sendMail } from "../utils/mailer";
-import { buildWelcomeEmail } from "../templates/welcomeEmail";
-import { buildResetPasswordEmail } from "../templates/resetPasswordEmail";
-import { loggerService } from "../services/loggerService";
-import { userService } from "../services/userService";
+import { ENV } from "../config";
+import { RegisterDTO, LoginDTO } from "../schemas";
+import { sendMail } from "../utils";
+import {
+    buildWelcomeEmail,
+    buildResetPasswordEmail
+} from "../templates";
+import { loggerService, userService } from "../services";
+
 
 /**─────────────────────────────────
 🔐 Generate Access & Refresh Tokens
