@@ -3,7 +3,7 @@
 import fs from "fs";
 import path from "path";
 import util from "util";
-import { ENV } from "../config/env";
+import { ENV } from "../config";
 
 // Determine log directory dynamically from ENV
 const LOG_DIR = path.resolve(process.cwd(), ENV.LOG_DIR || "./logs");
