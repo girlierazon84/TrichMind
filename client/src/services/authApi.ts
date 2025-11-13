@@ -1,6 +1,8 @@
 // client/src/services/authApi.ts
+
 import { axiosClient } from "@/services";
 import { withLogging } from "@/utils";
+
 
 export interface RegisterData {
     email: string;
@@ -27,14 +29,26 @@ export interface AuthResponse {
     };
 }
 
+// -------------------------------------------------------------------------------
+// Raw API functions - These functions directly interact with the API endpoints
+// -------------------------------------------------------------------------------
 async function rawRegister(data: RegisterData): Promise<AuthResponse> {
     const res = await axiosClient.post<AuthResponse>("/auth/register", data);
     return res.data;
 }
 
 async function rawLogin(data: LoginData): Promise<AuthResponse> {
-    const res = await axiosClient.post<AuthResponse>("/auth/login", data);
-    return res.data;
+    const res = await axiosClient.post("/auth/login", data);
+    const d = res.data;
+
+    return {
+        token: d.token,
+        user: {
+            id: d.user._id ?? d.user.id,
+            email: d.user.email,
+            displayName: d.user.displayName,
+        },
+    };
 }
 
 async function rawForgotPassword(email: string): Promise<{ message: string }> {
