@@ -1,10 +1,13 @@
 // server/src/controllers/trichBotController.ts
 
 import { Request, Response } from "express";
-import { asyncHandler } from "../utils/asyncHandler";
-import { botService } from "../services/trichBotService";
-import { TrichBotCreateDTO, TrichBotListQuery } from "../schemas/trichBotSchema";
-import { loggerService } from "../services/loggerService";
+import { asyncHandler } from "../utils";
+import { loggerService, botService } from "../services";
+import {
+    TrichBotCreateDTO,
+    TrichBotListQuery
+} from "../schemas";
+
 
 /**------------------------------------------------------------------
 🤖 Create a new TrichBot message (user prompt + bot response)
