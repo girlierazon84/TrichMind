@@ -1,17 +1,13 @@
 // client/src/App.tsx
 
-import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "styled-components";
 import { theme, GlobalStyle } from "@/styles";
-import { AppRoutes } from "@/routes/AppRoutes";
-
+import { AppRoutes } from "@/routes";
 
 export const App = () => (
   <ThemeProvider theme={theme}>
     <GlobalStyle />
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <AppRoutes />   {/* <-- Router will be inside AppRoutes */}
   </ThemeProvider>
 );
 
