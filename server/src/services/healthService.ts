@@ -1,7 +1,7 @@
 // server/src/services/healthService.ts
 
 import { HealthLog } from "../models";
-import { HealthListQuery } from "../schemas/healthSchema";
+import { HealthListQuery } from "../schemas";
 import { loggerService } from "./loggerService";
 
 
