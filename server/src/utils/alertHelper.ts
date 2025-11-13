@@ -1,8 +1,9 @@
 // server/src/utils/alertHelper.ts
 
 import axios from "axios";
-import { ENV } from "../config/env";
+import { ENV } from "../config";
 import { logger } from "./logger";
+
 
 /**---------------------------------------------------
 Trigger relapse alert email through the Node backend.
