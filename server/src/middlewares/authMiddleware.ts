@@ -2,7 +2,7 @@
 
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { ENV } from "../config/env";
+import { ENV } from "../config";
 
 
 // Define the shape of the auth object to be added to the Request interface
