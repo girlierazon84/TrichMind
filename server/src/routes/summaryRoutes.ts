@@ -1,8 +1,8 @@
 // server/src/routes/summaryRoutes.ts
 
 import { Router } from "express";
-import { sendWeeklySummaries } from "../controllers/summaryController";
-import { authentication } from "../middlewares/authMiddleware";
+import { sendWeeklySummaries } from "../controllers";
+import { authentication } from "../middlewares";
 
 
 // Initialize router
