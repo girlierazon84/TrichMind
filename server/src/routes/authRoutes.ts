@@ -1,17 +1,16 @@
 // src/routes/authRoutes.ts
 
 import { Router } from "express";
-import { validate } from "../middlewares/validateMiddleware";
-import { authentication } from "../middlewares/authMiddleware";
+import { validate, authentication } from "../middlewares";
 import {
     register,
     login,
     refreshToken,
     forgotPassword,
     resetPassword,
-} from "../controllers/authController";
-import { RegisterDTO, LoginDTO } from "../schemas/userSchema";
-import { User } from "../models/UserModel";
+} from "../controllers";
+import { RegisterDTO, LoginDTO } from "../schemas";
+import { User } from "../models";
 
 // Initialize router
 const router = Router();
