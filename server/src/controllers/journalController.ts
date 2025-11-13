@@ -1,14 +1,14 @@
 // server/src/controllers/journalController.ts
 
 import { Request, Response } from "express";
-import { asyncHandler } from "../utils/asyncHandler";
-import { journalService } from "../services/journalService";
+import { asyncHandler } from "../utils";
+import { loggerService, journalService } from "../services";
 import {
     JournalCreateDTO,
     JournalUpdateDTO,
     JournalListQuery,
-} from "../schemas/journalSchema";
-import { loggerService } from "../services/loggerService";
+} from "../schemas";
+
 
 /**----------------------------------------------------------------------
 📝 Create a new journal entry
