@@ -1,7 +1,7 @@
 // server/src/routes/loggerRoutes.ts
 
 import { Router } from "express";
-import { LogEvent } from "../models/LogModel";
+import { LogEvent } from "../models";
 
 
 // Initialize Router
