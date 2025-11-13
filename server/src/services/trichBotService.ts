@@ -1,7 +1,10 @@
 // server/src/services/trichBotService.ts
 
-import { TrichBotMessage } from "../models/TrichBotModel";
-import { TrichBotCreateDTO, TrichBotListQuery } from "../schemas/trichBotSchema";
+import { TrichBotMessage } from "../models";
+import {
+    TrichBotCreateDTO,
+    TrichBotListQuery
+} from "../schemas";
 
 
 /**----------------------------------------
