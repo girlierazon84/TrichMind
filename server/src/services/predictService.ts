@@ -1,9 +1,9 @@
 // server/src/services/predictService.ts
 
 import axios from "axios";
-import { Predict } from "../models/PredictModel";
-import { PredictDTO } from "../schemas/predictSchema";
-import { ENV } from "../config/env";
+import { Predict } from "../models";
+import { PredictDTO } from "../schemas";
+import { ENV } from "../config";
 import { loggerService } from "./loggerService";
 
 /**------------------------------------------------
