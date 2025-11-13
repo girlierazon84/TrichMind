@@ -9,153 +9,159 @@ import { asyncHandler } from "../utils/asyncHandler";
 
 const router = Router();
 
-/**───────────────────────────────────────────────────────────────
-🌡️  GET /api/predict/ping — Health check for ML service
-Verifies connection to FastAPI ML backend.
-────────────────────────────────────────────────────────────────**/
-router.get(
-    "/ping",
-    asyncHandler(async (_req, res) => {
+// Base FastAPI ML URL
+const ML_URL = ENV.ML_BASE_URL || "http://localhost:8000";
+
+/* -----------------------------------------------------------
+    🔐  /api/predict/auth/register → Proxy to FastAPI
+------------------------------------------------------------ */
+router.post(
+    "/auth/register",
+    asyncHandler(async (req, res) => {
         try {
-            const { data } = await axios.get(`${ENV.ML_BASE_URL}/live`, {
-                timeout: 5000,
+            console.log("📤 [ML] Forwarding Auth Register:", req.body);
+
+            const { data } = await axios.post(`${ML_URL}/auth/register`, req.body, {
+                headers: { "Content-Type": "application/json" },
             });
-            console.log("✅ [ML] Service is live:", data);
-            return res.status(200).json({ ok: true, ml_response: data });
+
+            console.log("📥 [ML] Register OK:", data);
+            res.json(data);
         } catch (error: any) {
-            console.error("❌ [ML] Service unreachable:", error.message);
-            return res.status(500).json({
+            console.error("❌ [ML] Register Failed:", error.message);
+
+            res.status(error.response?.status || 500).json({
                 ok: false,
-                error: `Cannot reach ML service at ${ENV.ML_BASE_URL}`,
+                error: error.response?.data || error.message,
             });
         }
     })
 );
 
-/**───────────────────────────────────────────────────────────────
-🧠 POST /api/predict — Forwards user input to ML model for inference
-────────────────────────────────────────────────────────────────**/
+/* -----------------------------------------------------------
+    🌡️ GET /api/predict/ping — Health Check
+------------------------------------------------------------ */
+router.get(
+    "/ping",
+    asyncHandler(async (_req, res) => {
+        try {
+            const { data } = await axios.get(`${ML_URL}/live`, { timeout: 5000 });
+            return res.status(200).json({ ok: true, ml_response: data });
+        } catch (error: any) {
+            return res.status(500).json({
+                ok: false,
+                error: `Cannot reach ML service at ${ML_URL}`,
+            });
+        }
+    })
+);
+
+/* -----------------------------------------------------------
+    🤖 POST /api/predict — Main Prediction Route
+------------------------------------------------------------ */
 router.post(
-    "/predict",
+    "/",
     validate(PredictDTO),
     asyncHandler(async (req, res) => {
         try {
-            console.log("📤 [ML] Incoming prediction request:", req.body);
+            console.log("📤 [ML] Predict Request:", req.body);
 
-            const { data } = await axios.post(`${ENV.ML_BASE_URL}/predict`, req.body, {
+            const { data } = await axios.post(`${ML_URL}/predict`, req.body, {
                 headers: { "Content-Type": "application/json" },
                 timeout: 15000,
             });
 
-            console.log("📥 ✅ [ML] Prediction received:", data);
+            console.log("📥 [ML] Predict OK:", data);
+
             return res.status(200).json({
                 ok: true,
                 prediction: data,
             });
         } catch (error: any) {
-            console.error("❌ [ML] Prediction request failed:", error.message);
+            console.error("❌ [ML] Predict Failed:", error.message);
 
-            if (error.isAxiosError) {
-                console.error("🔍 Axios error details:", {
-                    code: error.code,
-                    message: error.message,
-                    url: error.config?.url,
-                    method: error.config?.method,
-                    sentData: error.config?.data,
-                    responseStatus: error.response?.status,
-                    responseData: error.response?.data,
-                });
-            }
-
-            // Specific handling
             if (error.code === "ECONNREFUSED") {
                 return res.status(502).json({
                     ok: false,
-                    error: `Cannot connect to ML service at ${ENV.ML_BASE_URL}`,
+                    error: `Cannot connect to ML service at ${ML_URL}`,
                 });
             }
 
-            if (error.response) {
-                return res.status(error.response.status).json({
-                    ok: false,
-                    error:
-                        error.response.data?.detail ||
-                        error.response.data?.error ||
-                        error.response.data?.message ||
-                        "ML backend returned an error.",
-                });
-            }
-
-            return res.status(500).json({
+            return res.status(error.response?.status || 500).json({
                 ok: false,
-                error: "Unexpected error connecting to ML service.",
+                error:
+                    error.response?.data?.detail ||
+                    error.response?.data?.error ||
+                    error.message,
             });
         }
     })
 );
 
-/**───────────────────────────────────────────────────────────────
-📦 POST /api/predict/batch — Send multiple user records at once
-Forwards an array of inputs to FastAPI /batch_predict endpoint.
-────────────────────────────────────────────────────────────────**/
+/* -----------------------------------------------------------
+    📦 POST /api/predict/batch
+------------------------------------------------------------ */
 router.post(
     "/batch",
     asyncHandler(async (req, res) => {
         try {
             const payload = req.body;
-
             if (!Array.isArray(payload) || payload.length === 0) {
                 return res.status(400).json({
                     ok: false,
-                    error: "Request body must be a non-empty array of prediction objects.",
+                    error: "Payload must be a non-empty array",
                 });
             }
 
-            console.log(`📤 [ML] Sending batch of ${payload.length} records...`);
-
-            const { data } = await axios.post(`${ENV.ML_BASE_URL}/batch_predict`, payload, {
+            const { data } = await axios.post(`${ML_URL}/batch_predict`, payload, {
                 headers: { "Content-Type": "application/json" },
                 timeout: 20000,
             });
 
-            console.log("📥 ✅ [ML] Batch prediction successful:", data);
             return res.status(200).json({
                 ok: true,
                 batch_summary: data,
             });
         } catch (error: any) {
-            console.error("❌ [ML] Batch prediction failed:", error.message);
+            console.error("❌ [ML] Batch Failed:", error.message);
 
-            if (error.isAxiosError && error.code === "ECONNREFUSED") {
+            if (error.code === "ECONNREFUSED") {
                 return res.status(502).json({
                     ok: false,
-                    error: `Cannot connect to ML service at ${ENV.ML_BASE_URL}`,
+                    error: `Cannot connect to ML service at ${ML_URL}`,
                 });
             }
 
-            if (error.response) {
-                return res.status(error.response.status).json({
-                    ok: false,
-                    error: error.response.data?.detail || error.response.data?.message,
-                });
-            }
-
-            return res.status(500).json({
+            return res.status(error.response?.status || 500).json({
                 ok: false,
-                error: "Unexpected error during batch prediction.",
+                error: error.response?.data || error.message,
             });
         }
     })
 );
 
-/**───────────────────────────────────────────────────────────────
-🧪 POST /api/predict/test/low|medium|high — Built-in ML test routes
-These routes use known synthetic payloads to test if the ML backend
-is correctly predicting low / medium / high risk categories.
-────────────────────────────────────────────────────────────────**/
+/* -----------------------------------------------------------
+    🧪 Built-In Test Routes (low/medium/high)
+------------------------------------------------------------ */
+type RiskTestLevel = "low" | "medium" | "high";
 
-// Test payloads (same structure as PredictDTO)
-const TEST_INPUTS = {
+interface TestInputPayload {
+    pulling_severity: number;
+    pulling_frequency_encoded: number;
+    awareness_level_encoded: number;
+    how_long_stopped_days_est: number;
+    successfully_stopped_encoded: number;
+    years_since_onset: number;
+    age: number;
+    age_of_onset: number;
+    emotion_intensity_sum: number;
+    anxiety_level: number;
+    depression_level: number;
+    coping_strategies_effective: number;
+    sleep_quality_score: number;
+}
+
+const TEST_INPUTS: Record<RiskTestLevel, TestInputPayload> = {
     low: {
         pulling_severity: 7.4,
         pulling_frequency_encoded: 1,
@@ -203,29 +209,24 @@ const TEST_INPUTS = {
     },
 };
 
-// Register built-in test routes
-["low", "medium", "high"].forEach((level) => {
+// Register test endpoints
+(["low", "medium", "high"] as RiskTestLevel[]).forEach((level) => {
     router.post(
         `/test/${level}`,
         asyncHandler(async (_req, res) => {
-            console.log(`🧪 [Test] Sending ${level.toUpperCase()} risk input to ML...`);
+            console.log(`🧪 [Test] ${level.toUpperCase()} → ML`);
+
             try {
-                const { data } = await axios.post(
-                    `${ENV.ML_BASE_URL}/predict`,
-                    TEST_INPUTS[level as keyof typeof TEST_INPUTS],
-                    { headers: { "Content-Type": "application/json" } }
-                );
-                console.log(`✅ [Test] ${level.toUpperCase()} result:`, data);
-                return res.status(200).json({
-                    ok: true,
-                    level,
-                    ml_prediction: data,
+                const payload = TEST_INPUTS[level]; // now fully typed
+                const { data } = await axios.post(`${ML_URL}/predict`, payload, {
+                    headers: { "Content-Type": "application/json" },
                 });
+
+                return res.json({ ok: true, level, ml_prediction: data });
             } catch (error: any) {
-                console.error(`❌ [Test] ${level.toUpperCase()} failed:`, error.message);
                 return res.status(500).json({
                     ok: false,
-                    error: `Test ${level} request failed: ${error.message}`,
+                    error: error.response?.data || error.message,
                 });
             }
         })
