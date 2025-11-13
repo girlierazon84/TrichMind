@@ -2,11 +2,11 @@
 
 import express from "express";
 import cors from "cors";
-import { connectMongo } from "./config/mongo";
-import { notFound, errorHandler } from "./middlewares/errorHandler";
-import { startWeeklySummaryScheduler } from "./utils/scheduler";
-import { logger } from "./utils/logger";
-import { ENV } from "./config/env";
+import { connectMongo } from "./config";
+import { notFound, errorHandler } from "./middlewares";
+import { logger, startWeeklySummaryScheduler } from "./utils";
+import { ENV } from "./config";
+
 
 // -----------------
 // Route Imports
