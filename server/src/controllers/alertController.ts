@@ -1,9 +1,8 @@
 // server/src/controllers/alertController.ts
 
 import { Request, Response } from "express";
-import { asyncHandler } from "../utils/asyncHandler";
-import { alertService } from "../services/alertService";
-import { loggerService } from "../services/loggerService";
+import { asyncHandler } from "../utils";
+import { loggerService, alertService } from "../services";
 
 /**--------------------------------------------------------------
 ⚠️ Trigger relapse-risk alert email manually or via ML callback
