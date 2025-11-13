@@ -1,9 +1,9 @@
 // server/src/controllers/summaryController.ts
 
 import { Request, Response } from "express";
-import { asyncHandler } from "../utils/asyncHandler";
-import { summaryService } from "../services/summaryService";
-import { loggerService } from "../services/loggerService";
+import { asyncHandler } from "../utils";
+import { loggerService, summaryService } from "../services";
+
 
 /**--------------------------------------------------------------------
 📬 Send weekly summaries to all users
