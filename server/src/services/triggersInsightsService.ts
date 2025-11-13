@@ -1,12 +1,13 @@
 // server/src/services/triggersInsightsService.ts
 
-import { Trigger } from "../models/TriggersInsightsModel";
+import { Trigger } from "../models";
 import {
     TriggersInsightsCreateDTO,
     TriggersInsightsUpdateDTO,
     TriggersInsightsListQuery,
-} from "../schemas/triggersInsightsSchema";
+} from "../schemas";
 import { loggerService } from "./loggerService";
+
 
 /**-------------------------------------------------------
 💡 Triggers Insights Service
