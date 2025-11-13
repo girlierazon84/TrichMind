@@ -1,18 +1,17 @@
 // server/src/routes/journalRoutes.ts
 
 import { Router } from "express";
-import { authentication } from "../middlewares/authMiddleware";
-import { validate } from "../middlewares/validateMiddleware";
+import { validate, authentication } from "../middlewares";
 import {
     createJournal,
     listJournals,
     updateJournal,
-} from "../controllers/journalController";
+} from "../controllers";
 import {
     JournalCreateDTO,
     JournalUpdateDTO,
     JournalListQuery,
-} from "../schemas/journalSchema";
+} from "../schemas";
 
 
 // Initialize Router
