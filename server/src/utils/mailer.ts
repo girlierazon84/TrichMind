@@ -1,7 +1,7 @@
 // server/src/utils/mailer.ts
 
 import nodemailer from "nodemailer";
-import { ENV } from "../config/env";
+import { ENV } from "../config";
 import { logger } from "./logger";
 
 
