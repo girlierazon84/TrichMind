@@ -1,7 +1,7 @@
 // server/src/services/userService.ts
 
-import { User, IUser } from "../models/UserModel";
-import { RegisterDTO, LoginDTO } from "../schemas/userSchema";
+import { User, IUser } from "../models";
+import { RegisterDTO, LoginDTO } from "../schemas";
 import { loggerService } from "./loggerService";
 
 
