@@ -1,18 +1,18 @@
 // server/src/routes/healthRoutes.ts
 
 import { Router } from "express";
-import { authentication } from "../middlewares/authMiddleware";
-import { validate } from "../middlewares/validateMiddleware";
+import { validate, authentication } from "../middlewares";
 import {
     createHealthLog,
     listHealthLogs,
     updateHealthLog,
-} from "../controllers/healthController";
+} from "../controllers";
 import {
     HealthCreateSchema,
     HealthUpdateSchema,
     HealthListQuerySchema,
-} from "../schemas/healthSchema";
+} from "../schemas";
+
 
 // Initialize router
 const router = Router();
