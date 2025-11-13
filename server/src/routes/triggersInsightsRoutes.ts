@@ -1,18 +1,17 @@
 // server/src/routes/triggersInsightsRoutes.ts
 
 import { Router } from "express";
-import { authentication } from "../middlewares/authMiddleware";
-import { validate } from "../middlewares/validateMiddleware";
+import { validate, authentication } from "../middlewares";
 import {
     createTriggersInsights,
     listTriggersInsights,
     updateTriggersInsights,
-} from "../controllers/triggersInsightsController";
+} from "../controllers";
 import {
     TriggersInsightsCreateDTO,
     TriggersInsightsUpdateDTO,
     TriggersInsightsListQuery,
-} from "../schemas/triggersInsightsSchema";
+} from "../schemas";
 
 
 // Initialize router
