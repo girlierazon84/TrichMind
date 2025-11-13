@@ -2,7 +2,7 @@
 
 import cron from "node-cron";
 import axios from "axios";
-import { ENV } from "../config/env";
+import { ENV } from "../config";
 import { logger } from "./logger";
 
 
