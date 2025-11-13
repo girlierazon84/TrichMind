@@ -1,7 +1,12 @@
 // server/src/services/journalService.ts
 
-import { JournalEntry } from "../models/JournalEntry";
-import { JournalCreateDTO, JournalUpdateDTO, JournalListQuery } from "../schemas/journalSchema";
+import { JournalEntry } from "../models";
+import {
+    JournalCreateDTO,
+    JournalUpdateDTO,
+    JournalListQuery
+} from "../schemas";
+
 
 /**------------------------------------------------------------
 Journal Service
