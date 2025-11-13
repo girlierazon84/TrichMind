@@ -1,14 +1,14 @@
 // server/src/controllers/trichGameController.ts
 
 import { Request, Response } from "express";
-import { asyncHandler } from "../utils/asyncHandler";
-import { gameService } from "../services/trichGameService";
+import { asyncHandler } from "../utils";
+import { loggerService, gameService } from "../services";
 import {
     GameSessionCreateDTO,
     GameSessionUpdateDTO,
     GameSessionListQuery,
-} from "../schemas/trichGameSchema";
-import { loggerService } from "../services/loggerService";
+} from "../schemas";
+
 
 /**-----------------------------------------------------------------------------------------------------------
 🎮 Create a new TrichGame session
