@@ -50,13 +50,23 @@ export const useAuth = () => {
     /** 📥 Auto-load user if token exists */
     const fetchUser = useCallback(async () => {
         if (!token) return;
+
         setAuthHeader(token);
+
         try {
-            const data = await authApi.me(token);
-            setUser(data);
-            log("User authenticated", { userId: data.id });
+            const raw = await authApi.me(token);
+            const data = raw.user ?? raw;
+
+            setUser({
+                id: data._id ?? data.id,
+                email: data.email,
+                displayName: data.displayName,
+            });
+
+            log("User authenticated", { userId: data._id ?? data.id });
+
         } catch {
-            warn("Token invalid or expired — logging out.");
+            warn("Token invalid — logging out.");
             logout();
         }
     }, [token, logout, log, warn]);
@@ -161,8 +171,14 @@ export const useAuth = () => {
     const me = async (): Promise<User | null> => {
         if (!token) return null;
         try {
-            const data = await authApi.me(token);
-            setUser(data);
+            const raw = await authApi.me(token);
+            const data = raw.user ?? raw;   // FIX — normalize backend shape
+            setUser({
+                id: data._id ?? data.id,
+                email: data.email,
+                displayName: data.displayName
+            });
+
             log("Fetched current user", { userId: data.id });
             return data;
         } catch {
