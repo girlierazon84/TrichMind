@@ -1,10 +1,9 @@
 // server/src/routes/userRoutes.ts
 
 import { Router } from "express";
-import { authentication } from "../middlewares/authMiddleware";
-import { User } from "../models/UserModel";
-import { HealthLog } from "../models/HealthLog";
-import { asyncHandler } from "../utils/asyncHandler";
+import { authentication } from "../middlewares";
+import { User, HealthLog } from "../models";
+import { asyncHandler } from "../utils";
 
 
 // Initialize router
