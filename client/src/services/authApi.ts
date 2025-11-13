@@ -1,6 +1,6 @@
 // client/src/services/authApi.ts
 import { axiosClient } from "@/services";
-import { withLogging } from "@/utils/withLogging";
+import { withLogging } from "@/utils";
 
 export interface RegisterData {
     email: string;
