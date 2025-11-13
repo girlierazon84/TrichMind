@@ -1,9 +1,8 @@
 // server/src/services/summaryService.ts
 
-import { User } from "../models/UserModel";
-import { SummaryLog } from "../models/SummaryLog";
-import { sendMail } from "../utils/mailer";
-import { buildWeeklySummaryEmail } from "../templates/weeklySummaryEmail";
+import { User, SummaryLog } from "../models";
+import { sendMail } from "../utils";
+import { buildWeeklySummaryEmail } from "../templates";
 import { loggerService } from "./loggerService";
 
 
