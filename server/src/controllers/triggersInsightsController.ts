@@ -1,14 +1,17 @@
 // server/src/controllers/triggersInsightsController.ts
 
 import { Request, Response } from "express";
-import { asyncHandler } from "../utils/asyncHandler";
-import { triggersInsightsService } from "../services/triggersInsightsService";
+import { asyncHandler } from "../utils";
+import {
+    loggerService,
+    triggersInsightsService
+} from "../services";
 import {
     TriggersInsightsCreateDTO,
     TriggersInsightsUpdateDTO,
     TriggersInsightsListQuery,
-} from "../schemas/triggersInsightsSchema";
-import { loggerService } from "../services/loggerService";
+} from "../schemas";
+
 
 /**--------------------------------------------------------------------------------------------------------------
 ➕ Create a new trigger insight entry
