@@ -19,7 +19,10 @@ export const useJournal = () => {
             toast.success("Entry saved!");
             return res;
         } catch (err) {
-            const msg = err instanceof Error ? err.message : "Failed to save entry";
+            const msg =
+                err instanceof Error
+                    ? err.message
+                    : "Failed to save entry";
             setError(msg);
             await logError("Journal save failed", { error: msg });
             toast.error(msg);
@@ -30,6 +33,6 @@ export const useJournal = () => {
     };
 
     return { create, loading, error };
-}
+};
 
 export default useJournal;
