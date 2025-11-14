@@ -18,169 +18,220 @@ interface User {
     displayName?: string;
 }
 
-/**
- * 🧠 useAuth — authentication lifecycle hook
- * Handles register, login, logout, token persistence, forgot/reset password
- * Now integrated with centralized logging
- */
 export const useAuth = () => {
     const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(localStorage.getItem("access_token"));
-    const [loading, setLoading] = useState(false);
+    const [token, setToken] = useState<string | null>(
+        localStorage.getItem("access_token")
+    );
+    const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
 
-    const { log, warn, error: logError } = useLogger(false); // disable toasts here for cleaner UX
+    const { log, warn, error: logError } = useLogger(false);
 
-    /** 🔐 Attach or clear Authorization header */
-    const setAuthHeader = (jwt: string | null) => {
-        if (jwt) axiosClient.defaults.headers.common["Authorization"] = `Bearer ${jwt}`;
-        else delete axiosClient.defaults.headers.common["Authorization"];
-    };
+    /* ----------------------------------------------------------------
+     * Normalize backend response → consistent User
+     * ---------------------------------------------------------------- */
+    const normalizeUser = useCallback((raw: unknown): User => {
+        const obj = raw as Record<string, unknown>;
+        const u = (obj.user as Record<string, unknown>) ?? obj;
 
-    /** 🚪 Logout and clear session */
-    const logout = useCallback(() => {
+        return {
+            id: (u._id as string) ?? (u.id as string),
+            email: u.email as string,
+            displayName: (u.displayName as string) ?? undefined,
+        };
+    }, []);
+
+    /* ----------------------------------------------------------------
+     * Set/Clear Authorization Header
+     * ---------------------------------------------------------------- */
+    const setAuthHeader = useCallback((jwt: string | null): void => {
+        if (jwt) {
+            axiosClient.defaults.headers.common["Authorization"] = `Bearer ${jwt}`;
+        } else {
+            delete axiosClient.defaults.headers.common["Authorization"];
+        }
+    }, []);
+
+    /* ----------------------------------------------------------------
+     * Logout
+     * ---------------------------------------------------------------- */
+    const logout = useCallback((): void => {
         localStorage.removeItem("access_token");
         setToken(null);
         setUser(null);
         setAuthHeader(null);
-        log("User logged out", { time: new Date().toISOString() });
-    }, [log]);
+        log("User logged out");
+    }, [log, setAuthHeader]);
 
-    /** 📥 Auto-load user if token exists */
-    const fetchUser = useCallback(async () => {
+    /* ----------------------------------------------------------------
+     * Fetch current user (me)
+     * ---------------------------------------------------------------- */
+    const fetchUser = useCallback(async (): Promise<void> => {
         if (!token) return;
 
-        setAuthHeader(token);
-
         try {
-            const raw = await authApi.me(token);
-            const data = raw.user ?? raw;
-
-            setUser({
-                id: data._id ?? data.id,
-                email: data.email,
-                displayName: data.displayName,
-            });
-
-            log("User authenticated", { userId: data._id ?? data.id });
-
+            setAuthHeader(token);
+            const profile = await authApi.me(token);
+            const normalized = normalizeUser(profile);
+            setUser(normalized);
+            log("User authenticated", { userId: normalized.id });
         } catch {
-            warn("Token invalid — logging out.");
+            warn("Invalid token — logging out.");
             logout();
         }
-    }, [token, logout, log, warn]);
+    }, [token, logout, log, warn, normalizeUser, setAuthHeader]);
 
     useEffect(() => {
         if (token) fetchUser();
     }, [token, fetchUser]);
 
-    /** 🧾 Register new user */
-    const register = async (data: RegisterData): Promise<AuthResponse | null> => {
+    /* ----------------------------------------------------------------
+     * Store token + user after Login/Register
+     * ---------------------------------------------------------------- */
+    const storeAuth = useCallback(
+        (res: AuthResponse): User => {
+            const jwt = res.token;
+            localStorage.setItem("access_token", jwt);
+
+            setToken(jwt);
+            setAuthHeader(jwt);
+
+            const normalized = normalizeUser(res.user);
+            setUser(normalized);
+
+            return normalized;
+        },
+        [normalizeUser, setAuthHeader]
+    );
+
+    /* ----------------------------------------------------------------
+     * Register
+     * ---------------------------------------------------------------- */
+    const register = async (
+        data: RegisterData
+    ): Promise<AuthResponse | null> => {
         setLoading(true);
         setError(null);
         setSuccess(null);
+
         try {
             const res = await authApi.register(data);
+
             if (res?.token) {
-                localStorage.setItem("access_token", res.token);
-                setToken(res.token);
-                setAuthHeader(res.token);
-                setUser(res.user);
+                const u = storeAuth(res);
+                log("User registered", { userId: u.id });
                 setSuccess("Registration successful!");
-                log("New user registered", { userId: res.user.id, email: res.user.email });
             }
+
             return res;
         } catch (err) {
-            const msg = err instanceof Error ? err.message : "Registration failed";
+            const msg =
+                err instanceof Error ? err.message : "Registration failed";
             setError(msg);
-            logError("Registration failed", { email: data.email, message: msg });
+            logError("Registration failed", { email: data.email, msg });
             return null;
         } finally {
             setLoading(false);
         }
     };
 
-    /** 🔑 Login existing user */
+    /* ----------------------------------------------------------------
+     * Login
+     * ---------------------------------------------------------------- */
     const login = async (data: LoginData): Promise<AuthResponse | null> => {
         setLoading(true);
         setError(null);
         setSuccess(null);
+
         try {
             const res = await authApi.login(data);
+
             if (res?.token) {
-                localStorage.setItem("access_token", res.token);
-                setToken(res.token);
-                setAuthHeader(res.token);
-                setUser(res.user);
+                const u = storeAuth(res);
+                log("User logged in", { userId: u.id });
                 setSuccess("Login successful!");
-                log("User logged in", { userId: res.user.id });
             }
+
             return res;
         } catch (err) {
-            const msg = err instanceof Error ? err.message : "Login failed";
+            const msg =
+                err instanceof Error ? err.message : "Login failed";
             setError(msg);
-            logError("Login attempt failed", { email: data.email, message: msg });
+            logError("Login failed", { email: data.email, msg });
             return null;
         } finally {
             setLoading(false);
         }
     };
 
-    /** 📧 Forgot password — send reset link */
+    /* ----------------------------------------------------------------
+     * Forgot Password
+     * ---------------------------------------------------------------- */
     const forgotPassword = async (email: string): Promise<boolean> => {
         setLoading(true);
         setError(null);
         setSuccess(null);
+
         try {
             const res = await authApi.forgotPassword(email);
-            setSuccess(res.message || "Reset link sent to your email.");
+            setSuccess(res.message || "Reset link sent.");
             log("Password reset requested", { email });
             return true;
         } catch (err) {
-            const msg = err instanceof Error ? err.message : "Failed to send reset email.";
+            const msg =
+                err instanceof Error
+                    ? err.message
+                    : "Failed to send reset email";
             setError(msg);
-            logError("Password reset request failed", { email, message: msg });
+            logError("Forgot password failed", { email, msg });
             return false;
         } finally {
             setLoading(false);
         }
     };
 
-    /** 🔁 Reset password with token */
-    const resetPassword = async (data: ResetPasswordData): Promise<boolean> => {
+    /* ----------------------------------------------------------------
+     * Reset Password
+     * ---------------------------------------------------------------- */
+    const resetPassword = async (
+        data: ResetPasswordData
+    ): Promise<boolean> => {
         setLoading(true);
         setError(null);
         setSuccess(null);
+
         try {
             const res = await authApi.resetPassword(data);
             setSuccess(res.message || "Password reset successfully.");
-            log("Password successfully reset", { token: data.token });
+            log("Password reset successful");
             return true;
         } catch (err) {
-            const msg = err instanceof Error ? err.message : "Failed to reset password.";
+            const msg =
+                err instanceof Error
+                    ? err.message
+                    : "Failed to reset password";
             setError(msg);
-            logError("Password reset failed", { message: msg });
+            logError("Reset password failed", { msg });
             return false;
         } finally {
             setLoading(false);
         }
     };
 
-    /** 🧠 Fetch authenticated user manually */
+    /* ----------------------------------------------------------------
+     * Manual fetch user
+     * ---------------------------------------------------------------- */
     const me = async (): Promise<User | null> => {
         if (!token) return null;
-        try {
-            const raw = await authApi.me(token);
-            const data = raw.user ?? raw;   // FIX — normalize backend shape
-            setUser({
-                id: data._id ?? data.id,
-                email: data.email,
-                displayName: data.displayName
-            });
 
-            log("Fetched current user", { userId: data.id });
-            return data;
+        try {
+            const profile = await authApi.me(token);
+            const normalized = normalizeUser(profile);
+            setUser(normalized);
+            log("Fetched user", { userId: normalized.id });
+            return normalized;
         } catch {
             warn("Failed to fetch user — logging out.");
             logout();
@@ -194,14 +245,16 @@ export const useAuth = () => {
         loading,
         error,
         success,
+
         register,
         login,
         forgotPassword,
         resetPassword,
         me,
         logout,
+
         isAuthenticated: !!user,
     };
-}
+};
 
 export default useAuth;
