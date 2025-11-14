@@ -3,11 +3,12 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { axiosClient } from "@/services";
 
+
 export interface SoberStreakResponse {
-    currentStreak: number; // days since last pulling episode
-    previousStreak?: number; // previous streak (optional)
-    longestStreak?: number; // longest streak (optional)
-    lastEntryDate?: string; // ISO date (optional)
+    currentStreak: number;
+    previousStreak?: number;
+    longestStreak?: number;
+    lastEntryDate?: string;
 }
 
 interface UseSoberStreakResult {
@@ -17,10 +18,6 @@ interface UseSoberStreakResult {
     refresh: () => Promise<void>;
 }
 
-/**
- * Fetches the user's sober streak data from the backend.
- * Expected backend endpoint: GET /health/streak → { currentStreak, previousStreak?, ... }
- */
 export const useSoberStreak = (pollMs?: number): UseSoberStreakResult => {
     const [data, setData] = useState<SoberStreakResponse | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
@@ -34,9 +31,12 @@ export const useSoberStreak = (pollMs?: number): UseSoberStreakResult => {
         const controller = new AbortController();
 
         try {
-            const res = await axiosClient.get<SoberStreakResponse>("/health/streak", {
-                signal: controller.signal,
-            });
+            const res = await axiosClient.get<SoberStreakResponse>(
+                "/api/health/streak",
+                {
+                    signal: controller.signal,
+                }
+            );
 
             const payload = res.data || { currentStreak: 0 };
             setData({
@@ -45,34 +45,31 @@ export const useSoberStreak = (pollMs?: number): UseSoberStreakResult => {
                 longestStreak: payload.longestStreak ?? undefined,
                 lastEntryDate: payload.lastEntryDate ?? undefined,
             });
-        } catch (e: unknown) {
+        } catch (err) {
             const msg =
-                (e as { message?: string })?.message || "Failed to fetch streak data.";
+                (err as { message?: string })?.message ||
+                "Failed to fetch streak data.";
             setError(msg);
         } finally {
             setLoading(false);
-            controller.abort(); // ✅ ensure cleanup here
+            controller.abort();
         }
     }, []);
 
-    // ──────────────────────────────
-    // Initial fetch
-    // ──────────────────────────────
     useEffect(() => {
-        void fetchStreak(); // fire immediately
+        void fetchStreak();
         return () => {
             if (pollRef.current) window.clearInterval(pollRef.current);
         };
     }, [fetchStreak]);
 
-    // ──────────────────────────────
-    // Optional polling
-    // ──────────────────────────────
     useEffect(() => {
         if (!pollMs) return;
+
         pollRef.current = window.setInterval(() => {
             void fetchStreak();
         }, pollMs);
+
         return () => {
             if (pollRef.current) {
                 window.clearInterval(pollRef.current);
