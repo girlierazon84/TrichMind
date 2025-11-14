@@ -3,9 +3,24 @@
 import { axiosClient } from "@/services";
 import { withLogging } from "@/utils";
 
-/* -------------------------------------------
- * TYPES - align with backend
- * ------------------------------------------- */
+
+/* ---------------------------------------------
+ * TYPES — match backend EXACTLY
+ * --------------------------------------------- */
+
+export interface BackendUser {
+    id: string;
+    email: string;
+    displayName?: string;
+}
+
+export interface BackendAuthResponse {
+    ok: boolean;
+    accessToken: string;
+    refreshToken?: string;
+    user: BackendUser;
+}
+
 export interface RegisterData {
     email: string;
     password: string;
@@ -23,111 +38,68 @@ export interface ResetPasswordData {
 }
 
 export interface AuthResponse {
-    token: string; // normalized access token
+    token: string; // normalized accessToken
     refreshToken?: string;
-    user: {
-        id: string;
-        email: string;
-        displayName?: string;
-    };
+    user: BackendUser;
 }
 
-/* Backend raw responses */
-interface BackendAuthPayload {
-    ok: boolean;
-    user: {
-        _id?: string;
-        id?: string;
-        email: string;
-        displayName?: string;
-    };
-    accessToken: string;
-    refreshToken?: string;
-}
-
-/* -------------------------------------------
- * Normalizer - backend → frontend shape
- * ------------------------------------------- */
-function normalizeAuthResponse(raw: BackendAuthPayload): AuthResponse {
-    const u = raw.user;
+/* ---------------------------------------------
+ * NORMALIZER — convert backend → frontend
+ * --------------------------------------------- */
+function normalize(raw: BackendAuthResponse): AuthResponse {
     return {
         token: raw.accessToken,
         refreshToken: raw.refreshToken,
         user: {
-            id: u._id ?? u.id ?? "",
-            email: u.email,
-            displayName: u.displayName,
+            id: raw.user.id,
+            email: raw.user.email,
+            displayName: raw.user.displayName,
         },
     };
 }
 
-/* -------------------------------------------
- * RAW API CALLS  (all prefixed with /api)
- * ------------------------------------------- */
+/* ---------------------------------------------
+ * RAW CALLS — strictly typed
+ * --------------------------------------------- */
 async function rawRegister(data: RegisterData): Promise<AuthResponse> {
-    const res = await axiosClient.post<BackendAuthPayload>("/api/auth/register", data);
-    return normalizeAuthResponse(res.data);
+    const res = await axiosClient.post<BackendAuthResponse>("/api/auth/register", data);
+    return normalize(res.data);
 }
 
 async function rawLogin(data: LoginData): Promise<AuthResponse> {
-    const res = await axiosClient.post<BackendAuthPayload>("/api/auth/login", data);
-    return normalizeAuthResponse(res.data);
-}
-
-interface ForgotPasswordResponse {
-    ok: boolean;
-    message: string;
-}
-
-async function rawForgotPassword(email: string): Promise<ForgotPasswordResponse> {
-    const res = await axiosClient.post<ForgotPasswordResponse>(
-        "/api/auth/forgot-password",
-        { email }
-    );
-    return res.data;
-}
-
-interface ResetPasswordResponse {
-    ok: boolean;
-    message: string;
-}
-
-async function rawResetPassword(
-    data: ResetPasswordData
-): Promise<ResetPasswordResponse> {
-    const res = await axiosClient.post<ResetPasswordResponse>(
-        "/api/auth/reset-password",
-        data
-    );
-    return res.data;
+    const res = await axiosClient.post<BackendAuthResponse>("/api/auth/login", data);
+    return normalize(res.data);
 }
 
 interface MeResponse {
     ok: boolean;
-    user: {
-        _id?: string;
-        id?: string;
-        email: string;
-        displayName?: string;
-    };
+    user: BackendUser & Record<string, unknown>;
 }
 
-async function rawMe(token: string) {
+async function rawMe(token: string): Promise<MeResponse> {
     const res = await axiosClient.get<MeResponse>("/api/auth/me", {
         headers: { Authorization: `Bearer ${token}` },
     });
-
-    const u = res.data.user;
-    return {
-        id: u._id ?? u.id ?? "",
-        email: u.email,
-        displayName: u.displayName,
-    };
+    return res.data;
 }
 
-/* -------------------------------------------
- * EXPORT API (with logging)
- * ------------------------------------------- */
+interface MsgResponse {
+    message: string;
+}
+
+async function rawForgotPassword(email: string): Promise<MsgResponse> {
+    const res = await axiosClient.post<MsgResponse>("/api/auth/forgot-password", { email });
+    return res.data;
+}
+
+async function rawResetPassword(data: ResetPasswordData): Promise<MsgResponse> {
+    const res = await axiosClient.post<MsgResponse>("/api/auth/reset-password", data);
+    return res.data;
+}
+
+/* ---------------------------------------------
+ * EXPORT API
+ * --------------------------------------------- */
 export const authApi = {
     register: withLogging(rawRegister, {
         category: "auth",
@@ -142,27 +114,21 @@ export const authApi = {
         action: "login",
         showToast: true,
         successMessage: "Login successful!",
-        errorMessage: "Invalid login credentials.",
-    }),
-
-    forgotPassword: withLogging(rawForgotPassword, {
-        category: "auth",
-        action: "forgotPassword",
-        showToast: true,
-        successMessage: "Reset link sent!",
-        errorMessage: "Could not send reset link.",
-    }),
-
-    resetPassword: withLogging(rawResetPassword, {
-        category: "auth",
-        action: "resetPassword",
-        showToast: true,
-        successMessage: "Password updated.",
-        errorMessage: "Password reset failed.",
+        errorMessage: "Login failed.",
     }),
 
     me: withLogging(rawMe, {
         category: "auth",
         action: "me",
+    }),
+
+    forgotPassword: withLogging(rawForgotPassword, {
+        category: "auth",
+        action: "forgotPassword",
+    }),
+
+    resetPassword: withLogging(rawResetPassword, {
+        category: "auth",
+        action: "resetPassword",
     }),
 };
