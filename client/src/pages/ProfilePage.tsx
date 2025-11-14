@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAuth } from "@/hooks";
-import { axiosClient } from "@/services";
+import { axiosClient, authApi } from "@/services"; // ✅ FIX: import authApi
 import { ThemeButton, FormInput } from "@/components";
 
 /* ------------------------------------------
@@ -101,6 +101,30 @@ const SuccessMessage = styled.p`
     margin-bottom: 1rem;
 `;
 
+/* FIX: card_bg_alt → fallback to card_bg */
+const PasswordBox = styled.div`
+    margin-top: 2rem;
+    padding: 1.25rem;
+    border-radius: 12px;
+    background: ${({ theme }) =>
+        theme.colors.card_bg || theme.colors.card_bg};
+    box-shadow: ${({ theme }) => theme.colors.card_shadow};
+`;
+
+const PasswordTitle = styled.h3`
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: ${({ theme }) => theme.colors.primary};
+`;
+
+const PasswordMessage = styled.p<{ success?: boolean }>`
+    color: ${({ success, theme }) =>
+        success ? theme.colors.primary : theme.colors.high_risk};
+    margin-top: 1rem;
+    text-align: center;
+`;
+
 /* ------------------------------------------
  * Component
  * ------------------------------------------ */
@@ -114,8 +138,16 @@ export const ProfilePage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
 
+    // Password change
+    const [oldPassword, setOldPassword] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [passwordMsg, setPasswordMsg] = useState<string | null>(null);
+    const [passwordSuccess, setPasswordSuccess] = useState(false);
+    const [changing, setChanging] = useState(false);
+
     /* --------------------------------------------------------
-     * Load profile from backend
+     * Load profile
      * -------------------------------------------------------- */
     useEffect(() => {
         if (!isAuthenticated) return;
@@ -139,19 +171,18 @@ export const ProfilePage: React.FC = () => {
     };
 
     /* --------------------------------------------------------
-     * Avatar change
+     * Avatar upload preview only
      * -------------------------------------------------------- */
     const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         setAvatarPreview(URL.createObjectURL(file));
-
-        // Future: Upload to backend via FormData
+        // TODO: Add backend upload later
     };
 
     /* --------------------------------------------------------
-     * Save changes
+     * Save profile changes
      * -------------------------------------------------------- */
     const handleSave = async () => {
         if (!profile) return;
@@ -176,7 +207,50 @@ export const ProfilePage: React.FC = () => {
     };
 
     /* --------------------------------------------------------
-     * UI states
+     * Password change
+     * -------------------------------------------------------- */
+    const handlePasswordChange = async () => {
+        setPasswordMsg(null);
+        setPasswordSuccess(false);
+
+        if (!oldPassword || !newPassword) {
+            setPasswordMsg("All fields required.");
+            return;
+        }
+
+        if (newPassword.length < 8) {
+            setPasswordMsg("New password must be at least 8 characters.");
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            setPasswordMsg("New passwords do not match.");
+            return;
+        }
+
+        setChanging(true);
+
+        try {
+            await authApi.changePassword({
+                oldPassword,
+                newPassword,
+            });
+
+            setPasswordSuccess(true);
+            setPasswordMsg("Password updated successfully!");
+
+            setOldPassword("");
+            setNewPassword("");
+            setConfirmPassword("");
+        } catch {
+            setPasswordMsg("Incorrect old password OR failed to update.");
+        } finally {
+            setChanging(false);
+        }
+    };
+
+    /* --------------------------------------------------------
+     * UI States
      * -------------------------------------------------------- */
     if (!isAuthenticated) return <LoadingText>Please login…</LoadingText>;
     if (loading) return <LoadingText>Loading your profile…</LoadingText>;
@@ -205,8 +279,8 @@ export const ProfilePage: React.FC = () => {
                 label="Email"
                 name="email"
                 value={profile.email}
-                onChange={handleChange}
                 disabled
+                onChange={() => {}}
             />
 
             <FormInput
@@ -234,7 +308,46 @@ export const ProfilePage: React.FC = () => {
                 onChange={handleChange}
             />
 
-            {/* Buttons */}
+            {/* Password Change */}
+            <PasswordBox>
+                <PasswordTitle>Change Password</PasswordTitle>
+
+                <FormInput
+                    label="Current Password"
+                    name="oldPassword"
+                    type="password"
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                />
+
+                <FormInput
+                    label="New Password"
+                    name="newPassword"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                />
+
+                <FormInput
+                    label="Confirm New Password"
+                    name="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+
+                <ThemeButton onClick={handlePasswordChange} disabled={changing}>
+                    {changing ? "Updating…" : "Update Password"}
+                </ThemeButton>
+
+                {passwordMsg && (
+                    <PasswordMessage success={passwordSuccess}>
+                        {passwordMsg}
+                    </PasswordMessage>
+                )}
+            </PasswordBox>
+
+            {/* Bottom Buttons */}
             <ButtonRow>
                 <ThemeButton onClick={handleSave} disabled={saving}>
                     {saving ? "Saving…" : "Save Changes"}
