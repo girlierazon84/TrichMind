@@ -4,6 +4,9 @@ import { axiosClient } from "@/services";
 import { withLogging } from "@/utils";
 
 
+/* -------------------------------------------
+ * TYPES — FRONTEND MODELS
+ * ------------------------------------------- */
 export interface RegisterData {
     email: string;
     password: string;
@@ -20,35 +23,63 @@ export interface ResetPasswordData {
     newPassword: string;
 }
 
+export interface AuthUser {
+    id: string;
+    email: string;
+    displayName?: string;
+}
+
 export interface AuthResponse {
     token: string;
-    user: {
-        id: string;
-        email: string;
-        displayName?: string;
+    refreshToken?: string;
+    user: AuthUser;
+}
+
+/* -------------------------------------------
+ * TYPES — BACKEND RESPONSE MODELS
+ * ------------------------------------------- */
+interface BackendUser {
+    _id?: string;
+    id?: string;
+    email: string;
+    displayName?: string;
+}
+
+interface BackendAuthResponse {
+    ok?: boolean;
+    accessToken: string;
+    refreshToken?: string;
+    user: BackendUser;
+}
+
+/* -------------------------------------------
+ * Normalizer — backend → frontend shape
+ * ------------------------------------------- */
+function normalizeAuthResponse(raw: BackendAuthResponse): AuthResponse {
+    const backendUser = raw.user;
+
+    return {
+        token: raw.accessToken,
+        refreshToken: raw.refreshToken,
+        user: {
+            id: backendUser._id ?? backendUser.id ?? "",
+            email: backendUser.email,
+            displayName: backendUser.displayName,
+        },
     };
 }
 
-// -------------------------------------------------------------------------------
-// Raw API functions - These functions directly interact with the API endpoints
-// -------------------------------------------------------------------------------
+/* -------------------------------------------
+ * RAW API CALLS (typed)
+ * ------------------------------------------- */
 async function rawRegister(data: RegisterData): Promise<AuthResponse> {
-    const res = await axiosClient.post<AuthResponse>("/auth/register", data);
-    return res.data;
+    const res = await axiosClient.post<BackendAuthResponse>("/auth/register", data);
+    return normalizeAuthResponse(res.data);
 }
 
 async function rawLogin(data: LoginData): Promise<AuthResponse> {
-    const res = await axiosClient.post("/auth/login", data);
-    const d = res.data;
-
-    return {
-        token: d.token,
-        user: {
-            id: d.user._id ?? d.user.id,
-            email: d.user.email,
-            displayName: d.user.displayName,
-        },
-    };
+    const res = await axiosClient.post<BackendAuthResponse>("/auth/login", data);
+    return normalizeAuthResponse(res.data);
 }
 
 async function rawForgotPassword(email: string): Promise<{ message: string }> {
@@ -61,20 +92,38 @@ async function rawResetPassword(data: ResetPasswordData): Promise<{ message: str
     return res.data;
 }
 
-async function rawMe(token: string) {
-    const res = await axiosClient.get("/auth/me", {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-    return res.data;
+interface BackendMeResponse {
+    user?: BackendUser;
+    _id?: string;
+    id?: string;
+    email?: string;
+    displayName?: string;
 }
 
+async function rawMe(token: string): Promise<AuthUser> {
+    const res = await axiosClient.get<BackendMeResponse>("/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const u = res.data.user ?? res.data;
+
+    return {
+        id: u._id ?? u.id ?? "",
+        email: u.email ?? "",
+        displayName: u.displayName,
+    };
+}
+
+/* -------------------------------------------
+ * EXPORT API (wrapped with logging)
+ * ------------------------------------------- */
 export const authApi = {
     register: withLogging(rawRegister, {
         category: "auth",
         action: "register",
         showToast: true,
         successMessage: "Registration successful!",
-        errorMessage: "Registration failed. Please try again.",
+        errorMessage: "Registration failed.",
     }),
 
     login: withLogging(rawLogin, {
@@ -82,23 +131,23 @@ export const authApi = {
         action: "login",
         showToast: true,
         successMessage: "Login successful!",
-        errorMessage: "Login failed. Please check your credentials.",
+        errorMessage: "Invalid login credentials.",
     }),
 
     forgotPassword: withLogging(rawForgotPassword, {
         category: "auth",
         action: "forgotPassword",
         showToast: true,
-        successMessage: "Reset link sent to your email.",
-        errorMessage: "Failed to send reset email.",
+        successMessage: "Reset link sent!",
+        errorMessage: "Could not send reset link.",
     }),
 
     resetPassword: withLogging(rawResetPassword, {
         category: "auth",
         action: "resetPassword",
         showToast: true,
-        successMessage: "Password reset successfully.",
-        errorMessage: "Failed to reset password.",
+        successMessage: "Password updated.",
+        errorMessage: "Password reset failed.",
     }),
 
     me: withLogging(rawMe, {
