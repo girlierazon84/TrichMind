@@ -7,13 +7,17 @@ import { validate } from "../middlewares";
 import { PredictDTO } from "../schemas";
 import { asyncHandler } from "../utils";
 
+
+/* ──────────────────────────────
+    🔹 Predict Routes
+──────────────────────────────── */
 const router = Router();
 
 // Base FastAPI ML URL
 const ML_URL = ENV.ML_BASE_URL || "http://localhost:8000";
 
 /* -----------------------------------------------------------
-    🔐  /api/predict/auth/register → Proxy to FastAPI
+    🔐  POST /api/ml/auth/register → Proxy to FastAPI
 ------------------------------------------------------------ */
 router.post(
     "/auth/register",
@@ -39,7 +43,7 @@ router.post(
 );
 
 /* -----------------------------------------------------------
-    🌡️ GET /api/predict/ping — Health Check
+    🌡️ GET /api/ml/ping — Health Check
 ------------------------------------------------------------ */
 router.get(
     "/ping",
@@ -57,28 +61,67 @@ router.get(
 );
 
 /* -----------------------------------------------------------
-    🤖 POST /api/predict — Main Prediction Route
+    🤖 POST /api/ml        — Wrapped Prediction Route
+    🤖 POST /api/ml/predict — Raw Prediction (used by frontend)
 ------------------------------------------------------------ */
+
+async function forwardPredict(reqBody: any) {
+    const { data } = await axios.post(`${ML_URL}/predict`, reqBody, {
+        headers: { "Content-Type": "application/json" },
+        timeout: 15000,
+    });
+    return data;
+}
+
+// Wrapped: { ok, prediction }
 router.post(
     "/",
     validate(PredictDTO),
     asyncHandler(async (req, res) => {
         try {
-            console.log("📤 [ML] Predict Request:", req.body);
-
-            const { data } = await axios.post(`${ML_URL}/predict`, req.body, {
-                headers: { "Content-Type": "application/json" },
-                timeout: 15000,
-            });
-
-            console.log("📥 [ML] Predict OK:", data);
+            console.log("📤 [ML] Predict Request (/):", req.body);
+            const data = await forwardPredict(req.body);
+            console.log("📥 [ML] Predict OK (/):", data);
 
             return res.status(200).json({
                 ok: true,
                 prediction: data,
             });
         } catch (error: any) {
-            console.error("❌ [ML] Predict Failed:", error.message);
+            console.error("❌ [ML] Predict Failed (/):", error.message);
+
+            if (error.code === "ECONNREFUSED") {
+                return res.status(502).json({
+                    ok: false,
+                    error: `Cannot connect to ML service at ${ML_URL}`,
+                });
+            }
+
+            return res.status(error.response?.status || 500).json({
+                ok: false,
+                error:
+                    error.response?.data?.detail ||
+                    error.response?.data?.error ||
+                    error.message,
+            });
+        }
+    })
+);
+
+// Raw: direct ML response (PredictionResponse)
+router.post(
+    "/predict",
+    validate(PredictDTO),
+    asyncHandler(async (req, res) => {
+        try {
+            console.log("📤 [ML] Predict Request (/predict):", req.body);
+            const data = await forwardPredict(req.body);
+            console.log("📥 [ML] Predict OK (/predict):", data);
+
+            // Frontend expects raw PredictionResponse here
+            return res.status(200).json(data);
+        } catch (error: any) {
+            console.error("❌ [ML] Predict Failed (/predict):", error.message);
 
             if (error.code === "ECONNREFUSED") {
                 return res.status(502).json({
@@ -99,7 +142,7 @@ router.post(
 );
 
 /* -----------------------------------------------------------
-    📦 POST /api/predict/batch
+    📦 POST /api/ml/batch
 ------------------------------------------------------------ */
 router.post(
     "/batch",
@@ -141,7 +184,7 @@ router.post(
 );
 
 /* -----------------------------------------------------------
-    🧪 Built-In Test Routes (low/medium/high)
+    🧪 Test Routes: /api/ml/test/low|medium|high
 ------------------------------------------------------------ */
 type RiskTestLevel = "low" | "medium" | "high";
 
@@ -209,15 +252,13 @@ const TEST_INPUTS: Record<RiskTestLevel, TestInputPayload> = {
     },
 };
 
-// Register test endpoints
 (["low", "medium", "high"] as RiskTestLevel[]).forEach((level) => {
     router.post(
         `/test/${level}`,
         asyncHandler(async (_req, res) => {
             console.log(`🧪 [Test] ${level.toUpperCase()} → ML`);
-
             try {
-                const payload = TEST_INPUTS[level]; // now fully typed
+                const payload = TEST_INPUTS[level];
                 const { data } = await axios.post(`${ML_URL}/predict`, payload, {
                     headers: { "Content-Type": "application/json" },
                 });
