@@ -20,12 +20,12 @@ export interface UpdateProfileData {
 // ──────────────── Base API calls ────────────────
 
 async function rawGetProfile() {
-    const res = await axiosClient.get("/api/users/me");
+    const res = await axiosClient.get("/api/users/profile");
     return res.data;
 }
 
 async function rawUpdateProfile(data: UpdateProfileData) {
-    const res = await axiosClient.put("/api/users/update", data);
+    const res = await axiosClient.put("/api/users/profile", data);
     return res.data;
 }
 
