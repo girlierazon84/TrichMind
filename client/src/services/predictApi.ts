@@ -14,7 +14,7 @@ import type { PredictPayload, PredictionResponse } from "@/types/ml";
 // Raw API function
 // ──────────────────────────────
 async function rawPredict(payload: PredictPayload): Promise<PredictionResponse> {
-    const res = await axiosClient.post<PredictionResponse>("/api/ml", payload);
+    const res = await axiosClient.post<PredictionResponse>("/api/ml/predict", payload);
     return res.data;
 }
 
