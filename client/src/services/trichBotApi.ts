@@ -1,7 +1,7 @@
 // client/src/services/trichBotApi.ts
 
 import { axiosClient } from "@/services";
-import { withLogging } from "@/utils/withLogging";
+import { withLogging } from "@/utils";
 
 
 export interface TrichBotMessage {
@@ -20,12 +20,12 @@ export interface TrichBotMessage {
 }
 
 async function rawSendMessage(message: Omit<TrichBotMessage, "_id" | "createdAt">) {
-    const res = await axiosClient.post("/trichbot", message);
+    const res = await axiosClient.post("/api/trichbot", message);
     return res.data;
 }
 
 async function rawFeedback(id: string, data: TrichBotMessage["feedback"]) {
-    const res = await axiosClient.put(`/trichbot/${id}/feedback`, data);
+    const res = await axiosClient.put(`/api/trichbot/${id}/feedback`, data);
     return res.data;
 }
 
