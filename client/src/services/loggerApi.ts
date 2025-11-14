@@ -21,7 +21,7 @@ export interface LogEvent {
 export const loggerApi = {
     /** 🪵 Log a generic event (info/debug) */
     log: async (data: Omit<LogEvent, "_id" | "timestamp">) => {
-        const res = await axiosClient.post("/logs", {
+        const res = await axiosClient.post("/api/logs", {
             level: data.level || "info",
             timestamp: new Date().toISOString(),
             ...data,
@@ -47,7 +47,7 @@ export const loggerApi = {
         page?: number;
         limit?: number;
     }) => {
-        const res = await axiosClient.get("/logs", { params });
+        const res = await axiosClient.get("/api/logs", { params });
         return res.data;
     },
 };
