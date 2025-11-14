@@ -1,7 +1,8 @@
 // client/src/services/journalApi.ts
 
 import { axiosClient } from "@/services";
-import { withLogging } from "@/utils/withLogging";
+import { withLogging } from "@/utils";
+
 
 export interface JournalEntry {
     _id?: string;
@@ -16,22 +17,22 @@ export interface JournalEntry {
 }
 
 async function rawCreate(entry: JournalEntry) {
-    const res = await axiosClient.post("/journal", entry);
+    const res = await axiosClient.post("/api/journal", entry);
     return res.data;
 }
 
 async function rawList(params?: { page?: number; limit?: number; sort?: string }) {
-    const res = await axiosClient.get("/journal", { params });
+    const res = await axiosClient.get("/api/journal", { params });
     return res.data;
 }
 
 async function rawUpdate(id: string, entry: Partial<JournalEntry>) {
-    const res = await axiosClient.put(`/journal/${id}`, entry);
+    const res = await axiosClient.put(`/api/journal/${id}`, entry);
     return res.data;
 }
 
 async function rawRemove(id: string) {
-    const res = await axiosClient.delete(`/journal/${id}`);
+    const res = await axiosClient.delete(`/api/journal/${id}`);
     return res.data;
 }
 
