@@ -1,6 +1,7 @@
 // client/src/components/RegisterPredictForm.tsx
 
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { ThemeButton, FormInput, RiskResultCard } from "@/components";
 import { useRegisterAndPredict } from "@/hooks";
@@ -31,6 +32,23 @@ const ErrorMessage = styled.p`
 const SuccessMessage = styled.p`
   color: ${({ theme }) => theme.colors.primary};
   font-weight: 600;
+`;
+
+const FooterText = styled.p`
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: ${({ theme }) => theme.colors.text_secondary};
+
+    a {
+        color: ${({ theme }) => theme.colors.primary};
+        font-weight: 600;
+        text-decoration: none;
+        transition: color 0.2s ease;
+
+        &:hover {
+            color: ${({ theme }) => theme.colors.secondary};
+        }
+    }
 `;
 
 export const RegisterPredictForm: React.FC = () => {
@@ -118,6 +136,10 @@ export const RegisterPredictForm: React.FC = () => {
       <ThemeButton type="submit" disabled={submitting}>
         {submitting ? "Submitting..." : "Register & Predict"}
       </ThemeButton>
+
+      <FooterText>
+        Already have an account? <Link to="/login">Login</Link>
+      </FooterText>
 
       {submitError && <ErrorMessage>{submitError}</ErrorMessage>}
 
