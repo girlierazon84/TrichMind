@@ -1,4 +1,5 @@
 // client/src/pages/HomePage.tsx
+
 import { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import styled from "styled-components";
@@ -11,10 +12,37 @@ import {
 } from "@/components";
 import { useAuth } from "@/hooks";
 
-// ──────────────────────────────
-// Types
-// ──────────────────────────────
+
+/* ----------------------------------------------
+ * Strict typing
+ * ---------------------------------------------- */
 type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
+
+interface MeResponse {
+    ok?: boolean;
+    user?: {
+        _id?: string;
+        id?: string;
+        email: string;
+        displayName?: string;
+
+        pulling_severity?: number;
+        pulling_frequency_encoded?: number;
+        awareness_level_encoded?: number;
+        how_long_stopped_days_est?: number;
+        successfully_stopped_encoded?: number;
+        years_since_onset?: number;
+        age?: number;
+        age_of_onset?: number;
+        emotion_intensity_sum?: number;
+    };
+}
+
+interface PredictResponse {
+    risk_score: number;
+    risk_bucket: RiskLevel | string;
+    confidence: number;
+}
 
 interface FeaturePayload {
     pulling_severity: number;
@@ -28,9 +56,9 @@ interface FeaturePayload {
     emotion_intensity_sum: number;
 }
 
-// ──────────────────────────────
-// Styled Layout
-// ──────────────────────────────
+/* ----------------------------------------------
+ * Styled Components
+ * ---------------------------------------------- */
 const PageWrapper = styled.div`
     width: 100%;
     min-height: 100vh;
@@ -129,68 +157,95 @@ const DashboardSection = styled.div`
     gap: ${({ theme }) => theme.spacing(4)};
 `;
 
-// ──────────────────────────────
-// Component
-// ──────────────────────────────
-export default function HomePage() {
+/* ----------------------------------------------
+ * Component
+ * ---------------------------------------------- */
+export const HomePage: React.FC = () => {
     const navigate = useNavigate();
-    const { user, isAuthenticated } = useAuth();
+    const { user, isAuthenticated, logout } = useAuth();
 
-    const [riskScore, setRiskScore] = useState<number>(0);
-    const [confidence, setConfidence] = useState<number>(0);
+    const [riskScore, setRiskScore] = useState(0);
+    const [confidence, setConfidence] = useState(0);
     const [bucket, setBucket] = useState<RiskLevel>("MEDIUM");
-    const [loading, setLoading] = useState<boolean>(true);
-    const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth <= 768);
+    const [loading, setLoading] = useState(true);
 
-    // 📱 Responsive layout listener
+    const [isMobile, setIsMobile] = useState<boolean>(
+        typeof window !== "undefined" ? window.innerWidth <= 768 : false
+    );
+
+    /* ----------------------------------------------
+     * Mobile detection (strict type)
+     * ---------------------------------------------- */
     useEffect(() => {
         const mediaQuery = window.matchMedia("(max-width: 768px)");
-        const handleResize = (e: MediaQueryListEvent | MediaQueryList) =>
-            setIsMobile(e.matches);
 
-        handleResize(mediaQuery);
+        const handleResize = (e: MediaQueryListEvent) => {
+            setIsMobile(e.matches);
+        };
+
         mediaQuery.addEventListener("change", handleResize);
+        setIsMobile(mediaQuery.matches);
+
         return () => mediaQuery.removeEventListener("change", handleResize);
     }, []);
 
-    // 🧩 Load user & predict risk
+    /* ----------------------------------------------
+     * Load user profile + prediction
+     * ---------------------------------------------- */
     useEffect(() => {
         if (!isAuthenticated || !user) {
             navigate("/login");
             return;
         }
 
-        (async () => {
+        const fetchData = async () => {
             try {
-                const { data } = await axiosClient.get("/auth/me");
-                const featurePayload: FeaturePayload = {
-                    pulling_severity: data.pulling_severity ?? 5,
-                    pulling_frequency_encoded: data.pulling_frequency_encoded ?? 3,
-                    awareness_level_encoded: data.awareness_level_encoded ?? 0.5,
-                    how_long_stopped_days_est: data.how_long_stopped_days_est ?? 14,
-                    successfully_stopped_encoded: data.successfully_stopped_encoded ?? 0,
-                    years_since_onset: data.years_since_onset ?? 8,
-                    age: data.age ?? 30,
-                    age_of_onset: data.age_of_onset ?? 18,
-                    emotion_intensity_sum: data.emotion_intensity_sum ?? 4.5,
+                // 1️⃣ Fetch user profile
+                const res = await axiosClient.get<MeResponse>("/api/auth/me");
+                const u = res.data.user;
+
+                if (!u) throw new Error("User profile missing");
+
+                // 2️⃣ Build ML payload
+                const payload: FeaturePayload = {
+                    pulling_severity: u.pulling_severity ?? 5,
+                    pulling_frequency_encoded: u.pulling_frequency_encoded ?? 3,
+                    awareness_level_encoded: u.awareness_level_encoded ?? 0.5,
+                    how_long_stopped_days_est: u.how_long_stopped_days_est ?? 14,
+                    successfully_stopped_encoded: u.successfully_stopped_encoded ?? 0,
+                    years_since_onset: u.years_since_onset ?? 8,
+                    age: u.age ?? 30,
+                    age_of_onset: u.age_of_onset ?? 18,
+                    emotion_intensity_sum: u.emotion_intensity_sum ?? 4.5,
                 };
 
-                const res = await axiosClient.post("/ml/predict", featurePayload);
-                const { risk_score, risk_bucket, confidence } = res.data;
+                // 3️⃣ Prediction request
+                const prediction = await axiosClient.post<PredictResponse>(
+                    "/api/ml/predict",
+                    payload
+                );
+
+                const { risk_score, risk_bucket, confidence } = prediction.data;
 
                 setRiskScore(risk_score ?? 0);
-                setBucket(((risk_bucket || "MEDIUM") as string).toUpperCase() as RiskLevel);
                 setConfidence(confidence ?? 0);
-            } catch (error) {
-                console.error("⚠️ Failed to load user or prediction:", error);
+
+                const level = String(risk_bucket || "MEDIUM").toUpperCase() as RiskLevel;
+                setBucket(level);
+            } catch (err) {
+                console.error("⚠️ Failed to load homepage data:", err);
                 navigate("/login");
             } finally {
                 setLoading(false);
             }
-        })();
+        };
+
+        void fetchData();
     }, [isAuthenticated, navigate, user]);
 
-    // 💬 Motivational message
+    /* ----------------------------------------------
+     * Quote text
+     * ---------------------------------------------- */
     const quote = useMemo(() => {
         switch (bucket) {
             case "LOW":
@@ -203,15 +258,17 @@ export default function HomePage() {
         }
     }, [bucket]);
 
-    // 🩺 Conditional Rendering
     if (!isAuthenticated) {
         navigate("/login");
         return null;
     }
+
     if (loading) return <p>Loading your personalized home page...</p>;
     if (!user) return <p>Unable to load user profile.</p>;
 
-    // ✅ PredictResponse structure
+    /* ----------------------------------------------
+     * Final normalized prediction object
+     * ---------------------------------------------- */
     const predictionData = {
         risk_score: riskScore,
         risk_bucket: bucket.toLowerCase(),
@@ -220,28 +277,35 @@ export default function HomePage() {
         model_version: "v1.0.0",
     };
 
+    /* ----------------------------------------------
+     * Render
+     * ---------------------------------------------- */
     return (
         <PageWrapper>
-            {/* 🧭 Header */}
             <Header>
                 <Link to="/" aria-label="Home" className="logo-link">
                     <img src="/assets/images/app_logo.png" alt="TrichMind" />
                 </Link>
 
                 <details className="user-menu-wrap">
-                    <summary className="user-button" aria-label="Account menu">
-                        <img src="/assets/icons/user.png" alt="Account" className="user_icon" />
+                    <summary aria-label="Account menu">
+                        <img
+                            src="/assets/icons/user.png"
+                            alt="Account"
+                            className="user_icon"
+                        />
                     </summary>
+
                     <nav className="user-menu">
                         <Link to="/profile" className="menu-item">
                             Profile
                         </Link>
+
                         <button
                             type="button"
                             className="menu-item"
                             onClick={() => {
-                                localStorage.removeItem("auth_token");
-                                localStorage.removeItem("user");
+                                logout();
                                 navigate("/login");
                             }}
                         >
@@ -251,22 +315,22 @@ export default function HomePage() {
                 </details>
             </Header>
 
-            {/* 🎯 Welcome */}
             <Section>
                 <WelcomeText>
                     Welcome back, {user.displayName || user.email || "Friend"} 👋
                 </WelcomeText>
 
-                {/* 🧠 Risk Summary */}
-                <RiskResultCard data={predictionData} quote={quote} compact={isMobile} />
+                <RiskResultCard
+                    data={predictionData}
+                    quote={quote}
+                    compact={isMobile}
+                />
             </Section>
 
-            {/* 🔁 Daily Progress */}
             <Section>
                 <DailyProgressCardAuto />
             </Section>
 
-            {/* 💪 Coping Strategies */}
             <Section>
                 <CopingStrategiesCard
                     worked={["Fidget toy", "Deep breathing"]}
@@ -274,11 +338,12 @@ export default function HomePage() {
                 />
             </Section>
 
-            {/* 📊 Risk Trend */}
             <DashboardSection>
                 <h2>📈 Relapse Risk Analytics</h2>
                 <RiskTrendChart />
             </DashboardSection>
         </PageWrapper>
     );
-}
+};
+
+export default HomePage;
