@@ -1,7 +1,7 @@
 // client/src/services/trichGameApi.ts
 
 import { axiosClient } from "@/services";
-import { withLogging } from "@/utils/withLogging";
+import { withLogging } from "@/utils";
 
 
 export interface GameSession {
@@ -18,7 +18,7 @@ export interface GameSession {
 }
 
 async function rawStart(session: GameSession) {
-    const res = await axiosClient.post("/game", session);
+    const res = await axiosClient.post("/api/game", session);
     return res.data;
 }
 
