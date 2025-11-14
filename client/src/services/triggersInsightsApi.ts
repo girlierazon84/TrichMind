@@ -1,7 +1,7 @@
 // client/src/services/triggersInsightsApi.ts
 
 import { axiosClient } from "@/services";
-import { withLogging } from "@/utils/withLogging";
+import { withLogging } from "@/utils";
 
 
 export interface TriggerData {
@@ -11,7 +11,7 @@ export interface TriggerData {
 }
 
 async function rawCreate(data: TriggerData) {
-    const res = await axiosClient.post("/triggers", data);
+    const res = await axiosClient.post("/api/triggers", data);
     return res.data;
 }
 
