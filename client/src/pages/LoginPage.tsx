@@ -6,7 +6,7 @@ import styled from "styled-components";
 import { useAuth, useLogger } from "@/hooks";
 import { ThemeButton, FormInput } from "@/components";
 import { GlobalStyle } from "@/styles";
-import AppLogo from "@/assets/images/app_logo.png";
+import { AppLogo } from "@/assets/images";
 
 
 const PageContainer = styled.main`
