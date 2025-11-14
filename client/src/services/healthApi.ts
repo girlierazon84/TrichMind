@@ -1,7 +1,7 @@
 // client/src/services/healthApi.ts
 
 import { axiosClient } from "@/services";
-import { withLogging } from "@/utils/withLogging";
+import { withLogging } from "@/utils";
 
 
 export interface HealthLogData {
@@ -13,27 +13,27 @@ export interface HealthLogData {
 
 // ───────────── Base Functions ─────────────
 async function rawCreate(data: HealthLogData) {
-    const res = await axiosClient.post("/health", data);
+    const res = await axiosClient.post("/api/health", data);
     return res.data;
 }
 
 async function rawList(params?: { from?: string; to?: string; page?: number; limit?: number }) {
-    const res = await axiosClient.get("/health", { params });
+    const res = await axiosClient.get("/api/health", { params });
     return res.data;
 }
 
 async function rawGetById(id: string) {
-    const res = await axiosClient.get(`/health/${id}`);
+    const res = await axiosClient.get(`/api/health/${id}`);
     return res.data;
 }
 
 async function rawUpdate(id: string, data: Partial<HealthLogData>) {
-    const res = await axiosClient.put(`/health/${id}`, data);
+    const res = await axiosClient.put(`/api/health/${id}`, data);
     return res.data;
 }
 
 async function rawRemove(id: string) {
-    const res = await axiosClient.delete(`/health/${id}`);
+    const res = await axiosClient.delete(`/api/health/${id}`);
     return res.data;
 }
 
