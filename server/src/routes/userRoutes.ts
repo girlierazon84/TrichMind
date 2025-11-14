@@ -62,4 +62,14 @@ router.patch(
     })
 );
 
+router.delete(
+    "/delete",
+    authentication({ required: true }),
+    asyncHandler(async (req, res) => {
+        await User.findByIdAndDelete(req.auth!.userId);
+        return res.json({ ok: true, message: "Account deleted" });
+    })
+);
+
+
 export default router;
