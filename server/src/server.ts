@@ -42,17 +42,17 @@ app.use(express.json());
 // -----------------------------
 // ✅ API Routes
 // -----------------------------
-app.use("/api/auth", authRoutes);                    // 🔐 Authentication
 app.use("/api/alerts", alertRoutes);                 // 🔔 Alerts (relapse risk)
-app.use("/api/summary", summaryRoutes);              // 🗓 Weekly summaries
-app.use("/api/ml", predictRoutes);                   // 🤖 ML Predictions
-app.use("/api/users", userRoutes);                   // 👤 User info
+app.use("/api/auth", authRoutes);                    // 🔐 Authentication
 app.use("/api/health", healthRoutes);                // 🩺 Health logs
 app.use("/api/journal", journalRoutes);              // 📔 Journals
-app.use("/api/triggers", triggersInsightsRoutes);    // ⚡ Triggers insights
+app.use("/api/logs", loggerRoutes);                  // 🪵 Logger
+app.use("/api/ml", predictRoutes);                   // 🤖 ML Predictions
+app.use("/api/summary", summaryRoutes);              // 🗓 Weekly summaries
 app.use("/api/trichbot", trichBotRoutes);            // 💬 TrichMind Chatbot logs
 app.use("/api/games", trichGameRoutes);              // 🎮 Game sessions
-app.use("/api/logs", loggerRoutes);                  // 🪵 Logger
+app.use("/api/triggers", triggersInsightsRoutes);    // ⚡ Triggers insights
+app.use("/api/users", userRoutes);                   // 👤 User info
 
 // -----------------------------
 // ✅ 404 + Error Handlers
