@@ -96,6 +96,14 @@ async function rawResetPassword(data: { token: string; newPassword: string }): P
     return res.data;
 }
 
+async function rawChangePassword(data: {
+    oldPassword: string;
+    newPassword: string;
+}) {
+    const res = await axiosClient.post("/api/auth/change-password", data);
+    return res.data;
+}
+
 /* ---------------------------------------------
  * EXPORT API WITH LOGGING WRAPPERS
  * --------------------------------------------- */
@@ -135,5 +143,13 @@ export const authApi = {
         showToast: true,
         successMessage: "Password reset successful!",
         errorMessage: "Failed to reset password.",
+    }),
+
+    changePassword: withLogging(rawChangePassword, {
+        category: "auth",
+        action: "changePassword",
+        showToast: true,
+        successMessage: "Password updated!",
+        errorMessage: "Failed to change password.",
     }),
 };
