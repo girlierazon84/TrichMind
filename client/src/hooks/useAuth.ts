@@ -12,12 +12,18 @@ import {
 import { useLogger } from "@/hooks";
 
 
+/* -------------------------------------------
+ * FRONTEND USER MODEL
+ * ------------------------------------------- */
 interface User {
     id: string;
     email: string;
     displayName?: string;
 }
 
+/* -------------------------------------------
+ * useAuth Hook
+ * ------------------------------------------- */
 export const useAuth = () => {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(
@@ -30,34 +36,32 @@ export const useAuth = () => {
     const { log, warn, error: logError } = useLogger(false);
 
     /* ----------------------------------------------------------------
-     * Normalize backend response → consistent User
+     * Normalize backend → User
      * ---------------------------------------------------------------- */
     const normalizeUser = useCallback((raw: unknown): User => {
-        const obj = raw as Record<string, unknown>;
-        const u = (obj.user as Record<string, unknown>) ?? obj;
-
+        const obj = raw as { id?: string; _id?: string; email?: string; displayName?: string };
         return {
-            id: (u._id as string) ?? (u.id as string),
-            email: u.email as string,
-            displayName: (u.displayName as string) ?? undefined,
+            id: obj.id ?? obj._id ?? "",
+            email: obj.email ?? "",
+            displayName: obj.displayName,
         };
     }, []);
 
     /* ----------------------------------------------------------------
-     * Set/Clear Authorization Header
+     * Set or clear Authorization header for axios
      * ---------------------------------------------------------------- */
-    const setAuthHeader = useCallback((jwt: string | null): void => {
+    const setAuthHeader = useCallback((jwt: string | null) => {
         if (jwt) {
-            axiosClient.defaults.headers.common["Authorization"] = `Bearer ${jwt}`;
+            axiosClient.defaults.headers.common.Authorization = `Bearer ${jwt}`;
         } else {
-            delete axiosClient.defaults.headers.common["Authorization"];
+            delete axiosClient.defaults.headers.common.Authorization;
         }
     }, []);
 
     /* ----------------------------------------------------------------
      * Logout
      * ---------------------------------------------------------------- */
-    const logout = useCallback((): void => {
+    const logout = useCallback(() => {
         localStorage.removeItem("access_token");
         setToken(null);
         setUser(null);
@@ -66,9 +70,9 @@ export const useAuth = () => {
     }, [log, setAuthHeader]);
 
     /* ----------------------------------------------------------------
-     * Fetch current user (me)
+     * Fetch authenticated user
      * ---------------------------------------------------------------- */
-    const fetchUser = useCallback(async (): Promise<void> => {
+    const fetchUser = useCallback(async () => {
         if (!token) return;
 
         try {
@@ -83,18 +87,21 @@ export const useAuth = () => {
         }
     }, [token, logout, log, warn, normalizeUser, setAuthHeader]);
 
+    /* ----------------------------------------------------------------
+     * Load user at startup if token exists
+     * ---------------------------------------------------------------- */
     useEffect(() => {
         if (token) fetchUser();
     }, [token, fetchUser]);
 
     /* ----------------------------------------------------------------
-     * Store token + user after Login/Register
+     * Save auth response (token + user)
      * ---------------------------------------------------------------- */
     const storeAuth = useCallback(
         (res: AuthResponse): User => {
             const jwt = res.token;
-            localStorage.setItem("access_token", jwt);
 
+            localStorage.setItem("access_token", jwt);
             setToken(jwt);
             setAuthHeader(jwt);
 
@@ -109,9 +116,7 @@ export const useAuth = () => {
     /* ----------------------------------------------------------------
      * Register
      * ---------------------------------------------------------------- */
-    const register = async (
-        data: RegisterData
-    ): Promise<AuthResponse | null> => {
+    const register = async (data: RegisterData): Promise<AuthResponse | null> => {
         setLoading(true);
         setError(null);
         setSuccess(null);
@@ -127,8 +132,7 @@ export const useAuth = () => {
 
             return res;
         } catch (err) {
-            const msg =
-                err instanceof Error ? err.message : "Registration failed";
+            const msg = err instanceof Error ? err.message : "Registration failed";
             setError(msg);
             logError("Registration failed", { email: data.email, msg });
             return null;
@@ -156,8 +160,7 @@ export const useAuth = () => {
 
             return res;
         } catch (err) {
-            const msg =
-                err instanceof Error ? err.message : "Login failed";
+            const msg = err instanceof Error ? err.message : "Login failed";
             setError(msg);
             logError("Login failed", { email: data.email, msg });
             return null;
@@ -180,10 +183,7 @@ export const useAuth = () => {
             log("Password reset requested", { email });
             return true;
         } catch (err) {
-            const msg =
-                err instanceof Error
-                    ? err.message
-                    : "Failed to send reset email";
+            const msg = err instanceof Error ? err.message : "Failed to send reset email";
             setError(msg);
             logError("Forgot password failed", { email, msg });
             return false;
@@ -195,9 +195,7 @@ export const useAuth = () => {
     /* ----------------------------------------------------------------
      * Reset Password
      * ---------------------------------------------------------------- */
-    const resetPassword = async (
-        data: ResetPasswordData
-    ): Promise<boolean> => {
+    const resetPassword = async (data: ResetPasswordData): Promise<boolean> => {
         setLoading(true);
         setError(null);
         setSuccess(null);
@@ -208,10 +206,7 @@ export const useAuth = () => {
             log("Password reset successful");
             return true;
         } catch (err) {
-            const msg =
-                err instanceof Error
-                    ? err.message
-                    : "Failed to reset password";
+            const msg = err instanceof Error ? err.message : "Failed to reset password";
             setError(msg);
             logError("Reset password failed", { msg });
             return false;
@@ -221,7 +216,7 @@ export const useAuth = () => {
     };
 
     /* ----------------------------------------------------------------
-     * Manual fetch user
+     * Manually fetch user (if UI needs refresh)
      * ---------------------------------------------------------------- */
     const me = async (): Promise<User | null> => {
         if (!token) return null;
@@ -239,6 +234,9 @@ export const useAuth = () => {
         }
     };
 
+    /* ----------------------------------------------------------------
+     * Return API
+     * ---------------------------------------------------------------- */
     return {
         user,
         token,
