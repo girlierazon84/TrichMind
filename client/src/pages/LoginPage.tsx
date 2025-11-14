@@ -8,9 +8,6 @@ import { ThemeButton, FormInput } from "@/components";
 import { GlobalStyle } from "@/styles";
 
 
-// ──────────────────────────────
-// Styled Components
-// ──────────────────────────────
 const PageContainer = styled.main`
     display: flex;
     justify-content: center;
@@ -73,23 +70,16 @@ const FooterText = styled.p`
     }
 `;
 
-/** Full-width themed submit button (no inline styles) */
 const FullWidthButton = styled(ThemeButton)`
     margin-top: 1rem;
     width: 100%;
 `;
 
-// ──────────────────────────────
-// Types
-// ──────────────────────────────
 type LoginFormState = {
     email: string;
     password: string;
 };
 
-// ──────────────────────────────
-// Component
-// ──────────────────────────────
 export const LoginPage: React.FC = () => {
     const navigate = useNavigate();
     const { login, loading } = useAuth();
@@ -102,13 +92,11 @@ export const LoginPage: React.FC = () => {
 
     const [error, setError] = useState<string | null>(null);
 
-    /** 🧩 Handle input change */
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
     };
 
-    /** 🔐 Handle login form submission */
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError(null);
@@ -121,15 +109,20 @@ export const LoginPage: React.FC = () => {
 
             if (res?.token) {
                 await log("User logged in", { email: form.email });
-                navigate("/"); // Redirect to your main page
+                navigate("/");
             } else {
                 setError("Invalid credentials. Please try again.");
             }
         } catch (err: unknown) {
             const msg =
-                err instanceof Error ? err.message : "Login failed. Please try again.";
+                err instanceof Error
+                    ? err.message
+                    : "Login failed. Please try again.";
             setError(msg);
-            await logError("Login failed", { email: form.email, error: msg });
+            await logError("Login failed", {
+                email: form.email,
+                error: msg,
+            });
         }
     };
 
