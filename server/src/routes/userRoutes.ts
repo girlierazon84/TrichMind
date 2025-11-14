@@ -35,4 +35,31 @@ router.get(
     })
 );
 
+// PATCH /api/users/profile — update user profile
+router.patch(
+    "/profile",
+    authentication({ required: true }),
+    asyncHandler(async (req, res) => {
+        const userId = req.auth!.userId;
+
+        const allowed = [
+            "displayName",
+            "age",
+            "years_since_onset",
+            "avatarUrl",
+        ];
+
+        const updates: Record<string, any> = {};
+        allowed.forEach((key) => {
+            if (req.body[key] !== undefined) updates[key] = req.body[key];
+        });
+
+        const user = await User.findByIdAndUpdate(userId, updates, {
+            new: true,
+        }).select("-password");
+
+        res.json({ ok: true, user });
+    })
+);
+
 export default router;
