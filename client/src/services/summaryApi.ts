@@ -1,7 +1,7 @@
 // client/src/services/summaryApi.ts
 
 import { axiosClient } from "@/services";
-import { withLogging } from "@/utils/withLogging";
+import { withLogging } from "@/utils";
 
 
 export interface SummaryLog {
@@ -18,12 +18,12 @@ export interface SummaryLog {
 }
 
 async function rawCreate(data: Omit<SummaryLog, "_id" | "createdAt">) {
-    const res = await axiosClient.post("/summary", data);
+    const res = await axiosClient.post("/api/summary", data);
     return res.data;
 }
 
 async function rawList(params?: { page?: number; limit?: number; sort?: string }) {
-    const res = await axiosClient.get("/summary", { params });
+    const res = await axiosClient.get("/api/summary", { params });
     return res.data;
 }
 
