@@ -62,6 +62,7 @@ router.patch(
     })
 );
 
+// DELETE /api/users/delete
 router.delete(
     "/delete",
     authentication({ required: true }),
@@ -70,6 +71,5 @@ router.delete(
         return res.json({ ok: true, message: "Account deleted" });
     })
 );
-
 
 export default router;
