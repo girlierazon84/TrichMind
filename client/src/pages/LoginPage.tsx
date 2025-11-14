@@ -6,6 +6,7 @@ import styled from "styled-components";
 import { useAuth, useLogger } from "@/hooks";
 import { ThemeButton, FormInput } from "@/components";
 import { GlobalStyle } from "@/styles";
+import AppLogo from "@/assets/images/app_logo.png";
 
 
 const PageContainer = styled.main`
@@ -28,23 +29,31 @@ const Card = styled.div`
 `;
 
 const Logo = styled.img`
-    width: 80px;
-    height: 80px;
+    width: 100px;
+    height: 110px;
     object-fit: contain;
-    margin-bottom: 1rem;
+    margin-bottom: 0;
 `;
 
 const Title = styled.h2`
     color: ${({ theme }) => theme.colors.primary};
     font-size: 1.5rem;
     font-weight: 700;
-    margin-bottom: 0.25rem;
+    margin: 0;
+
+    @media (max-width: 768px) {
+        font-size: 1.3rem;
+    }
 `;
 
 const Subtitle = styled.p`
     color: ${({ theme }) => theme.colors.text_secondary};
     font-size: 0.95rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
+
+    @media (max-width: 768px) {
+        font-size: 0.85rem;
+    }
 `;
 
 const ErrorMessage = styled.p`
@@ -131,7 +140,7 @@ export const LoginPage: React.FC = () => {
             <GlobalStyle />
             <PageContainer>
                 <Card>
-                    <Logo src="/assets/images/app_logo.png" alt="TrichMind Logo" />
+                    <Logo src={ AppLogo } alt="TrichMind Logo" />
                     <Title>Welcome Back to TrichMind</Title>
                     <Subtitle>Continue your path to mindful recovery 🌱</Subtitle>
 
