@@ -11,19 +11,12 @@ import {
 } from "@/services";
 import { useLogger } from "@/hooks";
 
-
-/* -----------------------
- * FRONTEND USER MODEL
- * ----------------------- */
 interface User {
     id: string;
     email: string;
     displayName?: string;
 }
 
-/* -------------------------------------------
- * useAuth Hook
- * ------------------------------------------- */
 export const useAuth = () => {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(
@@ -36,33 +29,36 @@ export const useAuth = () => {
     const { log, warn, error: logError } = useLogger(false);
 
     /* ----------------------------------------------------------------
-     * Normalize backend → User
+     * Normalize raw user → User
      * ---------------------------------------------------------------- */
     const normalizeUser = useCallback((raw: unknown): User => {
-        const obj = raw as { id?: string; _id?: string; email?: string; displayName?: string };
+        const obj = raw as Record<string, unknown>;
+        const u = (obj.user as Record<string, unknown>) ?? obj;
+
         return {
-            id: obj.id ?? obj._id ?? "",
-            email: obj.email ?? "",
-            displayName: obj.displayName,
+            id: (u._id as string) ?? (u.id as string),
+            email: u.email as string,
+            displayName: (u.displayName as string) ?? undefined,
         };
     }, []);
 
     /* ----------------------------------------------------------------
-     * Set or clear Authorization header for axios
+     * Set/Clear Authorization Header
      * ---------------------------------------------------------------- */
-    const setAuthHeader = useCallback((jwt: string | null) => {
+    const setAuthHeader = useCallback((jwt: string | null): void => {
         if (jwt) {
-            axiosClient.defaults.headers.common.Authorization = `Bearer ${jwt}`;
+            axiosClient.defaults.headers.common["Authorization"] = `Bearer ${jwt}`;
         } else {
-            delete axiosClient.defaults.headers.common.Authorization;
+            delete axiosClient.defaults.headers.common["Authorization"];
         }
     }, []);
 
     /* ----------------------------------------------------------------
      * Logout
      * ---------------------------------------------------------------- */
-    const logout = useCallback(() => {
+    const logout = useCallback((): void => {
         localStorage.removeItem("access_token");
+        localStorage.removeItem("user");
         setToken(null);
         setUser(null);
         setAuthHeader(null);
@@ -70,9 +66,9 @@ export const useAuth = () => {
     }, [log, setAuthHeader]);
 
     /* ----------------------------------------------------------------
-     * Fetch authenticated user
+     * Fetch current user (me)
      * ---------------------------------------------------------------- */
-    const fetchUser = useCallback(async () => {
+    const fetchUser = useCallback(async (): Promise<void> => {
         if (!token) return;
 
         try {
@@ -80,33 +76,34 @@ export const useAuth = () => {
             const profile = await authApi.me(token);
             const normalized = normalizeUser(profile);
             setUser(normalized);
+            localStorage.setItem("user", JSON.stringify(normalized));
             log("User authenticated", { userId: normalized.id });
         } catch {
             warn("Invalid token — logging out.");
             logout();
         }
-    }, [token, logout, log, warn, normalizeUser, setAuthHeader]);
+    }, [token, logout, log, warn, normalizeUser, setAuthHeader, authApi]);
 
-    /* ----------------------------------------------------------------
-     * Load user at startup if token exists
-     * ---------------------------------------------------------------- */
     useEffect(() => {
-        if (token) fetchUser();
+        if (token) {
+            void fetchUser();
+        }
     }, [token, fetchUser]);
 
     /* ----------------------------------------------------------------
-     * Save auth response (token + user)
+     * Store token + user after Login/Register
      * ---------------------------------------------------------------- */
     const storeAuth = useCallback(
         (res: AuthResponse): User => {
             const jwt = res.token;
-
             localStorage.setItem("access_token", jwt);
+
             setToken(jwt);
             setAuthHeader(jwt);
 
             const normalized = normalizeUser(res.user);
             setUser(normalized);
+            localStorage.setItem("user", JSON.stringify(normalized));
 
             return normalized;
         },
@@ -132,7 +129,8 @@ export const useAuth = () => {
 
             return res;
         } catch (err) {
-            const msg = err instanceof Error ? err.message : "Registration failed";
+            const msg =
+                err instanceof Error ? err.message : "Registration failed";
             setError(msg);
             logError("Registration failed", { email: data.email, msg });
             return null;
@@ -183,7 +181,8 @@ export const useAuth = () => {
             log("Password reset requested", { email });
             return true;
         } catch (err) {
-            const msg = err instanceof Error ? err.message : "Failed to send reset email";
+            const msg =
+                err instanceof Error ? err.message : "Failed to send reset email";
             setError(msg);
             logError("Forgot password failed", { email, msg });
             return false;
@@ -195,7 +194,9 @@ export const useAuth = () => {
     /* ----------------------------------------------------------------
      * Reset Password
      * ---------------------------------------------------------------- */
-    const resetPassword = async (data: ResetPasswordData): Promise<boolean> => {
+    const resetPassword = async (
+        data: ResetPasswordData
+    ): Promise<boolean> => {
         setLoading(true);
         setError(null);
         setSuccess(null);
@@ -206,7 +207,8 @@ export const useAuth = () => {
             log("Password reset successful");
             return true;
         } catch (err) {
-            const msg = err instanceof Error ? err.message : "Failed to reset password";
+            const msg =
+                err instanceof Error ? err.message : "Failed to reset password";
             setError(msg);
             logError("Reset password failed", { msg });
             return false;
@@ -216,7 +218,7 @@ export const useAuth = () => {
     };
 
     /* ----------------------------------------------------------------
-     * Manually fetch user (if UI needs refresh)
+     * Manual fetch user
      * ---------------------------------------------------------------- */
     const me = async (): Promise<User | null> => {
         if (!token) return null;
@@ -225,6 +227,7 @@ export const useAuth = () => {
             const profile = await authApi.me(token);
             const normalized = normalizeUser(profile);
             setUser(normalized);
+            localStorage.setItem("user", JSON.stringify(normalized));
             log("Fetched user", { userId: normalized.id });
             return normalized;
         } catch {
@@ -234,9 +237,6 @@ export const useAuth = () => {
         }
     };
 
-    /* ----------------------------------------------------------------
-     * Return API
-     * ---------------------------------------------------------------- */
     return {
         user,
         token,
