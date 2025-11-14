@@ -24,6 +24,6 @@ export const RegistrationPage: React.FC = () => {
       <RegisterPredictForm />
     </RegistrationContainer>
   );
-}
+};
 
 export default RegistrationPage;
