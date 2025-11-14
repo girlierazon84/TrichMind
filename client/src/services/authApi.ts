@@ -73,22 +73,22 @@ function normalizeAuthResponse(raw: BackendAuthResponse): AuthResponse {
  * RAW API CALLS (typed)
  * ------------------------------------------- */
 async function rawRegister(data: RegisterData): Promise<AuthResponse> {
-    const res = await axiosClient.post<BackendAuthResponse>("/auth/register", data);
+    const res = await axiosClient.post<BackendAuthResponse>("/api/auth/register", data);
     return normalizeAuthResponse(res.data);
 }
 
 async function rawLogin(data: LoginData): Promise<AuthResponse> {
-    const res = await axiosClient.post<BackendAuthResponse>("/auth/login", data);
+    const res = await axiosClient.post<BackendAuthResponse>("/api/auth/login", data);
     return normalizeAuthResponse(res.data);
 }
 
 async function rawForgotPassword(email: string): Promise<{ message: string }> {
-    const res = await axiosClient.post<{ message: string }>("/auth/forgot-password", { email });
+    const res = await axiosClient.post<{ message: string }>("/api/auth/forgot-password", { email });
     return res.data;
 }
 
 async function rawResetPassword(data: ResetPasswordData): Promise<{ message: string }> {
-    const res = await axiosClient.post<{ message: string }>("/auth/reset-password", data);
+    const res = await axiosClient.post<{ message: string }>("/api/auth/reset-password", data);
     return res.data;
 }
 
@@ -101,7 +101,7 @@ interface BackendMeResponse {
 }
 
 async function rawMe(token: string): Promise<AuthUser> {
-    const res = await axiosClient.get<BackendMeResponse>("/auth/me", {
+    const res = await axiosClient.get<BackendMeResponse>("/api/auth/me", {
         headers: { Authorization: `Bearer ${token}` },
     });
 
