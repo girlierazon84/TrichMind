@@ -1,8 +1,9 @@
 // client/src/services/predictApi.ts
 
 import { axiosClient } from "@/services";
-import { withLogging } from "@/utils/withLogging";
+import { withLogging } from "@/utils";
 import type { PredictPayload, PredictionResponse } from "@/types/ml";
+
 
 /**
  * 🔮 Predict API — communicates with ML backend
@@ -13,7 +14,7 @@ import type { PredictPayload, PredictionResponse } from "@/types/ml";
 // Raw API function
 // ──────────────────────────────
 async function rawPredict(payload: PredictPayload): Promise<PredictionResponse> {
-    const res = await axiosClient.post<PredictionResponse>("/predict", payload);
+    const res = await axiosClient.post<PredictionResponse>("/api/predict", payload);
     return res.data;
 }
 
