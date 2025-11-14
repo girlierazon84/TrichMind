@@ -6,6 +6,7 @@ import styled from "styled-components";
 import { ThemeButton, FormInput, RiskResultCard } from "@/components";
 import { useRegisterAndPredict } from "@/hooks";
 
+
 const FormContainer = styled.form`
   display: flex;
   flex-direction: column;
@@ -35,20 +36,20 @@ const SuccessMessage = styled.p`
 `;
 
 const FooterText = styled.p`
-    margin-top: 1rem;
-    font-size: 0.9rem;
-    color: ${({ theme }) => theme.colors.text_secondary};
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: ${({ theme }) => theme.colors.text_secondary};
 
-    a {
-        color: ${({ theme }) => theme.colors.primary};
-        font-weight: 600;
-        text-decoration: none;
-        transition: color 0.2s ease;
+  a {
+    color: ${({ theme }) => theme.colors.primary};
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s ease;
 
-        &:hover {
-            color: ${({ theme }) => theme.colors.secondary};
-        }
+    &:hover {
+      color: ${({ theme }) => theme.colors.secondary};
     }
+  }
 `;
 
 export const RegisterPredictForm: React.FC = () => {
@@ -89,49 +90,107 @@ export const RegisterPredictForm: React.FC = () => {
     <FormContainer onSubmit={handleSubmit}>
       <SectionTitle>👤 Account Details</SectionTitle>
 
-      <FormInput name="email" label="Email" type="email"
-        value={form.email} onChange={handleChange} required />
+      <FormInput
+        name="email"
+        label="Email"
+        type="email"
+        value={form.email}
+        onChange={handleChange}
+        required
+      />
 
-      <FormInput name="password" label="Password" type="password"
-        value={form.password} onChange={handleChange} required />
+      <FormInput
+        name="password"
+        label="Password"
+        type="password"
+        value={form.password}
+        onChange={handleChange}
+        required
+      />
 
-      <FormInput name="displayName" label="Display Name" type="text"
-        value={form.displayName} onChange={handleChange} />
+      <FormInput
+        name="displayName"
+        label="Display Name"
+        type="text"
+        value={form.displayName}
+        onChange={handleChange}
+      />
 
       <SectionTitle>📅 Background</SectionTitle>
 
-      <FormInput name="date_of_birth" label="Date of Birth" type="date"
-        value={form.date_of_birth} onChange={handleChange} />
+      <FormInput
+        name="date_of_birth"
+        label="Date of Birth"
+        type="date"
+        value={form.date_of_birth}
+        onChange={handleChange}
+      />
 
-      <FormInput name="age_of_onset" label="Age of Onset" type="number"
-        value={form.age_of_onset} onChange={handleChange} />
+      <FormInput
+        name="age_of_onset"
+        label="Age of Onset"
+        type="number"
+        value={form.age_of_onset}
+        onChange={handleChange}
+      />
 
-      <FormInput name="years_since_onset" label="Years Since Onset" type="number"
-        value={form.years_since_onset} onChange={handleChange} />
+      <FormInput
+        name="years_since_onset"
+        label="Years Since Onset"
+        type="number"
+        value={form.years_since_onset}
+        onChange={handleChange}
+      />
 
       <SectionTitle>🧠 Behavior & Emotions</SectionTitle>
 
-      <FormInput name="pulling_severity" label="Pulling Severity (1–10)" type="number"
-        value={form.pulling_severity} onChange={handleChange} />
+      <FormInput
+        name="pulling_severity"
+        label="Pulling Severity (1–10)"
+        type="number"
+        value={form.pulling_severity}
+        onChange={handleChange}
+      />
 
-      <FormInput name="pulling_frequency" label="How often do you pull?"
+      <FormInput
+        name="pulling_frequency"
+        label="How often do you pull?"
         placeholder="daily, weekly, rarely"
-        value={form.pulling_frequency} onChange={handleChange} />
+        value={form.pulling_frequency}
+        onChange={handleChange}
+      />
 
-      <FormInput name="pulling_awareness" label="Awareness while pulling"
+      <FormInput
+        name="pulling_awareness"
+        label="Awareness while pulling"
         placeholder="yes, sometimes, no"
-        value={form.pulling_awareness} onChange={handleChange} />
+        value={form.pulling_awareness}
+        onChange={handleChange}
+      />
 
-      <FormInput name="successfully_stopped" label="Successfully stopped?"
+      <FormInput
+        name="successfully_stopped"
+        label="Successfully stopped?"
         placeholder="yes or no"
-        value={form.successfully_stopped} onChange={handleChange} />
+        value={form.successfully_stopped}
+        onChange={handleChange}
+      />
 
-      <FormInput name="how_long_stopped_days" label="How long stopped (days)" type="number"
-        value={form.how_long_stopped_days} onChange={handleChange} />
+      <FormInput
+        name="how_long_stopped_days"
+        label="How long stopped (days)"
+        type="number"
+        value={form.how_long_stopped_days}
+        onChange={handleChange}
+      />
 
-      <FormInput name="emotion" label="Current Emotion"
+      <FormInput
+        name="emotion"
+        label="Current Emotion"
         placeholder="anxious, calm, stressed"
-        value={form.emotion} onChange={handleChange} />
+        value={form.emotion}
+        onChange={handleChange}
+      />
 
       <ThemeButton type="submit" disabled={submitting}>
         {submitting ? "Submitting..." : "Register & Predict"}
