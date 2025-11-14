@@ -4,10 +4,6 @@ import { useState } from "react";
 import { useLogger, useAuth, usePredict } from "@/hooks";
 import type { PredictionResponse, PredictPayload } from "@/types/ml";
 
-
-/* ---------------------------------------------------------
-    FORM DATA FROM REGISTER + PREDICT FORM
----------------------------------------------------------- */
 export interface RegisterFormData {
     email: string;
     password: string;
@@ -18,7 +14,6 @@ export interface RegisterFormData {
     years_since_onset?: string;
 
     pulling_severity?: string;
-
     pulling_frequency?: string;
     pulling_awareness?: string;
 
@@ -29,17 +24,19 @@ export interface RegisterFormData {
 }
 
 /* ---------------------------------------------------------
-    HELPERS
----------------------------------------------------------- */
-const toNum = (v?: string): number => {
+    Helpers
+----------------------------------------------------------*/
+const toNum = (v?: string) => {
     const n = Number(v ?? 0);
     return Number.isFinite(n) ? n : 0;
 };
 
-const calculateAge = (dob?: string): number =>
-    dob ? Math.floor((Date.now() - new Date(dob).getTime()) / 31557600000) : 0;
+const calculateAge = (dob?: string): number => {
+    if (!dob) return 0;
+    const diff = Date.now() - new Date(dob).getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+};
 
-// Convert text → ML encoder value
 const mapFrequency = (v?: string): number => {
     if (!v) return 0;
     const x = v.toLowerCase();
@@ -57,35 +54,32 @@ const mapAwareness = (v?: string): number => {
     return 0;
 };
 
-const mapSuccessful = (v?: string): number =>
-    v?.toLowerCase() === "yes" ? 1 : 0;
+const mapSuccessful = (v?: string): number => {
+    if (!v) return 0;
+    return v.toLowerCase() === "yes" ? 1 : 0;
+};
 
 /* ---------------------------------------------------------
-    MAIN HOOK
----------------------------------------------------------- */
+    Hook
+----------------------------------------------------------*/
 export const useRegisterAndPredict = () => {
     const { register, isAuthenticated, user } = useAuth();
     const { predict, loading: predicting, error: predictError } = usePredict();
     const { log, error: logError } = useLogger(false);
 
-    const [submitting, setSubmitting] = useState<boolean>(false);
+    const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [prediction, setPrediction] = useState<PredictionResponse | null>(null);
 
-    /* ---------------------------------------------------------
-        REGISTER + PREDICT WORKFLOW
-    ---------------------------------------------------------- */
-    const registerAndPredict = async (
+    async function registerAndPredict(
         form: RegisterFormData
-    ): Promise<PredictionResponse | null> => {
+    ): Promise<PredictionResponse | null> {
         setSubmitting(true);
         setSubmitError(null);
         setPrediction(null);
 
         try {
-            /* -----------------------------------------------------
-                1) Register if needed
-            ------------------------------------------------------- */
+            // 1) Register only if NOT authenticated
             if (!isAuthenticated) {
                 if (!form.email?.trim() || !form.password) {
                     throw new Error("Email and password are required.");
@@ -98,19 +92,12 @@ export const useRegisterAndPredict = () => {
                 });
 
                 if (!registered?.token) throw new Error("Registration failed");
-
-                await log("User registered via Register & Predict", {
-                    email: form.email,
-                });
+                await log("User registered successfully", { email: form.email });
             } else {
-                await log("Existing authenticated user re-used", {
-                    userId: user?.id,
-                });
+                await log("Authenticated user detected", { userId: user?.id });
             }
 
-            /* -----------------------------------------------------
-                2) Build Prediction Payload
-            ------------------------------------------------------- */
+            // 2) Build ML payload
             const payload: PredictPayload = {
                 pulling_severity: toNum(form.pulling_severity),
 
@@ -118,9 +105,7 @@ export const useRegisterAndPredict = () => {
                 awareness_level_encoded: mapAwareness(form.pulling_awareness),
 
                 how_long_stopped_days_est: toNum(form.how_long_stopped_days),
-                successfully_stopped_encoded: mapSuccessful(
-                    form.successfully_stopped
-                ),
+                successfully_stopped_encoded: mapSuccessful(form.successfully_stopped),
 
                 years_since_onset: toNum(form.years_since_onset),
                 age: calculateAge(form.date_of_birth),
@@ -129,27 +114,22 @@ export const useRegisterAndPredict = () => {
                 emotion: form.emotion?.trim() || "neutral",
             };
 
-            /* -----------------------------------------------------
-                3) Predict
-            ------------------------------------------------------- */
+            // 3) Execute ML prediction
             const result = await predict(payload);
             setPrediction(result);
 
             await log("Prediction completed", {
-                userId: user?.id ?? "guest",
-                ...payload,
+                userId: user?.id || "guest",
+                emotion: payload.emotion,
             });
 
             return result;
-        } catch (err) {
+        } catch (e) {
             const msg =
-                err instanceof Error
-                    ? err.message
-                    : "Register & Predict failed";
-
+                e instanceof Error ? e.message : "Register & Predict failed";
             setSubmitError(msg);
 
-            await logError("Register & Predict error", {
+            await logError("Register & Predict process failed", {
                 error: msg,
                 email: form.email,
             });
@@ -158,14 +138,13 @@ export const useRegisterAndPredict = () => {
         } finally {
             setSubmitting(false);
         }
-    };
+    }
 
     return {
         registerAndPredict,
         submitting,
         submitError,
         prediction,
-
         predicting,
         predictError,
     };
