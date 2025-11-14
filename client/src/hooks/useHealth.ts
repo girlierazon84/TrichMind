@@ -15,11 +15,17 @@ export const useHealth = () => {
         setLoading(true);
         try {
             const res = await healthApi.create(data);
-            await log("Health log created", { sleep: data.sleepHours, stress: data.stressLevel });
+            await log("Health log created", {
+                sleep: data.sleepHours,
+                stress: data.stressLevel,
+            });
             toast.success("Health log created successfully!");
             return res;
         } catch (err) {
-            const msg = err instanceof Error ? err.message : "Failed to create health log";
+            const msg =
+                err instanceof Error
+                    ? err.message
+                    : "Failed to create health log";
             setError(msg);
             await logError("Health log creation failed", { error: msg });
             toast.error(msg);
@@ -33,12 +39,14 @@ export const useHealth = () => {
         try {
             return await healthApi.list(params);
         } catch (err) {
-            await logError("Failed to fetch health logs", { error: String(err) });
+            await logError("Failed to fetch health logs", {
+                error: String(err),
+            });
             throw err;
         }
     };
 
     return { create, list, loading, error };
-}
+};
 
 export default useHealth;
