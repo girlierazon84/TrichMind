@@ -1,7 +1,8 @@
 // client/src/services/userApi.ts
 
 import { axiosClient } from "@/services";
-import { withLogging } from "@/utils/withLogging";
+import { withLogging } from "@/utils";
+
 
 export interface UpdateProfileData {
     displayName?: string;
@@ -19,17 +20,17 @@ export interface UpdateProfileData {
 // ──────────────── Base API calls ────────────────
 
 async function rawGetProfile() {
-    const res = await axiosClient.get("/users/me");
+    const res = await axiosClient.get("/api/users/me");
     return res.data;
 }
 
 async function rawUpdateProfile(data: UpdateProfileData) {
-    const res = await axiosClient.put("/users/update", data);
+    const res = await axiosClient.put("/api/users/update", data);
     return res.data;
 }
 
 async function rawDeleteAccount() {
-    const res = await axiosClient.delete("/users/delete");
+    const res = await axiosClient.delete("/api/users/delete");
     return res.data;
 }
 
