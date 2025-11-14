@@ -3,9 +3,8 @@
 import { axiosClient } from "@/services";
 import { withLogging } from "@/utils";
 
-
 /* -------------------------------------------
- * TYPES — FRONTEND MODELS
+ * TYPES - align with backend
  * ------------------------------------------- */
 export interface RegisterData {
     email: string;
@@ -23,99 +22,111 @@ export interface ResetPasswordData {
     newPassword: string;
 }
 
-export interface AuthUser {
-    id: string;
-    email: string;
-    displayName?: string;
-}
-
 export interface AuthResponse {
-    token: string;
+    token: string; // normalized access token
     refreshToken?: string;
-    user: AuthUser;
+    user: {
+        id: string;
+        email: string;
+        displayName?: string;
+    };
 }
 
-/* -------------------------------------------
- * TYPES — BACKEND RESPONSE MODELS
- * ------------------------------------------- */
-interface BackendUser {
-    _id?: string;
-    id?: string;
-    email: string;
-    displayName?: string;
-}
-
-interface BackendAuthResponse {
-    ok?: boolean;
+/* Backend raw responses */
+interface BackendAuthPayload {
+    ok: boolean;
+    user: {
+        _id?: string;
+        id?: string;
+        email: string;
+        displayName?: string;
+    };
     accessToken: string;
     refreshToken?: string;
-    user: BackendUser;
 }
 
 /* -------------------------------------------
- * Normalizer — backend → frontend shape
+ * Normalizer - backend → frontend shape
  * ------------------------------------------- */
-function normalizeAuthResponse(raw: BackendAuthResponse): AuthResponse {
-    const backendUser = raw.user;
-
+function normalizeAuthResponse(raw: BackendAuthPayload): AuthResponse {
+    const u = raw.user;
     return {
         token: raw.accessToken,
         refreshToken: raw.refreshToken,
         user: {
-            id: backendUser._id ?? backendUser.id ?? "",
-            email: backendUser.email,
-            displayName: backendUser.displayName,
+            id: u._id ?? u.id ?? "",
+            email: u.email,
+            displayName: u.displayName,
         },
     };
 }
 
 /* -------------------------------------------
- * RAW API CALLS (typed)
+ * RAW API CALLS  (all prefixed with /api)
  * ------------------------------------------- */
 async function rawRegister(data: RegisterData): Promise<AuthResponse> {
-    const res = await axiosClient.post<BackendAuthResponse>("/api/auth/register", data);
+    const res = await axiosClient.post<BackendAuthPayload>("/api/auth/register", data);
     return normalizeAuthResponse(res.data);
 }
 
 async function rawLogin(data: LoginData): Promise<AuthResponse> {
-    const res = await axiosClient.post<BackendAuthResponse>("/api/auth/login", data);
+    const res = await axiosClient.post<BackendAuthPayload>("/api/auth/login", data);
     return normalizeAuthResponse(res.data);
 }
 
-async function rawForgotPassword(email: string): Promise<{ message: string }> {
-    const res = await axiosClient.post<{ message: string }>("/api/auth/forgot-password", { email });
+interface ForgotPasswordResponse {
+    ok: boolean;
+    message: string;
+}
+
+async function rawForgotPassword(email: string): Promise<ForgotPasswordResponse> {
+    const res = await axiosClient.post<ForgotPasswordResponse>(
+        "/api/auth/forgot-password",
+        { email }
+    );
     return res.data;
 }
 
-async function rawResetPassword(data: ResetPasswordData): Promise<{ message: string }> {
-    const res = await axiosClient.post<{ message: string }>("/api/auth/reset-password", data);
+interface ResetPasswordResponse {
+    ok: boolean;
+    message: string;
+}
+
+async function rawResetPassword(
+    data: ResetPasswordData
+): Promise<ResetPasswordResponse> {
+    const res = await axiosClient.post<ResetPasswordResponse>(
+        "/api/auth/reset-password",
+        data
+    );
     return res.data;
 }
 
-interface BackendMeResponse {
-    user?: BackendUser;
-    _id?: string;
-    id?: string;
-    email?: string;
-    displayName?: string;
+interface MeResponse {
+    ok: boolean;
+    user: {
+        _id?: string;
+        id?: string;
+        email: string;
+        displayName?: string;
+    };
 }
 
-async function rawMe(token: string): Promise<AuthUser> {
-    const res = await axiosClient.get<BackendMeResponse>("/api/auth/me", {
+async function rawMe(token: string) {
+    const res = await axiosClient.get<MeResponse>("/api/auth/me", {
         headers: { Authorization: `Bearer ${token}` },
     });
 
-    const u = res.data.user ?? res.data;
-
+    const u = res.data.user;
     return {
         id: u._id ?? u.id ?? "",
-        email: u.email ?? "",
+        email: u.email,
         displayName: u.displayName,
     };
 }
 
 /* -------------------------------------------
- * EXPORT API (wrapped with logging)
+ * EXPORT API (with logging)
  * ------------------------------------------- */
 export const authApi = {
     register: withLogging(rawRegister, {
