@@ -137,10 +137,6 @@ export const RegisterPredictForm: React.FC = () => {
         {submitting ? "Submitting..." : "Register & Predict"}
       </ThemeButton>
 
-      <FooterText>
-        Already have an account? <Link to="/login">Login</Link>
-      </FooterText>
-
       {submitError && <ErrorMessage>{submitError}</ErrorMessage>}
 
       {prediction && (
@@ -149,6 +145,10 @@ export const RegisterPredictForm: React.FC = () => {
           <RiskResultCard data={prediction} />
         </>
       )}
+
+      <FooterText>
+        Already have an account? <Link to="/login">Login</Link>
+      </FooterText>
     </FormContainer>
   );
 };
