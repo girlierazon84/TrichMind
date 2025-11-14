@@ -12,39 +12,38 @@ export interface UpdateProfileData {
     pulling_severity?: number;
 }
 
-/**
- * 👤 User API — manages profile retrieval, updates, and account deletion.
- * Automatically wrapped with logging and toast feedback.
- */
+/* ---------------------------------------------
+    Corrected Base API Calls (match backend)
+--------------------------------------------- */
 
-// ──────────────── Base API calls ────────────────
-
+// GET /api/users/profile
 async function rawGetProfile() {
     const res = await axiosClient.get("/api/users/profile");
     return res.data;
 }
 
+// PATCH /api/users/profile
 async function rawUpdateProfile(data: UpdateProfileData) {
-    const res = await axiosClient.put("/api/users/profile", data);
+    const res = await axiosClient.patch("/api/users/profile", data);
     return res.data;
 }
 
+// DELETE /api/users/delete   (backend added below)
 async function rawDeleteAccount() {
     const res = await axiosClient.delete("/api/users/delete");
     return res.data;
 }
 
-// ──────────────── Wrapped API with Logging ────────────────
-
+/* ---------------------------------------------
+    Wrapped API
+--------------------------------------------- */
 export const userApi = {
-    /** 👤 Get current user profile */
     getProfile: withLogging(rawGetProfile, {
         category: "auth",
         action: "getProfile",
         showToast: false,
     }),
 
-    /** ✏️ Update user profile */
     updateProfile: withLogging(rawUpdateProfile, {
         category: "auth",
         action: "updateProfile",
@@ -53,7 +52,6 @@ export const userApi = {
         errorMessage: "Failed to update your profile.",
     }),
 
-    /** 🗑️ Delete user account */
     deleteAccount: withLogging(rawDeleteAccount, {
         category: "auth",
         action: "deleteAccount",
@@ -62,3 +60,5 @@ export const userApi = {
         errorMessage: "Failed to delete account.",
     }),
 };
+
+export default userApi;
