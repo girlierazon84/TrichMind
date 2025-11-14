@@ -4,17 +4,27 @@ import { axiosClient } from "@/services";
 import { withLogging } from "@/utils";
 
 
+// ──────────────────────────────────────TYPES─────────────────────────────────
+// Data structure for updating user profile
+// Matches backend schema - src/schemas/userSchemas.ts
+// Only includes fields that can be updated, via the profile update endpoint.
+// ────────────────────────────────────────────────────────────────────────────
 export interface UpdateProfileData {
     displayName?: string;
     date_of_birth?: string;
     age?: number;
     emotion?: string;
     pulling_severity?: number;
+    years_since_onset?: number;
+    avatarUrl?: string;
 }
 
-/* ---------------------------------------------
-    Corrected Base API Calls (match backend)
---------------------------------------------- */
+/**
+ * 👤 User API — manages profile retrieval, updates, and account deletion.
+ * Automatically wrapped with logging and toast feedback.
+ */
+
+// ──────────────── Base API calls (MATCH BACKEND) ────────────────
 
 // GET /api/users/profile
 async function rawGetProfile() {
@@ -28,22 +38,23 @@ async function rawUpdateProfile(data: UpdateProfileData) {
     return res.data;
 }
 
-// DELETE /api/users/delete   (backend added below)
+// DELETE /api/users/delete
 async function rawDeleteAccount() {
     const res = await axiosClient.delete("/api/users/delete");
     return res.data;
 }
 
-/* ---------------------------------------------
-    Wrapped API
---------------------------------------------- */
+// ──────────────── Wrapped API with Logging ────────────────
+
 export const userApi = {
+    /** 👤 Get current user profile */
     getProfile: withLogging(rawGetProfile, {
         category: "auth",
         action: "getProfile",
         showToast: false,
     }),
 
+    /** ✏️ Update user profile */
     updateProfile: withLogging(rawUpdateProfile, {
         category: "auth",
         action: "updateProfile",
@@ -52,6 +63,7 @@ export const userApi = {
         errorMessage: "Failed to update your profile.",
     }),
 
+    /** 🗑️ Delete user account */
     deleteAccount: withLogging(rawDeleteAccount, {
         category: "auth",
         action: "deleteAccount",
