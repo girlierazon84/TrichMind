@@ -3,7 +3,11 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
-import { ThemeButton, FormInput, RiskResultCard } from "@/components";
+import {
+  ThemeButton,
+  FormInput,
+  RiskResultCard
+} from "@/components";
 import { useRegisterAndPredict } from "@/hooks";
 
 
@@ -193,7 +197,7 @@ export const RegisterPredictForm: React.FC = () => {
       />
 
       <ThemeButton type="submit" disabled={submitting}>
-        {submitting ? "Submitting..." : "Register & Predict"}
+        {submitting ? "Submitting..." : "Register & Predict Relapse Risk"}
       </ThemeButton>
 
       {submitError && <ErrorMessage>{submitError}</ErrorMessage>}
