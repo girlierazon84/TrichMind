@@ -12,9 +12,9 @@ import {
 import { useLogger } from "@/hooks";
 
 
-/* -------------------------------------------
+/* -----------------------
  * FRONTEND USER MODEL
- * ------------------------------------------- */
+ * ----------------------- */
 interface User {
     id: string;
     email: string;
