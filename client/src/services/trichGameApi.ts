@@ -18,7 +18,7 @@ export interface GameSession {
 }
 
 async function rawStart(session: GameSession) {
-    const res = await axiosClient.post("/api/game", session);
+    const res = await axiosClient.post("/api/games", session);
     return res.data;
 }
 
