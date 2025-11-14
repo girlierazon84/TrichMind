@@ -7,7 +7,7 @@ import { useLogger } from "@/hooks";
 import type { PredictPayload, PredictionResponse } from "@/types/ml";
 
 
-/** 🧩 Normalize API variations (uppercase → lowercase buckets) */
+/** Wire shape (allows uppercase buckets) */
 type WirePrediction =
   | PredictionResponse
   | (Omit<PredictionResponse, "risk_bucket"> & {
@@ -15,39 +15,32 @@ type WirePrediction =
     });
 
 const normalize = (resp: WirePrediction): PredictionResponse => {
-  const bucket = (resp.risk_bucket as string).toLowerCase() as PredictionResponse["risk_bucket"];
+  const bucket = String(resp.risk_bucket || "medium").toLowerCase() as
+    | "low"
+    | "medium"
+    | "high";
   return { ...resp, risk_bucket: bucket };
 };
 
-/** 🔧 Configurable relapse alert threshold */
 const RELAPSE_ALERT_THRESHOLD = 0.7;
 
-/** 🧠 Retrieve minimal user email (stored post-login) */
 function getLocalUserEmail(): string | undefined {
   try {
     const raw = localStorage.getItem("user");
     if (!raw) return undefined;
-    const parsed = JSON.parse(raw);
-    return typeof parsed?.email === "string" ? parsed.email : undefined;
+    const parsed = JSON.parse(raw) as { email?: string };
+    return typeof parsed.email === "string" ? parsed.email : undefined;
   } catch {
     return undefined;
   }
 }
 
-/**
- * ⚙️ usePredict — manages prediction flow + alert logic + UI feedback
- * Includes:
- *  - Backend logging (via useLogger)
- *  - Auto alert creation when relapse risk is high
- *  - User toast notification for encouragement
- */
 export const usePredict = () => {
   const [result, setResult] = useState<PredictionResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { log, error: logError, warn } = useLogger(false); // logs only, no UI toasts
+  const { log, error: logError, warn } = useLogger(false);
 
-  /** 🔮 Run prediction + handle risk & alerts */
   async function predict(payload: PredictPayload): Promise<PredictionResponse> {
     setLoading(true);
     setError(null);
@@ -70,7 +63,7 @@ export const usePredict = () => {
       if (shouldTriggerAlert) {
         const email = getLocalUserEmail();
 
-        // 🚨 1️⃣ Save alert backend-side
+        // 1️⃣ Save alert
         try {
           await alertApi.create({
             score: normalized.risk_score,
@@ -86,23 +79,26 @@ export const usePredict = () => {
             email: email ?? "(unknown)",
           });
         } catch (alertErr) {
+          const msg =
+            alertErr instanceof Error
+              ? alertErr.message
+              : String(alertErr);
+
           await logError("Failed to create relapse alert", {
-            error:
-              alertErr instanceof Error
-                ? alertErr.message
-                : String(alertErr),
+            error: msg,
             score: normalized.risk_score,
             risk_bucket: normalized.risk_bucket,
           });
         }
 
-        // 🌈 2️⃣ Display motivational toast to user
+        // 2️⃣ Show supportive toast
         showSupportiveToast(normalized);
       }
 
       return normalized;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Prediction request failed";
+      const msg =
+        e instanceof Error ? e.message : "Prediction request failed";
       setError(msg);
 
       await logError("Prediction error", {
@@ -121,12 +117,8 @@ export const usePredict = () => {
   }
 
   return { predict, result, loading, error };
-}
+};
 
-/**
- * 💬 Supportive toast messages for users when high risk detected
- * Provides encouragement and positive reinforcement.
- */
 function showSupportiveToast(result: PredictionResponse) {
   const msg =
     result.risk_bucket === "high"
