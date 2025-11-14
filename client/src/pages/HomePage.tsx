@@ -219,7 +219,7 @@ export const HomePage: React.FC = () => {
                     emotion_intensity_sum: u.emotion_intensity_sum ?? 4.5,
                 };
 
-                // 3️⃣ Prediction request
+                // 3️⃣ Prediction request (MATCH BACKEND ROUTE)
                 const prediction = await axiosClient.post<PredictResponse>(
                     "/api/ml/predict",
                     payload
