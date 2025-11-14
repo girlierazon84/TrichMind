@@ -1,7 +1,8 @@
 // client/src/services/alertApi.ts
 
-import { withLogging } from "@/utils/withLogging";
+import { withLogging } from "@/utils";
 import { axiosClient , type LogEvent } from "@/services";
+
 
 export interface AlertLog {
     _id?: string;
@@ -21,27 +22,27 @@ export interface AlertLog {
 async function rawCreate(
     data: Omit<AlertLog, "_id" | "createdAt">
 ) {
-    const res = await axiosClient.post("/alerts", data);
+    const res = await axiosClient.post("/api/alerts", data);
     return res.data;
 }
 
 async function rawList(params?: { page?: number; limit?: number }) {
-    const res = await axiosClient.get("/alerts", { params });
+    const res = await axiosClient.get("/api/alerts", { params });
     return res.data;
 }
 
 async function rawGetById(id: string) {
-    const res = await axiosClient.get(`/alerts/${id}`);
+    const res = await axiosClient.get(`/api/alerts/${id}`);
     return res.data;
 }
 
 async function rawMarkAsSent(id: string, sent = true) {
-    const res = await axiosClient.patch(`/alerts/${id}`, { sent });
+    const res = await axiosClient.patch(`/api/alerts/${id}`, { sent });
     return res.data;
 }
 
 async function rawRemove(id: string) {
-    const res = await axiosClient.delete(`/alerts/${id}`);
+    const res = await axiosClient.delete(`/api/alerts/${id}`);
     return res.data;
 }
 
