@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useLogger, useAuth, usePredict } from "@/hooks";
 import type { PredictionResponse, PredictPayload } from "@/types/ml";
 
+
 export interface RegisterFormData {
     email: string;
     password: string;
