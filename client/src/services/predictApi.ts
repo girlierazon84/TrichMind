@@ -4,7 +4,6 @@ import { axiosClient } from "@/services";
 import { withLogging } from "@/utils";
 import type { PredictPayload, PredictionResponse } from "@/types/ml";
 
-
 /**
  * 🔮 Predict API — communicates with ML backend
  * Fully integrated with centralized withLogging utility.
@@ -14,13 +13,14 @@ import type { PredictPayload, PredictionResponse } from "@/types/ml";
 // Raw API function
 // ──────────────────────────────
 async function rawPredict(payload: PredictPayload): Promise<PredictionResponse> {
-    const res = await axiosClient.post<PredictionResponse>("/api/ml", payload);
+    // Backend route: POST /api/ml/predict
+    const res = await axiosClient.post<PredictionResponse>("/api/ml/predict", payload);
     return res.data;
 }
 
-// ──────────────────────────────
+// ──────────────────────────────────────────────
 // Wrapped API (with automatic logging + toasts)
-// ──────────────────────────────
+// ──────────────────────────────────────────────
 export const predictApi = {
     predict: withLogging(rawPredict, {
         category: "ml",
@@ -30,3 +30,5 @@ export const predictApi = {
         errorMessage: "Prediction request failed. Please try again.",
     }),
 };
+
+export default predictApi;
