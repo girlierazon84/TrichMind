@@ -6,28 +6,29 @@ import { User, HealthLog } from "../models";
 import { asyncHandler } from "../utils";
 
 
-// Initialize router
+/* ──────────────────────────────
+    🔹 User Routes
+──────────────────────────────── */
 const router = Router();
 
-// 🟢 User Routes
+/* 🟢 GET /api/users/profile — current user profile */
 router.get(
     "/profile",
-    // Get user profile
     authentication({ required: true }),
     asyncHandler(async (req, res) => {
-        // Fetch user profile excluding password
-        const user = await User.findById(req.auth!.userId).select("-password").lean();
+        const user = await User.findById(req.auth!.userId)
+            .select("-password")
+            .lean();
         if (!user) return res.status(404).json({ error: "User not found" });
         res.json({ ok: true, user });
     })
 );
 
-// Get latest health log for authenticated user
+/* 🩺 GET /api/users/health/latest — latest health log */
 router.get(
     "/health/latest",
     authentication({ required: true }),
     asyncHandler(async (req, res) => {
-        // Fetch the latest health log entry for the user
         const log = await HealthLog.findOne({ userId: req.auth!.userId })
             .sort({ date: -1 })
             .lean();
@@ -35,7 +36,7 @@ router.get(
     })
 );
 
-// PATCH /api/users/profile — update user profile
+/* ✏️ PATCH /api/users/profile — update user profile */
 router.patch(
     "/profile",
     authentication({ required: true }),
@@ -62,7 +63,7 @@ router.patch(
     })
 );
 
-// DELETE /api/users/delete
+/* 🗑️ DELETE /api/users/delete — delete account */
 router.delete(
     "/delete",
     authentication({ required: true }),
