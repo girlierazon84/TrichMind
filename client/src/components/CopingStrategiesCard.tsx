@@ -2,7 +2,12 @@
 
 import React from "react";
 import styled from "styled-components";
+import { fadeIn, slideUp } from "@/styles";
 
+
+/* ──────────────────────────────
+    🧩 Interfaces
+────────────────────────────── */
 export interface CopingStrategiesCardProps {
     worked?: string[];
     notWorked?: string[];
@@ -13,8 +18,9 @@ const Card = styled.div`
     background: ${({ theme }) => theme.colors.card_bg};
     padding: 1.5rem;
     border-radius: 16px;
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
     margin: 1.5rem 0;
+    animation: ${fadeIn} 0.5s ease-out;
 `;
 
 const Title = styled.h3`
@@ -31,7 +37,7 @@ const PillRow = styled.div`
     justify-content: flex-start;
 `;
 
-const PillButton = styled.button<{ $type: "worked" | "notWorked" }>`
+const PillButton = styled.button<{ $type: "worked" | "notWorked"; $index: number }>`
     border: none;
     border-radius: 9999px;
     padding: 0.5rem 1rem;
@@ -44,11 +50,19 @@ const PillButton = styled.button<{ $type: "worked" | "notWorked" }>`
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.25s ease-out, transform 0.2s ease-out, box-shadow 0.25s ease-out;
+    animation: ${slideUp} 0.45s ease-out;
+    animation-delay: ${({ $index }) => $index * 80}ms;
+    animation-fill-mode: both;
 
     &:hover {
         background-color: ${({ $type }) =>
             $type === "worked" ? "#21b2ba33" : "#e74c3c33"};
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.06);
+    }
+
+    &:active {
+        transform: translateY(1px) scale(0.98);
     }
 
     img {
@@ -65,23 +79,25 @@ export const CopingStrategiesCard: React.FC<CopingStrategiesCardProps> = ({
     <Card>
         <Title>💪 Coping Strategies</Title>
         <PillRow>
-            {worked.map((name) => (
+            {worked.map((name, index) => (
                 <PillButton
                     key={`worked-${name}`}
                     $type="worked"
+                    $index={index}
                     onClick={() => onToggle?.(name, "worked")}
                 >
-                    <img src="/assets/icons/check.png" alt="Check" />
+                    <img src="/assets/icons/check.png" alt="Effective strategy" />
                     {name}
                 </PillButton>
             ))}
-            {notWorked.map((name) => (
+            {notWorked.map((name, index) => (
                 <PillButton
                     key={`notWorked-${name}`}
                     $type="notWorked"
+                    $index={worked.length + index}
                     onClick={() => onToggle?.(name, "notWorked")}
                 >
-                    <img src="/assets/icons/failed.png" alt="Failed" />
+                    <img src="/assets/icons/failed.png" alt="Less effective strategy" />
                     {name}
                 </PillButton>
             ))}
