@@ -186,22 +186,29 @@ export const RegisterPredictForm: React.FC = () => {
           type="date"
           value={form.date_of_birth}
           onChange={handleChange}
+          required
         />
 
         <FormInput
           name="age_of_onset"
           label="Age of Onset"
           type="number"
+          min={0}
+          max={120}
           value={form.age_of_onset}
           onChange={handleChange}
+          required
         />
 
         <FormInput
           name="years_since_onset"
           label="Years Since Onset"
           type="number"
+          min={0}
+          max={120}
           value={form.years_since_onset}
           onChange={handleChange}
+          required
         />
 
         <SectionTitle>🧠 Behavior & Emotions</SectionTitle>
@@ -214,6 +221,7 @@ export const RegisterPredictForm: React.FC = () => {
           max={10}
           value={form.pulling_severity}
           onChange={handleChange}
+          required
         />
 
         <FormInput
@@ -222,6 +230,7 @@ export const RegisterPredictForm: React.FC = () => {
           placeholder="e.g. daily, weekly, monthly, rarely"
           value={form.pulling_frequency}
           onChange={handleChange}
+          required
         />
 
         <FormInput
@@ -230,6 +239,7 @@ export const RegisterPredictForm: React.FC = () => {
           placeholder="e.g. eyes, sometimes, no"
           value={form.pulling_awareness}
           onChange={handleChange}
+          required
         />
 
         <FormInput
@@ -238,6 +248,7 @@ export const RegisterPredictForm: React.FC = () => {
           placeholder="e.g. yes, no"
           value={form.successfully_stopped}
           onChange={handleChange}
+          required
         />
 
         <FormInput
@@ -247,6 +258,7 @@ export const RegisterPredictForm: React.FC = () => {
           min={0}
           value={form.how_long_stopped_days}
           onChange={handleChange}
+          required
         />
 
         <FormInput
@@ -255,6 +267,7 @@ export const RegisterPredictForm: React.FC = () => {
           placeholder="e.g. anxious, calm, stressed"
           value={form.emotion}
           onChange={handleChange}
+          required
         />
 
         <ThemeButton type="submit" disabled={submitting}>
