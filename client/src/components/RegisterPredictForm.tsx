@@ -2,42 +2,63 @@
 
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import styled from "styled-components";
-import {
-  ThemeButton,
-  FormInput,
-} from "@/components";
+import styled, { keyframes } from "styled-components";
+import { ThemeButton, FormInput } from "@/components";
 import { useRegisterAndPredict } from "@/hooks";
 
+/* -----------------------------------------------------
+    ANIMATIONS — calm, premium, soft
+----------------------------------------------------- */
 
-// Styled Components
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
+const slideUp = keyframes`
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
+const popupAppear = keyframes`
+  from { opacity: 0; transform: translateY(30px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+`;
+
+/* -----------------------------------------------------
+    Styled Components
+----------------------------------------------------- */
+
 const FormContainer = styled.form`
   display: flex;
   flex-direction: column;
   gap: 1rem;
   background: ${({ theme }) => theme.colors.card_bg};
   padding: 2rem;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 18px;
+  box-shadow: ${({ theme }) => theme.colors.card_shadow};
+  animation: ${slideUp} 0.55s ease-out;
 `;
 
 const SectionTitle = styled.h3`
   font-size: 1rem;
   font-weight: 600;
   color: ${({ theme }) => theme.colors.primary};
-  margin-bottom: 0.5rem;
-  text-align: left;
+  margin-bottom: 0.4rem;
+  animation: ${fadeIn} 0.6s ease-out;
 `;
 
 const ErrorMessage = styled.p`
   color: ${({ theme }) => theme.colors.high_risk};
   font-weight: 500;
+  animation: ${fadeIn} 0.4s ease-out;
 `;
 
 const FooterText = styled.p`
   margin-top: 1rem;
   font-size: 0.9rem;
   color: ${({ theme }) => theme.colors.text_secondary};
+  animation: ${fadeIn} 1s ease-out;
 
   a {
     color: ${({ theme }) => theme.colors.primary};
@@ -51,6 +72,8 @@ const FooterText = styled.p`
   }
 `;
 
+/* ---------------- Popup Modal ---------------- */
+
 const PopupOverlay = styled.div`
   position: fixed;
   inset: 0;
@@ -59,20 +82,22 @@ const PopupOverlay = styled.div`
   justify-content: center;
   align-items: center;
   z-index: 2000;
+  animation: ${fadeIn} 0.25s ease-out;
 `;
 
 const PopupBox = styled.div`
-  background: white;
-  padding: 2rem;
-  border-radius: 16px;
+  background: ${({ theme }) => theme.colors.card_bg};
+  padding: 2.2rem;
+  border-radius: 18px;
   max-width: 420px;
-  width: 90%;
+  width: 92%;
   text-align: center;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  box-shadow: 0 10px 32px rgba(0,0,0,0.25);
+  animation: ${popupAppear} 0.45s ease-out;
 `;
 
 const PopupTitle = styled.h2`
-  font-size: 1.4rem;
+  font-size: 1.45rem;
   color: ${({ theme }) => theme.colors.primary};
   margin-bottom: 1rem;
 `;
@@ -81,7 +106,12 @@ const PopupText = styled.p`
   font-size: 1rem;
   color: ${({ theme }) => theme.colors.text_primary};
   margin-bottom: 1.5rem;
+  line-height: 1.5;
 `;
+
+/* -----------------------------------------------------
+    Component
+----------------------------------------------------- */
 
 export const RegisterPredictForm: React.FC = () => {
   const { registerAndPredict, submitting, submitError } =
@@ -91,17 +121,14 @@ export const RegisterPredictForm: React.FC = () => {
     email: "",
     password: "",
     displayName: "",
-
     date_of_birth: "",
     age_of_onset: "",
     years_since_onset: "",
-
     pulling_severity: "",
     pulling_frequency: "",
     pulling_awareness: "",
     successfully_stopped: "",
     how_long_stopped_days: "",
-
     emotion: "",
   });
 
@@ -118,9 +145,9 @@ export const RegisterPredictForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const result = await registerAndPredict(form);
+    const success = await registerAndPredict(form);
 
-    if (result) {
+    if (success) {
       setShowPopup(true);
     }
   };
@@ -132,6 +159,7 @@ export const RegisterPredictForm: React.FC = () => {
 
   return (
     <>
+      {/* Popup */}
       {showPopup && (
         <PopupOverlay>
           <PopupBox>
@@ -139,7 +167,7 @@ export const RegisterPredictForm: React.FC = () => {
             <PopupText>
               Your account has been created successfully.<br /><br />
               Please <strong>log in</strong> to view your personalized relapse risk prediction
-              and continue your journey with supportive tools.
+              and continue your mindful recovery journey.
             </PopupText>
 
             <ThemeButton onClick={closePopup}>
@@ -149,6 +177,7 @@ export const RegisterPredictForm: React.FC = () => {
         </PopupOverlay>
       )}
 
+      {/* Registration Form */}
       <FormContainer onSubmit={handleSubmit}>
         <SectionTitle>👤 Account Details</SectionTitle>
 
@@ -227,7 +256,7 @@ export const RegisterPredictForm: React.FC = () => {
         <FormInput
           name="pulling_frequency"
           label="How often do you pull?"
-          placeholder="e.g. daily, weekly, monthly, rarely"
+          placeholder="daily, weekly, monthly"
           value={form.pulling_frequency}
           onChange={handleChange}
           required
@@ -236,7 +265,7 @@ export const RegisterPredictForm: React.FC = () => {
         <FormInput
           name="pulling_awareness"
           label="Awareness while pulling"
-          placeholder="e.g. eyes, sometimes, no"
+          placeholder="yes, sometimes, no"
           value={form.pulling_awareness}
           onChange={handleChange}
           required
@@ -245,7 +274,7 @@ export const RegisterPredictForm: React.FC = () => {
         <FormInput
           name="successfully_stopped"
           label="Successfully stopped?"
-          placeholder="e.g. yes, no"
+          placeholder="yes or no"
           value={form.successfully_stopped}
           onChange={handleChange}
           required
@@ -264,7 +293,7 @@ export const RegisterPredictForm: React.FC = () => {
         <FormInput
           name="emotion"
           label="Current Emotion"
-          placeholder="e.g. anxious, calm, stressed"
+          placeholder="anxious, calm, stressed"
           value={form.emotion}
           onChange={handleChange}
           required
