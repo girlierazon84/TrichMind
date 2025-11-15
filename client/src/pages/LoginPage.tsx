@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import styled from "styled-components";
+import styled, { keyframes, css } from "styled-components";
 import { fadeIn, scaleIn } from "@/styles/animations";
 import { useAuth, useLogger } from "@/hooks";
 import { ThemeButton, FormInput } from "@/components";
@@ -10,24 +10,44 @@ import { GlobalStyle } from "@/styles";
 import { AppLogo } from "@/assets/images";
 
 /* ---------------------------------------------------------
-   Calm Fade Out Animation for Smooth Redirect
+   PREMIUM TRANSITION ANIMATIONS
 --------------------------------------------------------- */
-const fadeOut = `
-    opacity: 0;
-    transform: translateY(12px);
-    transition: opacity 0.35s ease-out, transform 0.35s ease-out;
+
+const fadeOut = keyframes`
+    from { opacity: 1; transform: translateY(0); filter: blur(0px); }
+    to   { opacity: 0; transform: translateY(10px); filter: blur(8px); }
 `;
 
-const PageContainer = styled.main<{ fading?: boolean }>`
+const overlayFadeIn = keyframes`
+    from { opacity: 0; }
+    to   { opacity: 1; }
+`;
+
+const breathingCircle = keyframes`
+    0%   { transform: scale(0.65); opacity: 0.2; }
+    45%  { transform: scale(1); opacity: 0.35; }
+    100% { transform: scale(0.65); opacity: 0.2; }
+`;
+
+/* ---------------------------------------------------------
+   Styled Components
+--------------------------------------------------------- */
+
+const PageContainer = styled.main<{ exiting?: boolean }>`
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100dvh;
     background: ${({ theme }) => theme.colors.page_bg};
     padding: 2rem;
-    animation: ${fadeIn} 0.6s ease-out;
 
-    ${({ fading }) => fading && fadeOut}
+    animation: ${fadeIn} 0.5s ease-out;
+
+    ${({ exiting }) =>
+        exiting &&
+        css`
+            animation: ${fadeOut} 0.45s ease-out forwards;
+        `}
 `;
 
 const Card = styled.div`
@@ -38,7 +58,7 @@ const Card = styled.div`
     padding: 2.5rem;
     box-shadow: ${({ theme }) => theme.colors.card_shadow};
     text-align: center;
-    animation: ${scaleIn} 0.45s ease-out;
+    animation: ${scaleIn} 0.4s ease-out;
 `;
 
 const Logo = styled.img`
@@ -46,7 +66,7 @@ const Logo = styled.img`
     height: 110px;
     object-fit: contain;
     margin-bottom: 0.5rem;
-    animation: ${fadeIn} 0.7s ease-out;
+    animation: ${fadeIn} 0.6s ease-out;
 `;
 
 const Title = styled.h2`
@@ -68,7 +88,7 @@ const ErrorMessage = styled.p`
     color: ${({ theme }) => theme.colors.high_risk};
     font-size: 0.9rem;
     margin-top: 0.5rem;
-    animation: ${fadeIn} 0.4s ease-out;
+    animation: ${fadeIn} 0.35s ease-out;
 `;
 
 const FooterText = styled.p`
@@ -82,6 +102,7 @@ const FooterText = styled.p`
         font-weight: 600;
         text-decoration: none;
         transition: color 0.2s ease;
+
         &:hover { color: ${({ theme }) => theme.colors.secondary}; }
     }
 `;
@@ -89,28 +110,64 @@ const FooterText = styled.p`
 const FullWidthButton = styled(ThemeButton)`
     margin-top: 1rem;
     width: 100%;
-    animation: ${scaleIn} 0.6s ease-out;
 `;
 
-type LoginFormState = { email: string; password: string };
+const TransitionOverlay = styled.div<{ show: boolean }>`
+    position: fixed;
+    inset: 0;
+    background: ${({ theme }) => theme.colors.page_bg}dd;
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    pointer-events: none;
+    opacity: 0;
+
+    ${({ show }) =>
+        show &&
+        css`
+            opacity: 1;
+            animation: ${overlayFadeIn} 0.35s ease-out forwards;
+        `}
+`;
+
+const BreathingCircle = styled.div<{ show: boolean }>`
+    width: 120px;
+    height: 120px;
+    border-radius: 999px;
+    background: ${({ theme }) => theme.colors.primary}33;
+    opacity: 0;
+
+    ${({ show }) =>
+        show &&
+        css`
+            animation: ${breathingCircle} 2.8s ease-in-out infinite;
+            opacity: 1;
+        `}
+`;
+
+/* ---------------------------------------------------------
+   Component
+--------------------------------------------------------- */
 
 export const LoginPage: React.FC = () => {
     const navigate = useNavigate();
     const { login, loading, isAuthenticated } = useAuth();
     const { log, error: logError } = useLogger(false);
 
-    const [form, setForm] = useState<LoginFormState>({ email: "", password: "" });
+    const [form, setForm] = useState({ email: "", password: "" });
     const [error, setError] = useState<string | null>(null);
-    const [fading, setFading] = useState(false);
+    const [exiting, setExiting] = useState(false);
+    const [playTransition, setPlayTransition] = useState(false);
 
-    /* ---------------------------------------------------------
-       FIX: Correct authenticated redirect using useEffect
-    --------------------------------------------------------- */
+    /* Redirect if already authenticated */
     useEffect(() => {
         if (isAuthenticated) {
-            setFading(true);
-            const timer = setTimeout(() => navigate("/"), 350);
-            return () => clearTimeout(timer);
+            setPlayTransition(true);
+            setExiting(true);
+
+            setTimeout(() => navigate("/"), 1450);
         }
     }, [isAuthenticated, navigate]);
 
@@ -132,8 +189,12 @@ export const LoginPage: React.FC = () => {
             if (res?.token) {
                 await log("User logged in", { email: form.email });
 
-                setFading(true);
-                setTimeout(() => navigate("/"), 350); // Smooth exit
+                // Play premium transition
+                setPlayTransition(true);
+                setExiting(true);
+
+                // Navigate after calm animation
+                setTimeout(() => navigate("/"), 1450);
             } else {
                 setError("Invalid credentials.");
             }
@@ -147,7 +208,13 @@ export const LoginPage: React.FC = () => {
     return (
         <>
             <GlobalStyle />
-            <PageContainer fading={fading}>
+
+            {/* Premium Transition Overlay */}
+            <TransitionOverlay show={playTransition}>
+                <BreathingCircle show={playTransition} />
+            </TransitionOverlay>
+
+            <PageContainer exiting={exiting}>
                 <Card>
                     <Logo src={AppLogo} alt="TrichMind Logo" />
                     <Title>Welcome Back to TrichMind</Title>
