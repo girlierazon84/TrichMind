@@ -1,262 +1,196 @@
 // client/src/pages/LoginPage.tsx
 
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import styled, { keyframes, css } from "styled-components";
-import { fadeIn, scaleIn } from "@/styles/animations";
+import styled, { keyframes } from "styled-components";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth, useLogger } from "@/hooks";
 import { ThemeButton, FormInput } from "@/components";
 import { GlobalStyle } from "@/styles";
 import { AppLogo } from "@/assets/images";
 
-/* ---------------------------------------------------------
-   PREMIUM TRANSITION ANIMATIONS
---------------------------------------------------------- */
 
-const fadeOut = keyframes`
-    from { opacity: 1; transform: translateY(0); filter: blur(0px); }
-    to   { opacity: 0; transform: translateY(10px); filter: blur(8px); }
-`;
+/* -----------------------------------------------------
+    Premium Calm Animations
+----------------------------------------------------- */
 
-const overlayFadeIn = keyframes`
+const fadeIn = keyframes`
     from { opacity: 0; }
-    to   { opacity: 1; }
+    to { opacity: 1; }
 `;
 
-const breathingCircle = keyframes`
-    0%   { transform: scale(0.65); opacity: 0.2; }
-    45%  { transform: scale(1); opacity: 0.35; }
-    100% { transform: scale(0.65); opacity: 0.2; }
+const smoothRise = keyframes`
+    from { opacity: 0; transform: translateY(30px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 `;
 
-/* ---------------------------------------------------------
-   Styled Components
---------------------------------------------------------- */
+/* -----------------------------------------------------
+    Styled Components
+----------------------------------------------------- */
 
-const PageContainer = styled.main<{ exiting?: boolean }>`
+const PageWrapper = styled.main`
+    min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100dvh;
     background: ${({ theme }) => theme.colors.page_bg};
     padding: 2rem;
-
     animation: ${fadeIn} 0.5s ease-out;
-
-    ${({ exiting }) =>
-        exiting &&
-        css`
-            animation: ${fadeOut} 0.45s ease-out forwards;
-        `}
 `;
 
-const Card = styled.div`
+const PremiumCard = styled.div<{ $visible: boolean }>`
     width: 100%;
-    max-width: 400px;
+    max-width: 420px;
     background: ${({ theme }) => theme.colors.card_bg};
-    border-radius: 16px;
-    padding: 2.5rem;
+    border-radius: 20px;
+    padding: 2.4rem 2rem;
     box-shadow: ${({ theme }) => theme.colors.card_shadow};
-    text-align: center;
-    animation: ${scaleIn} 0.4s ease-out;
+    animation: ${smoothRise} 0.7s ease-out;
+    opacity: ${({ $visible }) => ($visible ? 1 : 0)};
+    transform: ${({ $visible }) =>
+        $visible ? "translateY(0)" : "translateY(25px)"};
+    transition: opacity 0.5s ease, transform 0.5s ease;
 `;
 
 const Logo = styled.img`
-    width: 100px;
-    height: 110px;
-    object-fit: contain;
-    margin-bottom: 0.5rem;
-    animation: ${fadeIn} 0.6s ease-out;
+    width: 95px;
+    height: auto;
+    margin-bottom: 1rem;
 `;
 
-const Title = styled.h2`
+const Title = styled.h1`
+    font-size: 1.75rem;
+    text-align: center;
     color: ${({ theme }) => theme.colors.primary};
-    font-size: 1.55rem;
-    font-weight: 700;
-    margin: 0;
-    animation: ${fadeIn} 0.75s ease-out;
+    margin: 0 0 0.5rem 0;
 `;
 
 const Subtitle = styled.p`
-    color: ${({ theme }) => theme.colors.text_secondary};
     font-size: 0.95rem;
+    color: ${({ theme }) => theme.colors.text_secondary};
+    text-align: center;
     margin-bottom: 2rem;
-    animation: ${fadeIn} 0.85s ease-out;
 `;
 
 const ErrorMessage = styled.p`
-    color: ${({ theme }) => theme.colors.high_risk};
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     margin-top: 0.5rem;
-    animation: ${fadeIn} 0.35s ease-out;
+    color: ${({ theme }) => theme.colors.high_risk};
 `;
 
 const FooterText = styled.p`
+    text-align: center;
     margin-top: 1rem;
     font-size: 0.9rem;
     color: ${({ theme }) => theme.colors.text_secondary};
-    animation: ${fadeIn} 1s ease-out;
 
     a {
         color: ${({ theme }) => theme.colors.primary};
         font-weight: 600;
-        text-decoration: none;
-        transition: color 0.2s ease;
-
-        &:hover { color: ${({ theme }) => theme.colors.secondary}; }
     }
 `;
 
-const FullWidthButton = styled(ThemeButton)`
+const ButtonWrapper = styled.div`
     margin-top: 1rem;
-    width: 100%;
 `;
 
-const TransitionOverlay = styled.div<{ show: boolean }>`
-    position: fixed;
-    inset: 0;
-    background: ${({ theme }) => theme.colors.page_bg}dd;
-    backdrop-filter: blur(10px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    pointer-events: none;
-    opacity: 0;
-
-    ${({ show }) =>
-        show &&
-        css`
-            opacity: 1;
-            animation: ${overlayFadeIn} 0.35s ease-out forwards;
-        `}
-`;
-
-const BreathingCircle = styled.div<{ show: boolean }>`
-    width: 120px;
-    height: 120px;
-    border-radius: 999px;
-    background: ${({ theme }) => theme.colors.primary}33;
-    opacity: 0;
-
-    ${({ show }) =>
-        show &&
-        css`
-            animation: ${breathingCircle} 2.8s ease-in-out infinite;
-            opacity: 1;
-        `}
-`;
-
-/* ---------------------------------------------------------
-   Component
---------------------------------------------------------- */
+/* -----------------------------------------------------
+    Component
+----------------------------------------------------- */
 
 export const LoginPage: React.FC = () => {
     const navigate = useNavigate();
-    const { login, loading, isAuthenticated } = useAuth();
-    const { log, error: logError } = useLogger(false);
+    const location = useLocation();
 
-    const [form, setForm] = useState({ email: "", password: "" });
+    const { user, login, loading } = useAuth();
+    const { log, error: logError } = useLogger();
+
+    const [cardVisible, setCardVisible] = useState(false);
+    const [email, setEmail] = useState<string>("");
+    const [password, setPassword] = useState<string>("");
     const [error, setError] = useState<string | null>(null);
-    const [exiting, setExiting] = useState(false);
-    const [playTransition, setPlayTransition] = useState(false);
 
-    /* Redirect if already authenticated */
+    const redirectTo = (location.state as { from?: string } | null)?.from ?? "/";
+
+    /* Animate card entrance */
     useEffect(() => {
-        if (isAuthenticated) {
-            setPlayTransition(true);
-            setExiting(true);
+        const t = setTimeout(() => setCardVisible(true), 50);
+        return () => clearTimeout(t);
+    }, []);
 
-            setTimeout(() => navigate("/"), 1450);
+    /* Auto redirect if already logged in */
+    useEffect(() => {
+        if (user) {
+            navigate(redirectTo, { replace: true });
         }
-    }, [isAuthenticated, navigate]);
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setForm((p) => ({ ...p, [name]: value }));
-    };
+    }, [user, navigate, redirectTo]);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError(null);
 
         try {
-            const res = await login({
-                email: form.email.trim(),
-                password: form.password,
-            });
+            // login(email, password) must match your hook signature
+            const result = await login({ email: email.trim(), password });
 
-            if (res?.token) {
-                await log("User logged in", { email: form.email });
-
-                // Play premium transition
-                setPlayTransition(true);
-                setExiting(true);
-
-                // Navigate after calm animation
-                setTimeout(() => navigate("/"), 1450);
-            } else {
-                setError("Invalid credentials.");
+            if (result?.token) {
+                await log("User logged in", { email });
             }
         } catch (err) {
             const msg = err instanceof Error ? err.message : "Login failed.";
             setError(msg);
-            await logError("Login failed", { email: form.email, error: msg });
+            await logError("Login failed", { email, error: msg });
         }
     };
 
     return (
         <>
             <GlobalStyle />
-
-            {/* Premium Transition Overlay */}
-            <TransitionOverlay show={playTransition}>
-                <BreathingCircle show={playTransition} />
-            </TransitionOverlay>
-
-            <PageContainer exiting={exiting}>
-                <Card>
+            <PageWrapper>
+                <PremiumCard $visible={cardVisible}>
                     <Logo src={AppLogo} alt="TrichMind Logo" />
-                    <Title>Welcome Back to TrichMind</Title>
-                    <Subtitle>Continue your path to mindful recovery 🌱</Subtitle>
+
+                    <Title>Welcome Back</Title>
+                    <Subtitle>Your calm recovery journey continues here 🌱</Subtitle>
 
                     <form onSubmit={handleSubmit}>
                         <FormInput
                             label="Email"
-                            name="email"
                             type="email"
-                            value={form.email}
-                            onChange={handleChange}
-                            placeholder="Enter your email"
+                            name="email"
+                            value={email}
+                            autoComplete="email"
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                setEmail(e.target.value)
+                            }
                             required
                         />
 
                         <FormInput
                             label="Password"
-                            name="password"
                             type="password"
-                            value={form.password}
-                            onChange={handleChange}
-                            placeholder="Enter your password"
+                            name="password"
+                            value={password}
+                            autoComplete="current-password"
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                setPassword(e.target.value)
+                            }
                             required
                         />
 
                         {error && <ErrorMessage>{error}</ErrorMessage>}
 
-                        <FullWidthButton type="submit" disabled={loading}>
-                            {loading ? "Signing In..." : "Log In"}
-                        </FullWidthButton>
+                        <ButtonWrapper>
+                            <ThemeButton type="submit" disabled={loading}>
+                                {loading ? "Signing in…" : "Log In"}
+                            </ThemeButton>
+                        </ButtonWrapper>
 
                         <FooterText>
-                            Don’t have an account? <Link to="/register">Sign Up</Link>
-                        </FooterText>
-
-                        <FooterText>
-                            <Link to="/forgot-password">Forgot Password?</Link>
+                            Don’t have an account? <Link to="/register">Sign up</Link>
                         </FooterText>
                     </form>
-                </Card>
-            </PageContainer>
+                </PremiumCard>
+            </PageWrapper>
         </>
     );
 };
