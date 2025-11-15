@@ -210,6 +210,8 @@ export const RegisterPredictForm: React.FC = () => {
           name="pulling_severity"
           label="Pulling Severity (1–10)"
           type="number"
+          min={1}
+          max={10}
           value={form.pulling_severity}
           onChange={handleChange}
         />
@@ -217,7 +219,7 @@ export const RegisterPredictForm: React.FC = () => {
         <FormInput
           name="pulling_frequency"
           label="How often do you pull?"
-          placeholder="daily, weekly, rarely"
+          placeholder="e.g. daily, weekly, monthly, rarely"
           value={form.pulling_frequency}
           onChange={handleChange}
         />
@@ -225,7 +227,7 @@ export const RegisterPredictForm: React.FC = () => {
         <FormInput
           name="pulling_awareness"
           label="Awareness while pulling"
-          placeholder="yes, sometimes, no"
+          placeholder="e.g. eyes, sometimes, no"
           value={form.pulling_awareness}
           onChange={handleChange}
         />
@@ -233,7 +235,7 @@ export const RegisterPredictForm: React.FC = () => {
         <FormInput
           name="successfully_stopped"
           label="Successfully stopped?"
-          placeholder="yes or no"
+          placeholder="e.g. yes, no"
           value={form.successfully_stopped}
           onChange={handleChange}
         />
@@ -242,6 +244,7 @@ export const RegisterPredictForm: React.FC = () => {
           name="how_long_stopped_days"
           label="How long stopped (days)"
           type="number"
+          min={0}
           value={form.how_long_stopped_days}
           onChange={handleChange}
         />
@@ -249,7 +252,7 @@ export const RegisterPredictForm: React.FC = () => {
         <FormInput
           name="emotion"
           label="Current Emotion"
-          placeholder="anxious, calm, stressed"
+          placeholder="e.g. anxious, calm, stressed"
           value={form.emotion}
           onChange={handleChange}
         />
