@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import { axiosClient } from "@/services";
 import {
     RiskResultCard,
@@ -59,6 +59,12 @@ interface FeaturePayload {
 /* ----------------------------------------------
  * Styled Components
  * ---------------------------------------------- */
+/* ANIMATION */
+const fadeIn = keyframes`
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+`;
+
 const PageWrapper = styled.div`
     width: 100%;
     min-height: 100vh;
@@ -67,6 +73,7 @@ const PageWrapper = styled.div`
     flex-direction: column;
     align-items: center;
     padding: ${({ theme }) => theme.spacing(6)};
+    animation: ${fadeIn} 0.45s ease-out;
     box-sizing: border-box;
 
     @media (max-width: 768px) {
