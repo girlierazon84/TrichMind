@@ -2,6 +2,7 @@
 
 import React from "react";
 import styled, { useTheme } from "styled-components";
+import { fadeIn, slideUp } from "@/styles";
 import {
     LineChart,
     Line,
@@ -12,6 +13,7 @@ import {
     ResponsiveContainer,
 } from "recharts";
 import { useRiskTrendChart } from "@/hooks";
+
 
 // ──────────────────────────────
 // Styled Components
@@ -26,6 +28,7 @@ const ChartWrapper = styled.div`
     margin-top: 1.5rem;
     display: flex;
     flex-direction: column;
+    animation: ${slideUp} 0.6s ease-out;
 `;
 
 const ChartTitle = styled.h3`
@@ -33,6 +36,7 @@ const ChartTitle = styled.h3`
     font-weight: 600;
     margin-bottom: 1rem;
     color: ${({ theme }) => theme.colors.text_primary};
+    animation: ${fadeIn} 0.6s ease-out;
 `;
 
 const ErrorText = styled.p`
@@ -62,14 +66,10 @@ export const RiskTrendChart: React.FC = () => {
             <ChartTitle>📈 Relapse Risk Trend</ChartTitle>
             <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
-                    {/* SVG gradient that uses theme colors */}
                     <defs>
                         <linearGradient id="riskGradient" x1="0" y1="0" x2="0" y2="1">
-                            {/* High risk near the top */}
                             <stop offset="0%" stopColor={theme.colors.high_risk} stopOpacity={0.9} />
-                            {/* Medium mid-way */}
                             <stop offset="50%" stopColor={theme.colors.medium_risk} stopOpacity={0.85} />
-                            {/* Low toward the bottom */}
                             <stop offset="100%" stopColor={theme.colors.primary} stopOpacity={0.75} />
                         </linearGradient>
                     </defs>
@@ -107,6 +107,9 @@ export const RiskTrendChart: React.FC = () => {
                         strokeWidth={3}
                         dot={{ r: 3 }}
                         activeDot={{ r: 6, stroke: theme.colors.card_bg, strokeWidth: 2 }}
+                        isAnimationActive
+                        animationDuration={900}
+                        animationEasing="ease-out"
                     />
                 </LineChart>
             </ResponsiveContainer>
