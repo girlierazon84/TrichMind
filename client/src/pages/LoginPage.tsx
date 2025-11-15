@@ -1,6 +1,6 @@
 // client/src/pages/LoginPage.tsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { fadeIn, scaleIn } from "@/styles/animations";
@@ -9,7 +9,16 @@ import { ThemeButton, FormInput } from "@/components";
 import { GlobalStyle } from "@/styles";
 import { AppLogo } from "@/assets/images";
 
-const PageContainer = styled.main`
+/* ---------------------------------------------------------
+   Calm Fade Out Animation for Smooth Redirect
+--------------------------------------------------------- */
+const fadeOut = `
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.35s ease-out, transform 0.35s ease-out;
+`;
+
+const PageContainer = styled.main<{ fading?: boolean }>`
     display: flex;
     justify-content: center;
     align-items: center;
@@ -17,6 +26,8 @@ const PageContainer = styled.main`
     background: ${({ theme }) => theme.colors.page_bg};
     padding: 2rem;
     animation: ${fadeIn} 0.6s ease-out;
+
+    ${({ fading }) => fading && fadeOut}
 `;
 
 const Card = styled.div`
@@ -71,10 +82,7 @@ const FooterText = styled.p`
         font-weight: 600;
         text-decoration: none;
         transition: color 0.2s ease;
-
-        &:hover {
-            color: ${({ theme }) => theme.colors.secondary};
-        }
+        &:hover { color: ${({ theme }) => theme.colors.secondary}; }
     }
 `;
 
@@ -84,30 +92,31 @@ const FullWidthButton = styled(ThemeButton)`
     animation: ${scaleIn} 0.6s ease-out;
 `;
 
-type LoginFormState = {
-    email: string;
-    password: string;
-};
+type LoginFormState = { email: string; password: string };
 
 export const LoginPage: React.FC = () => {
     const navigate = useNavigate();
     const { login, loading, isAuthenticated } = useAuth();
     const { log, error: logError } = useLogger(false);
 
-    if (isAuthenticated) {
-        navigate("/");
-    }
-
-    const [form, setForm] = useState<LoginFormState>({
-        email: "",
-        password: "",
-    });
-
+    const [form, setForm] = useState<LoginFormState>({ email: "", password: "" });
     const [error, setError] = useState<string | null>(null);
+    const [fading, setFading] = useState(false);
+
+    /* ---------------------------------------------------------
+       FIX: Correct authenticated redirect using useEffect
+    --------------------------------------------------------- */
+    useEffect(() => {
+        if (isAuthenticated) {
+            setFading(true);
+            const timer = setTimeout(() => navigate("/"), 350);
+            return () => clearTimeout(timer);
+        }
+    }, [isAuthenticated, navigate]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setForm((prev) => ({ ...prev, [name]: value }));
+        setForm((p) => ({ ...p, [name]: value }));
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -122,25 +131,23 @@ export const LoginPage: React.FC = () => {
 
             if (res?.token) {
                 await log("User logged in", { email: form.email });
-                setTimeout(() => navigate("/"), 350); // smooth redirect
+
+                setFading(true);
+                setTimeout(() => navigate("/"), 350); // Smooth exit
             } else {
                 setError("Invalid credentials.");
             }
-        } catch (err: unknown) {
-            const msg =
-                err instanceof Error ? err.message : "Login failed.";
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : "Login failed.";
             setError(msg);
-            await logError("Login failed", {
-                email: form.email,
-                error: msg,
-            });
+            await logError("Login failed", { email: form.email, error: msg });
         }
     };
 
     return (
         <>
             <GlobalStyle />
-            <PageContainer>
+            <PageContainer fading={fading}>
                 <Card>
                     <Logo src={AppLogo} alt="TrichMind Logo" />
                     <Title>Welcome Back to TrichMind</Title>
