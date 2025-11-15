@@ -4,59 +4,60 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { ENV } from "../config";
 
-
-// Define the shape of the auth object to be added to the Request interface
+// Extend Express Request
 declare global {
     namespace Express {
         interface Request {
             auth?: {
                 userId: string;
-                token?: string
+                token?: string;
             };
         }
     }
 }
 
-// Decode type for JWT payload
-type Decoded = { sub?: string } & Record<string, unknown>;
+type JwtPayload = { sub?: string } & Record<string, unknown>;
 
-// This function checks for a valid JWT token in the Authorization header or cookies
+// Extract bearer token
 function getBearerToken(req: Request): string | undefined {
     const hdr = req.headers.authorization;
-    if (hdr?.startsWith("Bearer ")) return hdr.slice(7);
-    return (req as any).cookies?.token;
+    if (hdr?.startsWith("Bearer ")) return hdr.substring(7);
+
+    return (req as any).cookies?.access_token;
 }
 
-/**-----------------------------------------------------------------------------
-Middleware: Authenticate request via JWT in Authorization header.
-@param opts.required - If false, lets requests without tokens pass (guest mode)
---------------------------------------------------------------------------------**/
-export function authentication(opts: { required?: boolean } = { required: true }) {
-    const { required = true } = opts;
+/** Auth middleware */
+export const authentication = (required = true) => {
     return (req: Request, res: Response, next: NextFunction) => {
         const token = getBearerToken(req);
-        if (!token)
+        if (!token) {
             return required
-                ? res.status(401).json({ error: "Unauthorized" })
+                ? res.status(401).json({ error: "No token provided" })
                 : next();
+        }
 
         try {
-            const decoded = jwt.verify(token, ENV.JWT_SECRET) as Decoded;
-            const userId = (decoded.sub as string) || "";
-            if (!userId)
-                return required
-                    ? res.status(401).json({ error: "Unauthorized" })
-                    : next();
+            const decoded = jwt.verify(token, ENV.JWT_SECRET) as JwtPayload;
+
+            const userId = decoded.sub;
+            if (!userId) {
+                return res.status(401).json({ error: "Invalid token" });
+            }
 
             req.auth = { userId, token };
-            next();
-        } catch (err) {
-            console.warn("[auth] Invalid token:", err);
-            return required
-                ? res.status(401).json({ error: "Invalid token" })
-                : next();
+            return next();
+        } catch (err: any) {
+            if (err.name === "TokenExpiredError") {
+                return res.status(401).json({ error: "Token expired" });
+            }
+
+            return res.status(401).json({ error: "Invalid token" });
         }
     };
 }
 
-export type AuthRequest = Request & { auth: { userId: string; token?: string } };
+export type AuthRequest = Request & {
+    auth: { userId: string; token?: string };
+};
+
+export default authentication;
