@@ -1,8 +1,9 @@
 // client/src/pages/HomePage.tsx
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
+import { fadeIn, slideUp } from "@/styles/animations";
 import { axiosClient } from "@/services";
 import {
     RiskResultCard,
@@ -11,21 +12,112 @@ import {
     RiskTrendChart,
 } from "@/components";
 import { useAuth } from "@/hooks";
+import { UserIcon } from "@/assets/icons";
+import { AppLogo } from "@/assets/images";
 
+/* ---------------------------------------------------------
+    ADVANCED CALM-STYLE ANIMATIONS
+--------------------------------------------------------- */
 
-/* ----------------------------------------------
- * Strict typing
- * ---------------------------------------------- */
+const scalePop = keyframes`
+    from { opacity: 0; transform: scale(0.97); }
+    to   { opacity: 1; transform: scale(1); }
+`;
+
+const slideDownFade = keyframes`
+    from { opacity: 0; transform: translateY(-14px); }
+    to   { opacity: 1; transform: translateY(0); }
+`;
+
+const riseMask = keyframes`
+    from { opacity: 0; transform: translateY(20px); clip-path: inset(30% 0 0 0); }
+    to   { opacity: 1; transform: translateY(0); clip-path: inset(0 0 0 0); }
+`;
+
+/* ---------------------------------------------------------
+    Styled Components
+--------------------------------------------------------- */
+
+const PageWrapper = styled.div`
+    width: 100%;
+    min-height: 100vh;
+    background: ${({ theme }) => theme.colors.page_bg};
+    padding: ${({ theme }) => theme.spacing(6)};
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: ${fadeIn} 0.55s ease-out;
+
+    @media (max-width: 768px) {
+        padding: ${({ theme }) => theme.spacing(3)};
+    }
+`;
+
+const Header = styled.header`
+    width: 100%;
+    max-width: 960px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: ${({ theme }) => theme.spacing(6)};
+    animation: ${slideDownFade} 0.55s ease-out;
+`;
+
+const Section = styled.section<{ delay?: number; pop?: boolean }>`
+    width: 100%;
+    max-width: 960px;
+    background: ${({ theme }) => theme.colors.card_bg};
+    border-radius: ${({ theme }) => theme.radius.lg};
+    padding: ${({ theme }) => theme.spacing(6)};
+    box-shadow: ${({ theme }) => theme.colors.card_shadow};
+    margin-bottom: ${({ theme }) => theme.spacing(5)};
+    animation: ${({ pop }) => (pop ? scalePop : slideUp)} 0.6s ease-out;
+    animation-delay: ${({ delay }) => delay ?? 0}ms;
+    animation-fill-mode: both;
+
+    @media (max-width: 768px) {
+        padding: ${({ theme }) => theme.spacing(4)};
+    }
+`;
+
+const WelcomeText = styled.h2`
+    text-align: center;
+    font-size: 1.7rem;
+    color: ${({ theme }) => theme.colors.text_primary};
+    margin-bottom: ${({ theme }) => theme.spacing(4)};
+    animation: ${fadeIn} 0.6s ease-out;
+
+    @media (max-width: 768px) {
+        font-size: 1.3rem;
+    }
+`;
+
+const DashboardSection = styled.div<{ delay?: number }>`
+    width: 100%;
+    max-width: 960px;
+    display: flex;
+    flex-direction: column;
+    gap: ${({ theme }) => theme.spacing(4)};
+    animation: ${riseMask} 0.7s ease-out;
+    animation-delay: ${({ delay }) => delay ?? 0}ms;
+    animation-fill-mode: both;
+`;
+
+const ChartTitle = styled.h2`
+    margin-bottom: 1rem;
+    animation: ${fadeIn} 0.6s ease-out;
+`;
+
+/* ---------------------------------------------------------
+    Strict typing
+--------------------------------------------------------- */
+
 type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 
 interface MeResponse {
-    ok?: boolean;
     user?: {
-        _id?: string;
-        id?: string;
         email: string;
         displayName?: string;
-
         pulling_severity?: number;
         pulling_frequency_encoded?: number;
         awareness_level_encoded?: number;
@@ -56,117 +148,10 @@ interface FeaturePayload {
     emotion_intensity_sum: number;
 }
 
-/* ----------------------------------------------
- * Styled Components
- * ---------------------------------------------- */
-/* ANIMATION */
-const fadeIn = keyframes`
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
-`;
+/* ---------------------------------------------------------
+    Component
+--------------------------------------------------------- */
 
-const PageWrapper = styled.div`
-    width: 100%;
-    min-height: 100vh;
-    background: ${({ theme }) => theme.colors.page_bg};
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: ${({ theme }) => theme.spacing(6)};
-    animation: ${fadeIn} 0.45s ease-out;
-    box-sizing: border-box;
-
-    @media (max-width: 768px) {
-        padding: ${({ theme }) => theme.spacing(3)};
-    }
-`;
-
-const Header = styled.header`
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: ${({ theme }) => theme.spacing(6)};
-
-    .logo-link img {
-        height: 50px;
-    }
-
-    .user-menu-wrap summary {
-        list-style: none;
-        cursor: pointer;
-    }
-
-    .user_icon {
-        width: 36px;
-        height: 36px;
-    }
-
-    .user-menu {
-        position: absolute;
-        right: 1rem;
-        top: 3rem;
-        background: ${({ theme }) => theme.colors.card_bg};
-        border-radius: ${({ theme }) => theme.radius.md};
-        box-shadow: ${({ theme }) => theme.colors.card_shadow};
-        display: flex;
-        flex-direction: column;
-        min-width: 140px;
-
-        .menu-item {
-            padding: 0.75rem 1rem;
-            text-align: left;
-            color: ${({ theme }) => theme.colors.text_primary};
-            text-decoration: none;
-            font-size: 0.9rem;
-            border: none;
-            background: none;
-            cursor: pointer;
-            transition: background 0.2s ease;
-        }
-
-        .menu-item:hover {
-            background: ${({ theme }) => theme.colors.sixthly};
-        }
-    }
-`;
-
-const Section = styled.section`
-    width: 100%;
-    max-width: 960px;
-    background: ${({ theme }) => theme.colors.card_bg};
-    border-radius: ${({ theme }) => theme.radius.lg};
-    padding: ${({ theme }) => theme.spacing(6)};
-    box-shadow: ${({ theme }) => theme.colors.card_shadow};
-    margin-bottom: ${({ theme }) => theme.spacing(6)};
-
-    @media (max-width: 768px) {
-        padding: ${({ theme }) => theme.spacing(4)};
-    }
-`;
-
-const WelcomeText = styled.h2`
-    font-size: 1.6rem;
-    color: ${({ theme }) => theme.colors.text_primary};
-    margin-bottom: ${({ theme }) => theme.spacing(4)};
-    text-align: center;
-
-    @media (max-width: 768px) {
-        font-size: 1.3rem;
-    }
-`;
-
-const DashboardSection = styled.div`
-    width: 100%;
-    max-width: 960px;
-    display: flex;
-    flex-direction: column;
-    gap: ${({ theme }) => theme.spacing(4)};
-`;
-
-/* ----------------------------------------------
- * Component
- * ---------------------------------------------- */
 export const HomePage: React.FC = () => {
     const navigate = useNavigate();
     const { user, isAuthenticated, logout } = useAuth();
@@ -175,107 +160,81 @@ export const HomePage: React.FC = () => {
     const [confidence, setConfidence] = useState(0);
     const [bucket, setBucket] = useState<RiskLevel>("MEDIUM");
     const [loading, setLoading] = useState(true);
-
-    const [isMobile, setIsMobile] = useState<boolean>(
+    const [isMobile, setIsMobile] = useState(
         typeof window !== "undefined" ? window.innerWidth <= 768 : false
     );
 
-    /* ----------------------------------------------
-     * Mobile detection (strict type)
-     * ---------------------------------------------- */
+    /* Mobile detector */
     useEffect(() => {
-        const mediaQuery = window.matchMedia("(max-width: 768px)");
+        const mq = window.matchMedia("(max-width: 768px)");
+        const update = () => setIsMobile(mq.matches);
 
-        const handleResize = (e: MediaQueryListEvent) => {
-            setIsMobile(e.matches);
-        };
-
-        mediaQuery.addEventListener("change", handleResize);
-        setIsMobile(mediaQuery.matches);
-
-        return () => mediaQuery.removeEventListener("change", handleResize);
+        mq.addEventListener("change", update);
+        update();
+        return () => mq.removeEventListener("change", update);
     }, []);
 
-    /* ----------------------------------------------
-     * Load user profile + prediction
-     * ---------------------------------------------- */
-    useEffect(() => {
+    /* Load user + prediction */
+    const loadPrediction = useCallback(async () => {
         if (!isAuthenticated || !user) {
             navigate("/login");
             return;
         }
 
-        const fetchData = async () => {
-            try {
-                // 1️⃣ Fetch user profile
-                const res = await axiosClient.get<MeResponse>("/api/auth/me");
-                const u = res.data.user;
+        try {
+            const me = await axiosClient.get<MeResponse>("/api/auth/me");
+            const u = me.data.user;
+            if (!u) throw new Error("User not found");
 
-                if (!u) throw new Error("User profile missing");
+            const payload: FeaturePayload = {
+                pulling_severity: u.pulling_severity ?? 5,
+                pulling_frequency_encoded: u.pulling_frequency_encoded ?? 3,
+                awareness_level_encoded: u.awareness_level_encoded ?? 0.5,
+                how_long_stopped_days_est: u.how_long_stopped_days_est ?? 14,
+                successfully_stopped_encoded: u.successfully_stopped_encoded ?? 0,
+                years_since_onset: u.years_since_onset ?? 8,
+                age: u.age ?? 30,
+                age_of_onset: u.age_of_onset ?? 18,
+                emotion_intensity_sum: u.emotion_intensity_sum ?? 4.5,
+            };
 
-                // 2️⃣ Build ML payload
-                const payload: FeaturePayload = {
-                    pulling_severity: u.pulling_severity ?? 5,
-                    pulling_frequency_encoded: u.pulling_frequency_encoded ?? 3,
-                    awareness_level_encoded: u.awareness_level_encoded ?? 0.5,
-                    how_long_stopped_days_est: u.how_long_stopped_days_est ?? 14,
-                    successfully_stopped_encoded: u.successfully_stopped_encoded ?? 0,
-                    years_since_onset: u.years_since_onset ?? 8,
-                    age: u.age ?? 30,
-                    age_of_onset: u.age_of_onset ?? 18,
-                    emotion_intensity_sum: u.emotion_intensity_sum ?? 4.5,
-                };
+            const pred = await axiosClient.post<PredictResponse>("/api/ml/predict", payload);
 
-                // 3️⃣ Prediction request (MATCH BACKEND ROUTE)
-                const prediction = await axiosClient.post<PredictResponse>(
-                    "/api/ml/predict",
-                    payload
-                );
+            setRiskScore(pred.data.risk_score);
+            setConfidence(pred.data.confidence);
+            setBucket(String(pred.data.risk_bucket).toUpperCase() as RiskLevel);
+        } catch {
+            navigate("/login");
+        } finally {
+            setLoading(false);
+        }
+    }, [isAuthenticated, user, navigate]);
 
-                const { risk_score, risk_bucket, confidence } = prediction.data;
+    useEffect(() => {
+        loadPrediction();
+    }, [loadPrediction]);
 
-                setRiskScore(risk_score ?? 0);
-                setConfidence(confidence ?? 0);
-
-                const level = String(risk_bucket || "MEDIUM").toUpperCase() as RiskLevel;
-                setBucket(level);
-            } catch (err) {
-                console.error("⚠️ Failed to load homepage data:", err);
-                navigate("/login");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        void fetchData();
-    }, [isAuthenticated, navigate, user]);
-
-    /* ----------------------------------------------
-     * Quote text
-     * ---------------------------------------------- */
+    /* ✔ FIXED — Hooks must be BEFORE returns */
     const quote = useMemo(() => {
         switch (bucket) {
             case "LOW":
                 return "You're doing great — stay mindful and steady.";
             case "MEDIUM":
                 return "Notice your triggers early — small wins matter.";
-            case "HIGH":
             default:
                 return "This is a moment to pause, breathe, and refocus — you've got this.";
         }
     }, [bucket]);
 
-    if (!isAuthenticated) {
-        navigate("/login");
-        return null;
-    }
+    /* Early redirects MUST be after hooks */
+    if (!isAuthenticated) return null;
+    if (loading)
+        return (
+            <PageWrapper>
+                <p>Loading your personalized home page…</p>
+            </PageWrapper>
+        );
 
-    if (loading) return <p>Loading your personalized home page...</p>;
-    if (!user) return <p>Unable to load user profile.</p>;
-
-    /* ----------------------------------------------
-     * Final normalized prediction object
-     * ---------------------------------------------- */
     const predictionData = {
         risk_score: riskScore,
         risk_bucket: bucket.toLowerCase(),
@@ -284,47 +243,31 @@ export const HomePage: React.FC = () => {
         model_version: "v1.0.0",
     };
 
-    /* ----------------------------------------------
-     * Render
-     * ---------------------------------------------- */
     return (
         <PageWrapper>
+            {/* HEADER */}
             <Header>
-                <Link to="/" aria-label="Home" className="logo-link">
-                    <img src="/assets/images/app_logo.png" alt="TrichMind" />
+                <Link to="/" className="logo-link">
+                    <img src={AppLogo} height={50} alt="TrichMind logo" />
                 </Link>
 
                 <details className="user-menu-wrap">
-                    <summary aria-label="Account menu">
-                        <img
-                            src="/assets/icons/user.png"
-                            alt="Account"
-                            className="user_icon"
-                        />
+                    <summary>
+                        <img src={UserIcon} height={36} alt="Account icon" />
                     </summary>
-
                     <nav className="user-menu">
-                        <Link to="/profile" className="menu-item">
-                            Profile
-                        </Link>
-
-                        <button
-                            type="button"
-                            className="menu-item"
-                            onClick={() => {
-                                logout();
-                                navigate("/login");
-                            }}
-                        >
+                        <Link to="/profile" className="menu-item">Profile</Link>
+                        <button onClick={() => { logout(); navigate("/login"); }}>
                             Logout
                         </button>
                     </nav>
                 </details>
             </Header>
 
-            <Section>
+            {/* CARD 1 — Main Risk */}
+            <Section delay={120} pop>
                 <WelcomeText>
-                    Welcome back, {user.displayName || user.email || "Friend"} 👋
+                    Welcome back, {user?.displayName || user?.email || "Friend"} 👋
                 </WelcomeText>
 
                 <RiskResultCard
@@ -334,19 +277,19 @@ export const HomePage: React.FC = () => {
                 />
             </Section>
 
-            <Section>
+            {/* CARD 2 */}
+            <Section delay={300}>
                 <DailyProgressCardAuto />
             </Section>
 
-            <Section>
-                <CopingStrategiesCard
-                    worked={["Fidget toy", "Deep breathing"]}
-                    notWorked={["Journaling"]}
-                />
+            {/* CARD 3 */}
+            <Section delay={450}>
+                <CopingStrategiesCard />
             </Section>
 
-            <DashboardSection>
-                <h2>📈 Relapse Risk Analytics</h2>
+            {/* CARD 4 */}
+            <DashboardSection delay={600}>
+                <ChartTitle>📈 Relapse Risk Analytics</ChartTitle>
                 <RiskTrendChart />
             </DashboardSection>
         </PageWrapper>
