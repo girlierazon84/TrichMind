@@ -1,7 +1,8 @@
 // client/src/components/DailyProgressCard.tsx
 
-import React, { useMemo } from "react";
-import styled from "styled-components";
+import React, { useMemo, useEffect, useState } from "react";
+import styled, { keyframes } from "styled-components";
+import { fadeIn, scaleIn } from "@/styles";
 import { useSoberStreak } from "@/hooks";
 
 // ──────────────────────────────
@@ -46,6 +47,15 @@ export interface DailyProgressCardProps {
 }
 
 // ──────────────────────────────
+// Animations
+// ──────────────────────────────
+const softPulse = keyframes`
+    from { transform: translateY(0); opacity: 0.8; }
+    50%  { transform: translateY(-2px); opacity: 1; }
+    to   { transform: translateY(0); opacity: 0.9; }
+`;
+
+// ──────────────────────────────
 // Styled Components
 // ──────────────────────────────
 const Wrapper = styled.div`
@@ -54,6 +64,7 @@ const Wrapper = styled.div`
     align-items: center;
     text-align: center;
     margin-bottom: 2rem;
+    animation: ${fadeIn} 0.45s ease-out;
 `;
 
 const Card = styled.div`
@@ -61,9 +72,10 @@ const Card = styled.div`
     display: inline-flex;
     justify-content: center;
     align-items: center;
+    animation: ${scaleIn} 0.6s ease-out;
 
     circle {
-        transition: stroke-dasharray 0.6s ease, stroke 0.4s ease;
+        transition: stroke-dasharray 0.8s ease-out, stroke 0.4s ease-out;
     }
 `;
 
@@ -83,7 +95,7 @@ const ProgressSubLabel = styled.div`
     color: ${({ theme }) => theme.colors.text_secondary};
 `;
 
-const ProgressTrend = styled.div<{ $color: string }>`
+const ProgressTrend = styled.div<{ $color: string; $highlight: boolean }>`
     position: absolute;
     bottom: -2rem;
     color: ${({ $color }) => $color};
@@ -91,6 +103,11 @@ const ProgressTrend = styled.div<{ $color: string }>`
     display: flex;
     align-items: center;
     gap: 0.25rem;
+    ${({ $highlight }) =>
+        $highlight &&
+        `
+        animation: ${softPulse} 1.6s ease-out 0.4s;
+    `}
 `;
 
 const Caption = styled.div`
@@ -104,6 +121,7 @@ const SubText = styled.p`
     font-size: 0.9rem;
     color: ${({ theme }) => theme.colors.text_secondary};
     margin-top: 0.25rem;
+    animation: ${fadeIn} 0.6s ease-out;
 `;
 
 // ──────────────────────────────
@@ -131,10 +149,10 @@ export const DailyProgressCard: React.FC<DailyProgressCardProps> = ({
     const delta = prevScore !== undefined ? score - prevScore : 0;
     const deltaAbs = Math.abs(delta).toFixed(0);
     const isImprovement = delta > 0;
-    const isReset = score === 0 && prevScore && prevScore > 0;
-
+    const isReset = score === 0 && prevScore !== undefined && prevScore > 0;
     const TrendIcon = isImprovement ? ArrowUp : isReset ? ArrowDown : Minus;
     const trendColor = isImprovement ? "#2ecc71" : isReset ? "#e74c3c" : "#95a5a6";
+    const highlightTrend = isImprovement && !isReset;
 
     const streakMessage = isReset
         ? "Start fresh — every day counts!"
@@ -143,6 +161,28 @@ export const DailyProgressCard: React.FC<DailyProgressCardProps> = ({
             : isImprovement
                 ? "Keep going strong!"
                 : "Stay consistent.";
+
+    // Calm count-up for center number
+    const [displayScore, setDisplayScore] = useState(0);
+
+    useEffect(() => {
+        const target = score;
+        const duration = 900;
+        const start = performance.now();
+        let frame: number;
+
+        const animate = (time: number) => {
+            const t = Math.min(1, (time - start) / duration);
+            const eased = 1 - Math.pow(1 - t, 3);
+            setDisplayScore(target * eased);
+            if (t < 1) {
+                frame = requestAnimationFrame(animate);
+            }
+        };
+
+        frame = requestAnimationFrame(animate);
+        return () => cancelAnimationFrame(frame);
+    }, [score]);
 
     return (
         <Wrapper className={className}>
@@ -170,12 +210,12 @@ export const DailyProgressCard: React.FC<DailyProgressCardProps> = ({
                 </svg>
 
                 <ProgressLabelContainer>
-                    <ProgressLabel>{score}</ProgressLabel>
+                    <ProgressLabel>{displayScore.toFixed(0)}</ProgressLabel>
                     <ProgressSubLabel>{centerSubLabel}</ProgressSubLabel>
                 </ProgressLabelContainer>
 
                 {prevScore !== undefined && (
-                    <ProgressTrend $color={trendColor}>
+                    <ProgressTrend $color={trendColor} $highlight={highlightTrend}>
                         <TrendIcon size={18} /> {isImprovement ? "+" : isReset ? "−" : "±"}
                         {deltaAbs}
                     </ProgressTrend>
