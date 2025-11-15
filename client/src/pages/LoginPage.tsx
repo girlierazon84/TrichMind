@@ -2,16 +2,12 @@
 
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import styled, { keyframes } from "styled-components";
+import styled from "styled-components";
+import { fadeIn, scaleIn } from "@/styles/animations";
 import { useAuth, useLogger } from "@/hooks";
 import { ThemeButton, FormInput } from "@/components";
 import { GlobalStyle } from "@/styles";
 import { AppLogo } from "@/assets/images";
-
-const fadeIn = keyframes`
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-`;
 
 const PageContainer = styled.main`
     display: flex;
@@ -20,7 +16,7 @@ const PageContainer = styled.main`
     min-height: 100dvh;
     background: ${({ theme }) => theme.colors.page_bg};
     padding: 2rem;
-    animation: ${fadeIn} 0.5s ease-out;
+    animation: ${fadeIn} 0.6s ease-out;
 `;
 
 const Card = styled.div`
@@ -31,47 +27,44 @@ const Card = styled.div`
     padding: 2.5rem;
     box-shadow: ${({ theme }) => theme.colors.card_shadow};
     text-align: center;
-    animation: ${fadeIn} 0.4s ease-out;
+    animation: ${scaleIn} 0.45s ease-out;
 `;
 
 const Logo = styled.img`
     width: 100px;
     height: 110px;
     object-fit: contain;
-    margin-bottom: 0;
+    margin-bottom: 0.5rem;
+    animation: ${fadeIn} 0.7s ease-out;
 `;
 
 const Title = styled.h2`
     color: ${({ theme }) => theme.colors.primary};
-    font-size: 1.5rem;
+    font-size: 1.55rem;
     font-weight: 700;
     margin: 0;
-
-    @media (max-width: 768px) {
-        font-size: 1.3rem;
-    }
+    animation: ${fadeIn} 0.75s ease-out;
 `;
 
 const Subtitle = styled.p`
     color: ${({ theme }) => theme.colors.text_secondary};
     font-size: 0.95rem;
     margin-bottom: 2rem;
-
-    @media (max-width: 768px) {
-        font-size: 0.85rem;
-    }
+    animation: ${fadeIn} 0.85s ease-out;
 `;
 
 const ErrorMessage = styled.p`
     color: ${({ theme }) => theme.colors.high_risk};
     font-size: 0.9rem;
     margin-top: 0.5rem;
+    animation: ${fadeIn} 0.4s ease-out;
 `;
 
 const FooterText = styled.p`
     margin-top: 1rem;
     font-size: 0.9rem;
     color: ${({ theme }) => theme.colors.text_secondary};
+    animation: ${fadeIn} 1s ease-out;
 
     a {
         color: ${({ theme }) => theme.colors.primary};
@@ -88,22 +81,22 @@ const FooterText = styled.p`
 const FullWidthButton = styled(ThemeButton)`
     margin-top: 1rem;
     width: 100%;
+    animation: ${scaleIn} 0.6s ease-out;
 `;
 
-// Types
 type LoginFormState = {
     email: string;
     password: string;
 };
 
-// Component
 export const LoginPage: React.FC = () => {
     const navigate = useNavigate();
     const { login, loading, isAuthenticated } = useAuth();
     const { log, error: logError } = useLogger(false);
 
-    // 🚀 Auto-redirect if user already logged in
-    if (isAuthenticated) navigate("/");
+    if (isAuthenticated) {
+        navigate("/");
+    }
 
     const [form, setForm] = useState<LoginFormState>({
         email: "",
@@ -129,17 +122,13 @@ export const LoginPage: React.FC = () => {
 
             if (res?.token) {
                 await log("User logged in", { email: form.email });
-
-                // SMOOTH TRANSITION
-                setTimeout(() => navigate("/"), 400);
+                setTimeout(() => navigate("/"), 350); // smooth redirect
             } else {
-                setError("Invalid credentials. Please try again.");
+                setError("Invalid credentials.");
             }
         } catch (err: unknown) {
             const msg =
-                err instanceof Error
-                    ? err.message
-                    : "Login failed. Please try again.";
+                err instanceof Error ? err.message : "Login failed.";
             setError(msg);
             await logError("Login failed", {
                 email: form.email,
@@ -153,8 +142,7 @@ export const LoginPage: React.FC = () => {
             <GlobalStyle />
             <PageContainer>
                 <Card>
-                    <Logo src={ AppLogo } alt="TrichMind Logo" />
-
+                    <Logo src={AppLogo} alt="TrichMind Logo" />
                     <Title>Welcome Back to TrichMind</Title>
                     <Subtitle>Continue your path to mindful recovery 🌱</Subtitle>
 
