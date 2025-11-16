@@ -4,10 +4,10 @@ import styled, { keyframes } from "styled-components";
 import { RegisterPredictForm } from "@/components";
 import { AppLogo } from "@/assets/images";
 
+
 /* -----------------------------------------------------
     PREMIUM ANIMATIONS
 ----------------------------------------------------- */
-
 const fadeIn = keyframes`
   from { opacity: 0; }
   to { opacity: 1; }
@@ -26,15 +26,9 @@ const softPop = keyframes`
 /* -----------------------------------------------------
     Styled Components
 ----------------------------------------------------- */
-
 const RegistrationContainer = styled.main`
-  min-height: 100vh;
   width: 100%;
-  margin: -50px 0;
   display: flex;
-  border-radius: 25px;
-  border: 1px solid ${({ theme }) => theme.colors.card_bg};
-  box-shadow: 2px 4px 30px rgba(3, 79, 79, 0.5);
   flex-direction: column;
   animation: ${fadeIn} 0.6s ease-out;
 `;
@@ -75,7 +69,6 @@ const Title = styled.h1`
 /* -----------------------------------------------------
     Component
 ----------------------------------------------------- */
-
 export const RegistrationPage: React.FC = () => {
   return (
     <RegistrationContainer>
