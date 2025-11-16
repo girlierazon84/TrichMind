@@ -1,5 +1,11 @@
 // client/src/pages/index.ts
 
-export { default as LoginPage } from "./LoginPage";
-export { default as RegistrationPage } from "./RegistrationPage";
-export { default as HomePage } from "./HomePage";  // ✅ ADD THIS
+export * from "./RegistrationPage";
+export * from "./LoginPage";
+export * from "./ProfilePage";
+export * from "./HomePage";  // ✅ ADD THIS
+export * from "./HealthPage";
+export * from "./JournalPage";
+export * from "./TriggersInsightsPage";
+export * from "./TrichGamePage";
+export * from "./TrichBotPage";
