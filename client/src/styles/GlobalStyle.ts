@@ -30,7 +30,7 @@ export const GlobalStyle = createGlobalStyle`
         background: linear-gradient(
             135deg,
             ${({ theme }) => theme.colors.page_bg} 0%,
-            ${({ theme }) => theme.colors.card_bg} 45%,
+            ${({ theme }) => theme.colors.card_bg} 30%,
             ${({ theme }) => theme.colors.page_bg} 100%
         );
 
