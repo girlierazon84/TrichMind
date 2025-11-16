@@ -6,11 +6,7 @@ import {
     Route,
     Navigate
 } from "react-router-dom";
-import { useAuth } from "@/hooks";
-
-// Import pages directly (safer than barrel import)
 import { PrivateRoute, PublicRoute } from "@/routes";
-import { BottomNav } from "@/components";
 import {
     RegistrationPage,
     LoginPage,
@@ -26,8 +22,6 @@ import {
 
 // Define application routes
 export const AppRoutes = () => {
-    const { isAuthenticated } = useAuth();
-
     return (
         <BrowserRouter>
 
@@ -120,9 +114,6 @@ export const AppRoutes = () => {
                 {/* fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-
-            {/* Show bottom nav only when logged in */}
-            {isAuthenticated && <BottomNav />}
         </BrowserRouter>
     );
 };
