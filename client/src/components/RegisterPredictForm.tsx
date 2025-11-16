@@ -31,7 +31,7 @@ const popupAppear = keyframes`
 const FormContainer = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
   border-radius: 18px;
   animation: ${slideUp} 0.55s ease-out;
 `;
@@ -39,8 +39,9 @@ const FormContainer = styled.form`
 const SectionTitle = styled.h3`
   font-size: 1rem;
   font-weight: 600;
+  text-align: left;
   color: ${({ theme }) => theme.colors.primary};
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
   animation: ${fadeIn} 0.6s ease-out;
 `;
 
