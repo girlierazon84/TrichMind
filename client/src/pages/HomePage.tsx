@@ -30,7 +30,8 @@ export interface MeResponse {
     user?: {
         email: string;
         displayName?: string;
-        avatarUrl?: string; // 🔹 use avatar from backend
+        avatarUrl?: string;
+
         pulling_severity?: number;
         pulling_frequency_encoded?: number;
         awareness_level_encoded?: number;
@@ -53,12 +54,12 @@ export interface PredictResponse {
     Animations
 ----------------------------------------------------- */
 const fadeIn = keyframes`
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
 `;
 
 const smoothRise = keyframes`
-    from { opacity: 0; transform: translateY(30px); }
+    from { opacity: 0; transform: translateY(26px); }
     to   { opacity: 1; transform: translateY(0); }
 `;
 
@@ -83,7 +84,7 @@ const PageWrapper = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
-    animation: ${fadeIn} 0.5s ease-out;
+    animation: ${fadeIn} 0.45s ease-out;
 
     @media (max-width: 768px) {
         padding: ${({ theme }) => theme.spacing(3)};
@@ -101,7 +102,7 @@ const Header = styled.header`
     animation: ${smoothRise} 0.5s ease-out;
 
     .app_logo {
-        height: 100px;
+        height: 90px;
     }
 `;
 
@@ -116,24 +117,24 @@ const UserButton = styled.button`
     cursor: pointer;
 
     img {
-        width: 38px;
-        height: 38px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
-        border: 2px solid rgba(255, 255, 255, 0.6);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-        transition: transform 0.25s ease, box-shadow 0.25s ease;
         object-fit: cover;
+        border: 2px solid rgba(255, 255, 255, 0.75);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
     }
 
     &:hover img {
-        transform: scale(1.07);
-        box-shadow: 0 6px 22px rgba(0, 0, 0, 0.2);
+        transform: scale(1.06);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
     }
 `;
 
 const DropdownMenu = styled.div<{ open: boolean }>`
     position: absolute;
-    top: 45px;
+    top: 48px;
     right: 0;
     background: ${({ theme }) => theme.colors.card_bg};
     border-radius: 14px;
@@ -159,6 +160,7 @@ const MenuItem = styled.button`
     font-size: 0.95rem;
     color: ${({ theme }) => theme.colors.text_primary};
     cursor: pointer;
+
     &:hover {
         background: ${({ theme }) => theme.colors.sixthly};
     }
@@ -166,8 +168,12 @@ const MenuItem = styled.button`
 
 const Section = styled.section<{ $delay?: number; $pop?: boolean }>`
     width: 100%;
+    max-width: 960px;
+    background: ${({ theme }) => theme.colors.card_bg};
+    border-radius: ${({ theme }) => theme.radius.lg};
     padding: ${({ theme }) => theme.spacing(5)};
     margin-bottom: ${({ theme }) => theme.spacing(4)};
+    box-shadow: ${({ theme }) => theme.colors.card_shadow};
 
     animation: ${({ $pop }) => ($pop ? softPop : smoothRise)} 0.6s ease-out;
     animation-delay: ${({ $delay }) => ($delay ? `${$delay}ms` : "0ms")};
@@ -187,10 +193,6 @@ const DashboardSection = styled.div<{ $delay?: number }>`
     animation: ${softPop} 0.65s ease-out;
     animation-delay: ${({ $delay }) => ($delay ? `${$delay}ms` : "0ms")};
     animation-fill-mode: both;
-
-    h2 {
-        margin-bottom: ${({ theme }) => theme.spacing(2)};
-    }
 `;
 
 const WelcomeText = styled.h2`
@@ -212,6 +214,7 @@ export const HomePage: React.FC = () => {
     const [bucket, setBucket] = useState<RiskLevel>("MEDIUM");
     const [loading, setLoading] = useState(true);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
     /* Dropdown Menu */
@@ -223,7 +226,6 @@ export const HomePage: React.FC = () => {
         setMenuOpen((prev) => !prev);
     };
 
-    /* Close dropdown when clicking outside */
     useEffect(() => {
         const handler = (e: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -293,13 +295,12 @@ export const HomePage: React.FC = () => {
 
     if (!isAuthenticated) return null;
 
-    if (loading) {
+    if (loading)
         return (
             <PageWrapper>
                 <p>Loading your personalized dashboard…</p>
             </PageWrapper>
         );
-    }
 
     const predictionData = {
         risk_score: riskScore,
@@ -308,6 +309,8 @@ export const HomePage: React.FC = () => {
         confidence,
         model_version: "v1.0.0",
     };
+
+    const headerAvatar = avatarUrl || UserIcon;
 
     return (
         <>
@@ -318,17 +321,19 @@ export const HomePage: React.FC = () => {
                             src={AppLogo}
                             className="app_logo"
                             alt="TrichMind Logo"
-                            height={50}
                         />
                     </Link>
 
                     <UserMenuWrapper ref={menuRef}>
-                        <UserButton onClick={toggleMenu} aria-label="User menu">
-                            <img src={avatarUrl || UserIcon} alt="User avatar" />
+                        <UserButton onClick={toggleMenu}>
+                            <img src={headerAvatar} alt="User avatar" />
                         </UserButton>
 
                         <DropdownMenu open={menuOpen}>
-                            <MenuItem onClick={() => navigate("/profile")}>Profile</MenuItem>
+                            <MenuItem onClick={() => navigate("/profile")}>
+                                Profile
+                            </MenuItem>
+
                             <MenuItem
                                 onClick={() => {
                                     logout();
