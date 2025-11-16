@@ -68,9 +68,9 @@ const navItems: ReadonlyArray<NavConfig> = [
     { to: "/", icon: homeIcon, label: "Home" },
     { to: "/health", icon: healthIcon, label: "Health" },
     { to: "/journal", icon: journalIcon, label: "Journal" },
-    { to: "/triggersinsights", icon: triggersIcon, label: "Triggers" },
-    { to: "/trichgame", icon: trichGameIcon, label: "Game" },
-    { to: "/trichbot", icon: trichBotIcon, label: "Bot" },
+    { to: "/triggersinsights", icon: triggersIcon, label: "Triggers & Insights" },
+    { to: "/trichgame", icon: trichGameIcon, label: "TrichGame" },
+    { to: "/trichbot", icon: trichBotIcon, label: "TrichBot" },
 ] as const;
 
 export const BottomNav = () => {
