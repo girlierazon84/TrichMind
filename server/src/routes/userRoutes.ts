@@ -19,7 +19,11 @@ router.get(
         const user = await User.findById(req.auth!.userId)
             .select("-password")
             .lean();
-        if (!user) return res.status(404).json({ error: "User not found" });
+
+        if (!user) {
+            return res.status(404).json({ ok: false, error: "User not found" });
+        }
+
         res.json({ ok: true, user });
     })
 );
@@ -32,6 +36,7 @@ router.get(
         const log = await HealthLog.findOne({ userId: req.auth!.userId })
             .sort({ date: -1 })
             .lean();
+
         res.json({ ok: true, latest: log || {} });
     })
 );
@@ -43,21 +48,22 @@ router.patch(
     asyncHandler(async (req, res) => {
         const userId = req.auth!.userId;
 
-        const allowed = [
-            "displayName",
-            "age",
-            "years_since_onset",
-            "avatarUrl",
-        ];
+        const allowed = ["displayName", "age", "years_since_onset", "avatarUrl"];
 
         const updates: Record<string, any> = {};
-        allowed.forEach((key) => {
-            if (req.body[key] !== undefined) updates[key] = req.body[key];
-        });
+        for (const key of allowed) {
+            if (req.body[key] !== undefined) {
+                updates[key] = req.body[key];
+            }
+        }
 
         const user = await User.findByIdAndUpdate(userId, updates, {
             new: true,
         }).select("-password");
+
+        if (!user) {
+            return res.status(404).json({ ok: false, error: "User not found" });
+        }
 
         res.json({ ok: true, user });
     })
