@@ -29,11 +29,10 @@ const popupAppear = keyframes`
 /* -----------------------------------------------------
     Styled Components
 ----------------------------------------------------- */
-
 const FormContainer = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0.5rem;
   border-radius: 18px;
   animation: ${slideUp} 0.55s ease-out;
 
@@ -71,6 +70,7 @@ const ErrorMessage = styled.p`
 const FooterText = styled.p`
   margin: 2rem 0;
   font-size: 0.9rem;
+  text-align: center;
   color: ${({ theme }) => theme.colors.text_secondary};
   animation: ${fadeIn} 1s ease-out;
 
