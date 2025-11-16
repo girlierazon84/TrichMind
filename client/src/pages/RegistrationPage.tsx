@@ -57,13 +57,11 @@ const Logo = styled.img`
 `;
 
 const PageCard = styled.div`
-  background: ${({ theme }) => theme.colors.card_bg};
   padding: 2rem;
   margin-top: 1.5rem;
   border-radius: 20px;
   max-width: 560px;
   width: 100%;
-  box-shadow: ${({ theme }) => theme.colors.card_shadow};
   animation: ${softPop} 0.5s ease-out;
 
   @media (max-width: 768px) {
