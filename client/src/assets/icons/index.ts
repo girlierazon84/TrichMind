@@ -15,3 +15,4 @@ export { default as TrichGameIcon } from "./trichgame.png";
 export { default as TriggersInsightsIcon } from "./triggers.png";
 export { default as UserIcon } from "./user.png";
 export { default as BrainIcon } from "./brain.png";
+export { default as BackIcon } from "./previous.png";
