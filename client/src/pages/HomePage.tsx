@@ -167,11 +167,8 @@ const MenuItem = styled.button`
 const Section = styled.section<{ $delay?: number; $pop?: boolean }>`
     width: 100%;
     max-width: 960px;
-    background: ${({ theme }) => theme.colors.card_bg};
-    border-radius: ${({ theme }) => theme.radius.lg};
     padding: ${({ theme }) => theme.spacing(5)};
     margin-bottom: ${({ theme }) => theme.spacing(4)};
-    box-shadow: ${({ theme }) => theme.colors.card_shadow};
 
     animation: ${({ $pop }) => ($pop ? softPop : smoothRise)} 0.6s ease-out;
     animation-delay: ${({ $delay }) => ($delay ? `${$delay}ms` : "0ms")};
