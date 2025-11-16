@@ -1,6 +1,12 @@
 // client/src/pages/HomePage.tsx
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import {
+    useEffect,
+    useState,
+    useMemo,
+    useCallback,
+    useRef
+} from "react";
 import { Link, useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { axiosClient } from "@/services";
@@ -8,7 +14,7 @@ import {
     RiskResultCard,
     DailyProgressCardAuto,
     CopingStrategiesCard,
-    RiskTrendChart
+    RiskTrendChart,
 } from "@/components";
 import { BottomNav } from "@/components/BottomNav";
 import { useAuth } from "@/hooks";
@@ -17,8 +23,36 @@ import { UserIcon } from "@/assets/icons";
 
 
 /* -----------------------------------------------------
+    Types (FIXED)
+----------------------------------------------------- */
+export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
+
+export interface MeResponse {
+    user?: {
+        email: string;
+        displayName?: string;
+        pulling_severity?: number;
+        pulling_frequency_encoded?: number;
+        awareness_level_encoded?: number;
+        how_long_stopped_days_est?: number;
+        successfully_stopped_encoded?: number;
+        years_since_onset?: number;
+        age?: number;
+        age_of_onset?: number;
+        emotion_intensity_sum?: number;
+    };
+}
+
+export interface PredictResponse {
+    risk_score: number;
+    risk_bucket: RiskLevel | string;
+    confidence: number;
+}
+
+/* -----------------------------------------------------
     Calm Premium Animations
 ----------------------------------------------------- */
+
 const fadeIn = keyframes`
     from { opacity: 0; }
     to { opacity: 1; }
@@ -34,14 +68,15 @@ const softPop = keyframes`
     to   { opacity: 1; transform: scale(1); }
 `;
 
-const maskedRise = keyframes`
-    from { opacity: 0; clip-path: inset(40% 0 0 0); }
-    to   { opacity: 1; clip-path: inset(0 0 0 0); }
+const dropdownFade = keyframes`
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
 `;
 
 /* -----------------------------------------------------
     Styled Components
 ----------------------------------------------------- */
+
 const PageWrapper = styled.div`
     width: 100%;
     min-height: calc(100vh - 70px);
@@ -68,6 +103,65 @@ const Header = styled.header`
     animation: ${smoothRise} 0.5s ease-out;
 `;
 
+const UserMenuWrapper = styled.div`
+    position: relative;
+`;
+
+const UserButton = styled.button`
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+
+    img {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        transition: transform 0.25s ease;
+    }
+
+    &:hover img {
+        transform: scale(1.07);
+    }
+`;
+
+const DropdownMenu = styled.div<{ open: boolean }>`
+    position: absolute;
+    top: 45px;
+    right: 0;
+    background: ${({ theme }) => theme.colors.card_bg};
+    border-radius: 14px;
+    padding: 0.5rem 0;
+    min-width: 170px;
+
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
+
+    opacity: ${({ open }) => (open ? 1 : 0)};
+    transform: translateY(${({ open }) => (open ? "0" : "-6px")});
+    pointer-events: ${({ open }) => (open ? "auto" : "none")};
+
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    animation: ${dropdownFade} 0.25s ease-out;
+    z-index: 5000;
+`;
+
+const MenuItem = styled.button`
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+
+    padding: 0.85rem 1rem;
+    font-size: 0.95rem;
+
+    color: ${({ theme }) => theme.colors.text_primary};
+    cursor: pointer;
+
+    &:hover {
+        background: ${({ theme }) => theme.colors.sixthly};
+    }
+`;
+
 const Section = styled.section<{ $delay?: number; $pop?: boolean }>`
     width: 100%;
     max-width: 960px;
@@ -92,7 +186,7 @@ const DashboardSection = styled.div<{ $delay?: number }>`
     display: flex;
     flex-direction: column;
     gap: ${({ theme }) => theme.spacing(4)};
-    animation: ${maskedRise} 0.7s ease-out;
+    animation: ${softPop} 0.65s ease-out;
     animation-delay: ${({ $delay }) => ($delay ? `${$delay}ms` : "0ms")};
     animation-fill-mode: both;
 `;
@@ -105,45 +199,38 @@ const WelcomeText = styled.h2`
 `;
 
 /* -----------------------------------------------------
-    Types
------------------------------------------------------ */
-type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
-
-interface MeResponse {
-    user?: {
-        email: string;
-        displayName?: string;
-        pulling_severity?: number;
-        pulling_frequency_encoded?: number;
-        awareness_level_encoded?: number;
-        how_long_stopped_days_est?: number;
-        successfully_stopped_encoded?: number;
-        years_since_onset?: number;
-        age?: number;
-        age_of_onset?: number;
-        emotion_intensity_sum?: number;
-    };
-}
-
-interface PredictResponse {
-    risk_score: number;
-    risk_bucket: RiskLevel | string;
-    confidence: number;
-}
-
-/* -----------------------------------------------------
     Component
 ----------------------------------------------------- */
 
 export const HomePage: React.FC = () => {
     const navigate = useNavigate();
-    const { user, isAuthenticated } = useAuth(); // logout removed
+    const { user, isAuthenticated, logout } = useAuth();
 
     const [riskScore, setRiskScore] = useState(0);
     const [confidence, setConfidence] = useState(0);
     const [bucket, setBucket] = useState<RiskLevel>("MEDIUM");
     const [loading, setLoading] = useState(true);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    /* Dropdown Menu */
+    const [menuOpen, setMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement | null>(null);
+
+    const toggleMenu = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setMenuOpen((prev) => !prev);
+    };
+
+    /* Close dropdown when clicking outside */
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setMenuOpen(false);
+            }
+        };
+        window.addEventListener("click", handler);
+        return () => window.removeEventListener("click", handler);
+    }, []);
 
     /* Responsive listener */
     useEffect(() => {
@@ -169,7 +256,7 @@ export const HomePage: React.FC = () => {
                 years_since_onset: u.years_since_onset ?? 8,
                 age: u.age ?? 30,
                 age_of_onset: u.age_of_onset ?? 18,
-                emotion_intensity_sum: u.emotion_intensity_sum ?? 4.5
+                emotion_intensity_sum: u.emotion_intensity_sum ?? 4.5,
             });
 
             setRiskScore(pred.data.risk_score);
@@ -212,7 +299,7 @@ export const HomePage: React.FC = () => {
         risk_bucket: bucket.toLowerCase(),
         risk_code: bucket === "HIGH" ? 2 : bucket === "MEDIUM" ? 1 : 0,
         confidence,
-        model_version: "v1.0.0"
+        model_version: "v1.0.0",
     };
 
     return (
@@ -223,9 +310,26 @@ export const HomePage: React.FC = () => {
                         <img src={AppLogo} alt="TrichMind Logo" height={50} />
                     </Link>
 
-                    <Link to="/profile">
-                        <img src={UserIcon} alt="Account" height={36} />
-                    </Link>
+                    <UserMenuWrapper ref={menuRef}>
+                        <UserButton onClick={toggleMenu}>
+                            <img src={UserIcon} alt="User" />
+                        </UserButton>
+
+                        <DropdownMenu open={menuOpen}>
+                            <MenuItem onClick={() => navigate("/profile")}>
+                                Profile
+                            </MenuItem>
+
+                            <MenuItem
+                                onClick={() => {
+                                    logout();
+                                    navigate("/login");
+                                }}
+                            >
+                                Logout
+                            </MenuItem>
+                        </DropdownMenu>
+                    </UserMenuWrapper>
                 </Header>
 
                 <Section $delay={120} $pop>
