@@ -8,7 +8,6 @@ import { axiosClient, authApi } from "@/services";
 import { ThemeButton, FormInput } from "@/components";
 import { BackIcon, UserIcon } from "@/assets/icons";
 
-
 /* -----------------------------------------------------
     Animations
 ----------------------------------------------------- */
@@ -30,6 +29,7 @@ const Wrapper = styled.main`
   margin: 2.5rem auto;
   padding: 2.2rem 2rem 2.5rem;
   animation: ${pageFade} 0.45s ease-out;
+  max-width: 780px;
 `;
 
 const Header = styled.header`
@@ -79,7 +79,7 @@ const AvatarOuter = styled.div`
   border-radius: 50%;
   padding: 3px;
   background: radial-gradient(circle at 30% 0, #fff, transparent 55%),
-              radial-gradient(circle at 80% 110%, rgba(140, 189, 255, 0.7), transparent 60%);
+    radial-gradient(circle at 80% 110%, rgba(140, 189, 255, 0.7), transparent 60%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -111,12 +111,6 @@ const SectionRow = styled.div`
   grid-template-columns: 1.3fr 1.1fr;
   gap: 2rem;
 
-  hr.hr {
-    border: none;
-    border-top: 1px dashed ${({ theme }) => theme.colors.text_secondary};
-    margin: 1rem 0;
-  }
-
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
     gap: 1.25rem;
@@ -136,6 +130,10 @@ const ButtonRow = styled.div`
   margin-top: 2rem;
   display: flex;
   gap: 1rem;
+
+  button {
+    flex: 1;
+  }
 `;
 
 const PrimarySaveButton = styled(ThemeButton)<{ $pulse?: boolean }>`
@@ -146,9 +144,9 @@ const PrimarySaveButton = styled(ThemeButton)<{ $pulse?: boolean }>`
     `}
 `;
 
-/* SECONDARY BUTTON FIX */
+/* SECONDARY BUTTON */
 const SecondaryButton = styled(ThemeButton)`
-  opacity: 0.75;
+  opacity: 0.8;
 `;
 
 /* Loading text shown while auth/profile loads */
@@ -196,12 +194,19 @@ const CropArea = styled.div`
   width: 220px;
   height: 220px;
   border-radius: 50%;
-  overflow: hidden;
   margin: 0 auto 1.2rem;
+  overflow: hidden;
   background: #000;
+
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+
+  img {
+    user-select: none;
+    pointer-events: none;
+    will-change: transform;
+  }
 `;
 
 const CropPreview = styled.img<{ $zoom: number }>`
@@ -212,6 +217,16 @@ const CropPreview = styled.img<{ $zoom: number }>`
 
 const SliderRow = styled.div`
   margin-bottom: 1.2rem;
+
+  label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 0.9rem;
+  }
+
+  input[type="range"] {
+    width: 100%;
+  }
 `;
 
 const CropButtons = styled.div`
@@ -266,9 +281,10 @@ export const ProfilePage: React.FC = () => {
     axiosClient
       .get<{ user: ExtendedUser }>("/api/auth/me")
       .then((res) => {
-        setProfile(res.data.user);
-        setInitialProfile(res.data.user);
-        setAvatarPreview(res.data.user.avatarUrl || UserIcon);
+        const user = res.data.user;
+        setProfile(user);
+        setInitialProfile(user);
+        setAvatarPreview(user.avatarUrl || UserIcon);
       })
       .finally(() => setLoading(false));
   }, [isAuthenticated]);
@@ -284,9 +300,15 @@ export const ProfilePage: React.FC = () => {
     if (!profile) return;
 
     const { name, value } = e.target;
+
     setProfile({
       ...profile,
-      [name]: name === "age" || name === "years_since_onset" ? Number(value) : value,
+      [name]:
+        name === "age" || name === "years_since_onset"
+          ? value === ""
+            ? undefined
+            : Number(value)
+          : value,
     });
   };
 
@@ -304,7 +326,7 @@ export const ProfilePage: React.FC = () => {
     img.src = URL.createObjectURL(file);
   };
 
-  /* Save avatar crop */
+  /* Save avatar crop into avatarUrl (as base64) */
   const applyAvatarCrop = () => {
     if (!avatarSource) return;
 
@@ -327,7 +349,7 @@ export const ProfilePage: React.FC = () => {
 
     ctx.drawImage(avatarSource, x, y, w, h);
 
-    const url = canvas.toDataURL();
+    const url = canvas.toDataURL("image/png");
     setAvatarPreview(url);
     setProfile((p) => (p ? { ...p, avatarUrl: url } : p));
     setShowCropper(false);
@@ -338,15 +360,23 @@ export const ProfilePage: React.FC = () => {
     if (!profile) return;
 
     setSaving(true);
-    const res = await axiosClient.patch("/api/users/profile", profile);
-    setProfile(res.data.user);
-    setInitialProfile(res.data.user);
-    setSaving(false);
+    try {
+      const res = await axiosClient.patch<{ ok: boolean; user: ExtendedUser }>(
+        "/api/users/profile",
+        profile
+      );
+      setProfile(res.data.user);
+      setInitialProfile(res.data.user);
+    } finally {
+      setSaving(false);
+    }
   };
 
   /* Change password */
   const handlePasswordChange = async () => {
     setPasswordMsg(null);
+    setPasswordSuccess(false);
+
     if (newPassword !== confirmPassword) {
       setPasswordMsg("Passwords do not match.");
       return;
@@ -356,6 +386,9 @@ export const ProfilePage: React.FC = () => {
       await authApi.changePassword({ oldPassword, newPassword });
       setPasswordSuccess(true);
       setPasswordMsg("Password updated!");
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
     } catch {
       setPasswordMsg("Incorrect old password.");
     }
@@ -378,7 +411,7 @@ export const ProfilePage: React.FC = () => {
         {/* Avatar */}
         <AvatarWrapper>
           <AvatarOuter>
-            <Avatar src={avatarPreview || UserIcon} />
+            <Avatar src={avatarPreview || UserIcon} alt="avatar" />
           </AvatarOuter>
 
           <EditAvatarButton>
@@ -395,9 +428,10 @@ export const ProfilePage: React.FC = () => {
             <FormInput
               label="Email"
               name="email"
-              value={profile?.email || ""} disabled
+              value={profile?.email || ""}
+              disabled
               onChange={() => {}}
-              />
+            />
 
             <FormInput
               label="Display Name"
@@ -412,7 +446,7 @@ export const ProfilePage: React.FC = () => {
               label="Age"
               name="age"
               type="number"
-              value={profile?.age || ""}
+              value={profile?.age ?? ""}
               onChange={handleChange}
             />
 
@@ -420,11 +454,11 @@ export const ProfilePage: React.FC = () => {
               label="Years Since Onset"
               name="years_since_onset"
               type="number"
-              value={profile?.years_since_onset || ""}
+              value={profile?.years_since_onset ?? ""}
               onChange={handleChange}
             />
           </Section>
-          <hr className="hr"/>
+
           <Section>
             <SectionTitle>Password</SectionTitle>
 
@@ -452,14 +486,10 @@ export const ProfilePage: React.FC = () => {
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
 
-            <ThemeButton onClick={handlePasswordChange}>
-              Update Password
-            </ThemeButton>
+            <ThemeButton onClick={handlePasswordChange}>Update Password</ThemeButton>
 
             {passwordMsg && (
-              <PasswordMessage success={passwordSuccess}>
-                {passwordMsg}
-              </PasswordMessage>
+              <PasswordMessage success={passwordSuccess}>{passwordMsg}</PasswordMessage>
             )}
           </Section>
         </SectionRow>
@@ -480,7 +510,7 @@ export const ProfilePage: React.FC = () => {
             <CropTitle>Adjust your avatar</CropTitle>
 
             <CropArea>
-              <CropPreview src={avatarSource.src} $zoom={zoom} />
+              <CropPreview src={avatarSource.src} alt="crop" $zoom={zoom} />
             </CropArea>
 
             <SliderRow>
