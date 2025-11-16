@@ -28,11 +28,14 @@ const smoothRise = keyframes`
 ----------------------------------------------------- */
 
 const PageWrapper = styled.main`
+    margin: -50px 0;
     min-height: 100vh;
+    border-radius: 25px;
+    border: 1px solid ${({ theme }) => theme.colors.card_bg};
+    box-shadow: 2px 4px 30px rgba(3, 79, 79, 0.5);
     display: flex;
     justify-content: center;
     align-items: center;
-    background: ${({ theme }) => theme.colors.page_bg};
     padding: 2rem;
     animation: ${fadeIn} 0.5s ease-out;
 `;
@@ -40,10 +43,8 @@ const PageWrapper = styled.main`
 const PremiumCard = styled.div<{ $visible: boolean }>`
     width: 100%;
     max-width: 420px;
-    background: ${({ theme }) => theme.colors.card_bg};
     border-radius: 20px;
     padding: 2.4rem 2rem;
-    box-shadow: ${({ theme }) => theme.colors.card_shadow};
     animation: ${smoothRise} 0.7s ease-out;
     opacity: ${({ $visible }) => ($visible ? 1 : 0)};
     transform: ${({ $visible }) =>
@@ -54,18 +55,18 @@ const PremiumCard = styled.div<{ $visible: boolean }>`
 const Logo = styled.img`
     width: 95px;
     height: auto;
-    margin-bottom: 1rem;
+    margin: -40px 0 2rem 0;
 `;
 
 const Title = styled.h1`
     font-size: 1.75rem;
     text-align: center;
     color: ${({ theme }) => theme.colors.primary};
-    margin: 0 0 0.5rem 0;
+    margin: -25px 0 -15px 0;
 `;
 
 const Subtitle = styled.p`
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     color: ${({ theme }) => theme.colors.text_secondary};
     text-align: center;
     margin-bottom: 2rem;
@@ -79,7 +80,7 @@ const ErrorMessage = styled.p`
 
 const FooterText = styled.p`
     text-align: center;
-    margin-top: 1rem;
+    margin: 2rem 0 -30px 0;
     font-size: 0.9rem;
     color: ${({ theme }) => theme.colors.text_secondary};
 
@@ -90,7 +91,7 @@ const FooterText = styled.p`
 `;
 
 const ButtonWrapper = styled.div`
-    margin-top: 1rem;
+    margin-top: 3rem;
 `;
 
 /* -----------------------------------------------------
