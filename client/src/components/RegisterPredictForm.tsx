@@ -9,7 +9,6 @@ import { useRegisterAndPredict } from "@/hooks";
 /* -----------------------------------------------------
     ANIMATIONS — calm, premium, soft
 ----------------------------------------------------- */
-
 const fadeIn = keyframes`
   from { opacity: 0; }
   to { opacity: 1; }
@@ -33,7 +32,6 @@ const FormContainer = styled.form`
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding: 2rem;
   border-radius: 18px;
   animation: ${slideUp} 0.55s ease-out;
 `;
@@ -42,7 +40,7 @@ const SectionTitle = styled.h3`
   font-size: 1rem;
   font-weight: 600;
   color: ${({ theme }) => theme.colors.primary};
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.5rem;
   animation: ${fadeIn} 0.6s ease-out;
 `;
 
