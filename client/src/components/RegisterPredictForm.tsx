@@ -33,10 +33,8 @@ const FormContainer = styled.form`
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  background: ${({ theme }) => theme.colors.card_bg};
   padding: 2rem;
   border-radius: 18px;
-  box-shadow: ${({ theme }) => theme.colors.card_shadow};
   animation: ${slideUp} 0.55s ease-out;
 `;
 
