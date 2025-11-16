@@ -103,6 +103,7 @@ const Header = styled.header`
 
     .app_logo {
         height: 90px;
+        object-fit: contain;
     }
 `;
 
@@ -123,7 +124,7 @@ const UserButton = styled.button`
         object-fit: cover;
         border: 2px solid rgba(255, 255, 255, 0.75);
         box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
-        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        transition: 0.25s ease;
     }
 
     &:hover img {
@@ -148,6 +149,7 @@ const DropdownMenu = styled.div<{ open: boolean }>`
 
     transition: opacity 0.25s ease, transform 0.25s ease;
     animation: ${dropdownFade} 0.25s ease-out;
+
     z-index: 5000;
 `;
 
@@ -213,19 +215,19 @@ export const HomePage: React.FC = () => {
     const [confidence, setConfidence] = useState(0);
     const [bucket, setBucket] = useState<RiskLevel>("MEDIUM");
     const [loading, setLoading] = useState(true);
-    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-    /* Dropdown Menu */
+    /* Dropdown */
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
 
     const toggleMenu = (e: React.MouseEvent) => {
         e.stopPropagation();
-        setMenuOpen((prev) => !prev);
+        setMenuOpen((p) => !p);
     };
 
+    /* Close dropdown when clicking outside */
     useEffect(() => {
         const handler = (e: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -236,24 +238,15 @@ export const HomePage: React.FC = () => {
         return () => window.removeEventListener("click", handler);
     }, []);
 
-    /* Responsive listener */
-    useEffect(() => {
-        const mq = window.matchMedia("(max-width: 768px)");
-        const update = () => setIsMobile(mq.matches);
-        mq.addEventListener("change", update);
-        return () => mq.removeEventListener("change", update);
-    }, []);
-
     /* Load prediction + avatar */
-    const loadPrediction = useCallback(async () => {
+    const loadData = useCallback(async () => {
         try {
             const res = await axiosClient.get<MeResponse>("/api/auth/me");
             const u = res.data.user;
+
             if (!u) throw new Error("Missing user");
 
-            if (u.avatarUrl) {
-                setAvatarUrl(u.avatarUrl);
-            }
+            if (u.avatarUrl) setAvatarUrl(u.avatarUrl);
 
             const pred = await axiosClient.post<PredictResponse>("/api/ml/predict", {
                 pulling_severity: u.pulling_severity ?? 5,
@@ -278,10 +271,10 @@ export const HomePage: React.FC = () => {
     }, [navigate]);
 
     useEffect(() => {
-        if (isAuthenticated) loadPrediction();
-    }, [isAuthenticated, loadPrediction]);
+        if (isAuthenticated) loadData();
+    }, [isAuthenticated, loadData]);
 
-    /* Quote */
+    /* Quote system */
     const quote = useMemo(() => {
         switch (bucket) {
             case "LOW":
@@ -313,65 +306,57 @@ export const HomePage: React.FC = () => {
     const headerAvatar = avatarUrl || UserIcon;
 
     return (
-        <>
-            <PageWrapper>
-                <Header>
-                    <Link to="/">
-                        <img
-                            src={AppLogo}
-                            className="app_logo"
-                            alt="TrichMind Logo"
-                        />
-                    </Link>
+        <PageWrapper>
+            {/* HEADER */}
+            <Header>
+                <Link to="/">
+                    <img src={AppLogo} className="app_logo" alt="TrichMind Logo" />
+                </Link>
 
-                    <UserMenuWrapper ref={menuRef}>
-                        <UserButton onClick={toggleMenu}>
-                            <img src={headerAvatar} alt="User avatar" />
-                        </UserButton>
+                <UserMenuWrapper ref={menuRef}>
+                    <UserButton onClick={toggleMenu}>
+                        <img src={headerAvatar} alt="User avatar" />
+                    </UserButton>
 
-                        <DropdownMenu open={menuOpen}>
-                            <MenuItem onClick={() => navigate("/profile")}>
-                                Profile
-                            </MenuItem>
+                    <DropdownMenu open={menuOpen}>
+                        <MenuItem onClick={() => navigate("/profile")}>Profile</MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                logout();
+                                navigate("/login");
+                            }}
+                        >
+                            Logout
+                        </MenuItem>
+                    </DropdownMenu>
+                </UserMenuWrapper>
+            </Header>
 
-                            <MenuItem
-                                onClick={() => {
-                                    logout();
-                                    navigate("/login");
-                                }}
-                            >
-                                Logout
-                            </MenuItem>
-                        </DropdownMenu>
-                    </UserMenuWrapper>
-                </Header>
+            {/* CARD 1 */}
+            <Section $delay={120} $pop>
+                <WelcomeText>
+                    Welcome back, {user?.displayName || user?.email || "Friend"} 👋
+                </WelcomeText>
 
-                <Section $delay={120} $pop>
-                    <WelcomeText>
-                        Welcome back, {user?.displayName || user?.email || "Friend"} 👋
-                    </WelcomeText>
+                <RiskResultCard data={predictionData} quote={quote} compact={false} />
+            </Section>
 
-                    <RiskResultCard
-                        data={predictionData}
-                        quote={quote}
-                        compact={isMobile}
-                    />
-                </Section>
+            {/* CARD 2 */}
+            <Section $delay={300}>
+                <DailyProgressCardAuto />
+            </Section>
 
-                <Section $delay={300}>
-                    <DailyProgressCardAuto />
-                </Section>
+            {/* CARD 3 */}
+            <Section $delay={450}>
+                <CopingStrategiesCard />
+            </Section>
 
-                <Section $delay={450}>
-                    <CopingStrategiesCard />
-                </Section>
-
-                <DashboardSection $delay={650}>
-                    <h2>📈 Relapse Risk Analytics</h2>
-                    <RiskTrendChart />
-                </DashboardSection>
-            </PageWrapper>
-        </>
+            {/* CARD 4 */}
+            <DashboardSection $delay={650}>
+                <h2>📈 Relapse Risk Analytics</h2>
+                <RiskTrendChart />
+            </DashboardSection>
+        </PageWrapper>
     );
 };
 
