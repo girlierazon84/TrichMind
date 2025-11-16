@@ -10,6 +10,7 @@ import {
     CopingStrategiesCard,
     RiskTrendChart
 } from "@/components";
+import { BottomNav } from "@/components/BottomNav";
 import { useAuth } from "@/hooks";
 import { AppLogo } from "@/assets/images";
 import { UserIcon } from "@/assets/icons";
@@ -18,7 +19,6 @@ import { UserIcon } from "@/assets/icons";
 /* -----------------------------------------------------
     Calm Premium Animations
 ----------------------------------------------------- */
-
 const fadeIn = keyframes`
     from { opacity: 0; }
     to { opacity: 1; }
@@ -30,7 +30,7 @@ const smoothRise = keyframes`
 `;
 
 const softPop = keyframes`
-    from { opacity: 0; transform: scale(0.97); }
+    from { opacity: 0; transform: scale(0.96); }
     to   { opacity: 1; transform: scale(1); }
 `;
 
@@ -42,12 +42,11 @@ const maskedRise = keyframes`
 /* -----------------------------------------------------
     Styled Components
 ----------------------------------------------------- */
-
 const PageWrapper = styled.div`
     width: 100%;
-    min-height: 100vh;
-    background: ${({ theme }) => theme.colors.page_bg};
+    min-height: calc(100vh - 70px);
     padding: ${({ theme }) => theme.spacing(6)};
+    padding-bottom: 100px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -55,6 +54,7 @@ const PageWrapper = styled.div`
 
     @media (max-width: 768px) {
         padding: ${({ theme }) => theme.spacing(3)};
+        padding-bottom: 110px;
     }
 `;
 
@@ -107,7 +107,6 @@ const WelcomeText = styled.h2`
 /* -----------------------------------------------------
     Types
 ----------------------------------------------------- */
-
 type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 
 interface MeResponse {
@@ -138,16 +137,13 @@ interface PredictResponse {
 
 export const HomePage: React.FC = () => {
     const navigate = useNavigate();
-    const { user, isAuthenticated, logout } = useAuth();
+    const { user, isAuthenticated } = useAuth(); // logout removed
 
     const [riskScore, setRiskScore] = useState(0);
     const [confidence, setConfidence] = useState(0);
     const [bucket, setBucket] = useState<RiskLevel>("MEDIUM");
     const [loading, setLoading] = useState(true);
-
-    const [isMobile, setIsMobile] = useState(
-        window.innerWidth <= 768
-    );
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
     /* Responsive listener */
     useEffect(() => {
@@ -157,34 +153,28 @@ export const HomePage: React.FC = () => {
         return () => mq.removeEventListener("change", update);
     }, []);
 
-    /* Load profile + ML prediction */
+    /* Load prediction */
     const loadPrediction = useCallback(async () => {
         try {
             const res = await axiosClient.get<MeResponse>("/api/auth/me");
             const u = res.data.user;
-
             if (!u) throw new Error("Missing user");
 
-            const pred = await axiosClient.post<PredictResponse>(
-                "/api/ml/predict",
-                {
-                    pulling_severity: u.pulling_severity ?? 5,
-                    pulling_frequency_encoded: u.pulling_frequency_encoded ?? 3,
-                    awareness_level_encoded: u.awareness_level_encoded ?? 0.5,
-                    how_long_stopped_days_est: u.how_long_stopped_days_est ?? 14,
-                    successfully_stopped_encoded: u.successfully_stopped_encoded ?? 0,
-                    years_since_onset: u.years_since_onset ?? 8,
-                    age: u.age ?? 30,
-                    age_of_onset: u.age_of_onset ?? 18,
-                    emotion_intensity_sum: u.emotion_intensity_sum ?? 4.5
-                }
-            );
+            const pred = await axiosClient.post<PredictResponse>("/api/ml/predict", {
+                pulling_severity: u.pulling_severity ?? 5,
+                pulling_frequency_encoded: u.pulling_frequency_encoded ?? 3,
+                awareness_level_encoded: u.awareness_level_encoded ?? 0.5,
+                how_long_stopped_days_est: u.how_long_stopped_days_est ?? 14,
+                successfully_stopped_encoded: u.successfully_stopped_encoded ?? 0,
+                years_since_onset: u.years_since_onset ?? 8,
+                age: u.age ?? 30,
+                age_of_onset: u.age_of_onset ?? 18,
+                emotion_intensity_sum: u.emotion_intensity_sum ?? 4.5
+            });
 
             setRiskScore(pred.data.risk_score);
             setConfidence(pred.data.confidence);
-            setBucket(
-                String(pred.data.risk_bucket).toUpperCase() as RiskLevel
-            );
+            setBucket(String(pred.data.risk_bucket).toUpperCase() as RiskLevel);
         } catch {
             navigate("/login");
         } finally {
@@ -193,11 +183,10 @@ export const HomePage: React.FC = () => {
     }, [navigate]);
 
     useEffect(() => {
-        if (!isAuthenticated) return;
-        loadPrediction();
+        if (isAuthenticated) loadPrediction();
     }, [isAuthenticated, loadPrediction]);
 
-    /* Quotes hook */
+    /* Quote */
     const quote = useMemo(() => {
         switch (bucket) {
             case "LOW":
@@ -210,6 +199,7 @@ export const HomePage: React.FC = () => {
     }, [bucket]);
 
     if (!isAuthenticated) return null;
+
     if (loading)
         return (
             <PageWrapper>
@@ -226,55 +216,46 @@ export const HomePage: React.FC = () => {
     };
 
     return (
-        <PageWrapper>
-            {/* HEADER */}
-            <Header>
-                <Link to="/">
-                    <img src={AppLogo} alt="TrichMind Logo" height={50} />
-                </Link>
+        <>
+            <PageWrapper>
+                <Header>
+                    <Link to="/">
+                        <img src={AppLogo} alt="TrichMind Logo" height={50} />
+                    </Link>
 
-                <details>
-                    <summary>
+                    <Link to="/profile">
                         <img src={UserIcon} alt="Account" height={36} />
-                    </summary>
-                    <nav>
-                        <Link to="/profile">Profile</Link>
-                        <button onClick={() => { logout(); navigate("/login"); }}>
-                            Logout
-                        </button>
-                    </nav>
-                </details>
-            </Header>
+                    </Link>
+                </Header>
 
-            {/* CARD 1 */}
-            <Section $delay={120} $pop>
-                <WelcomeText>
-                    Welcome back, {user?.displayName || user?.email || "Friend"} 👋
-                </WelcomeText>
+                <Section $delay={120} $pop>
+                    <WelcomeText>
+                        Welcome back, {user?.displayName || user?.email || "Friend"} 👋
+                    </WelcomeText>
 
-                <RiskResultCard
-                    data={predictionData}
-                    quote={quote}
-                    compact={isMobile}
-                />
-            </Section>
+                    <RiskResultCard
+                        data={predictionData}
+                        quote={quote}
+                        compact={isMobile}
+                    />
+                </Section>
 
-            {/* CARD 2 */}
-            <Section $delay={300}>
-                <DailyProgressCardAuto />
-            </Section>
+                <Section $delay={300}>
+                    <DailyProgressCardAuto />
+                </Section>
 
-            {/* CARD 3 */}
-            <Section $delay={450}>
-                <CopingStrategiesCard />
-            </Section>
+                <Section $delay={450}>
+                    <CopingStrategiesCard />
+                </Section>
 
-            {/* CARD 4 */}
-            <DashboardSection $delay={650}>
-                <h2>📈 Relapse Risk Analytics</h2>
-                <RiskTrendChart />
-            </DashboardSection>
-        </PageWrapper>
+                <DashboardSection $delay={650}>
+                    <h2>📈 Relapse Risk Analytics</h2>
+                    <RiskTrendChart />
+                </DashboardSection>
+            </PageWrapper>
+
+            <BottomNav />
+        </>
     );
 };
 
