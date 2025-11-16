@@ -5,7 +5,7 @@ import {
     useState,
     useMemo,
     useCallback,
-    useRef
+    useRef,
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
@@ -23,7 +23,7 @@ import { UserIcon } from "@/assets/icons";
 
 
 /* -----------------------------------------------------
-    Types (FIXED)
+    Types
 ----------------------------------------------------- */
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 
@@ -31,6 +31,7 @@ export interface MeResponse {
     user?: {
         email: string;
         displayName?: string;
+        avatarUrl?: string; // 🔹 use avatar from backend
         pulling_severity?: number;
         pulling_frequency_encoded?: number;
         awareness_level_encoded?: number;
@@ -50,11 +51,11 @@ export interface PredictResponse {
 }
 
 /* -----------------------------------------------------
-    Calm Premium Animations
+    Animations
 ----------------------------------------------------- */
 const fadeIn = keyframes`
     from { opacity: 0; }
-    to { opacity: 1; }
+    to   { opacity: 1; }
 `;
 
 const smoothRise = keyframes`
@@ -119,11 +120,15 @@ const UserButton = styled.button`
         width: 38px;
         height: 38px;
         border-radius: 50%;
-        transition: transform 0.25s ease;
+        border: 2px solid rgba(255, 255, 255, 0.6);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        object-fit: cover;
     }
 
     &:hover img {
         transform: scale(1.07);
+        box-shadow: 0 6px 22px rgba(0, 0, 0, 0.2);
     }
 `;
 
@@ -135,7 +140,6 @@ const DropdownMenu = styled.div<{ open: boolean }>`
     border-radius: 14px;
     padding: 0.5rem 0;
     min-width: 170px;
-
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
 
     opacity: ${({ open }) => (open ? 1 : 0)};
@@ -152,13 +156,10 @@ const MenuItem = styled.button`
     border: none;
     width: 100%;
     text-align: left;
-
     padding: 0.85rem 1rem;
     font-size: 0.95rem;
-
     color: ${({ theme }) => theme.colors.text_primary};
     cursor: pointer;
-
     &:hover {
         background: ${({ theme }) => theme.colors.sixthly};
     }
@@ -169,6 +170,9 @@ const Section = styled.section<{ $delay?: number; $pop?: boolean }>`
     max-width: 960px;
     padding: ${({ theme }) => theme.spacing(5)};
     margin-bottom: ${({ theme }) => theme.spacing(4)};
+    background: ${({ theme }) => theme.colors.card_bg};
+    border-radius: ${({ theme }) => theme.radius.lg};
+    box-shadow: ${({ theme }) => theme.colors.card_shadow};
 
     animation: ${({ $pop }) => ($pop ? softPop : smoothRise)} 0.6s ease-out;
     animation-delay: ${({ $delay }) => ($delay ? `${$delay}ms` : "0ms")};
@@ -188,6 +192,10 @@ const DashboardSection = styled.div<{ $delay?: number }>`
     animation: ${softPop} 0.65s ease-out;
     animation-delay: ${({ $delay }) => ($delay ? `${$delay}ms` : "0ms")};
     animation-fill-mode: both;
+
+    h2 {
+        margin-bottom: ${({ theme }) => theme.spacing(2)};
+    }
 `;
 
 const WelcomeText = styled.h2`
@@ -209,6 +217,7 @@ export const HomePage: React.FC = () => {
     const [bucket, setBucket] = useState<RiskLevel>("MEDIUM");
     const [loading, setLoading] = useState(true);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
     /* Dropdown Menu */
     const [menuOpen, setMenuOpen] = useState(false);
@@ -238,12 +247,16 @@ export const HomePage: React.FC = () => {
         return () => mq.removeEventListener("change", update);
     }, []);
 
-    /* Load prediction */
+    /* Load prediction + avatar */
     const loadPrediction = useCallback(async () => {
         try {
             const res = await axiosClient.get<MeResponse>("/api/auth/me");
             const u = res.data.user;
             if (!u) throw new Error("Missing user");
+
+            if (u.avatarUrl) {
+                setAvatarUrl(u.avatarUrl);
+            }
 
             const pred = await axiosClient.post<PredictResponse>("/api/ml/predict", {
                 pulling_severity: u.pulling_severity ?? 5,
@@ -285,12 +298,13 @@ export const HomePage: React.FC = () => {
 
     if (!isAuthenticated) return null;
 
-    if (loading)
+    if (loading) {
         return (
             <PageWrapper>
                 <p>Loading your personalized dashboard…</p>
             </PageWrapper>
         );
+    }
 
     const predictionData = {
         risk_score: riskScore,
@@ -305,19 +319,21 @@ export const HomePage: React.FC = () => {
             <PageWrapper>
                 <Header>
                     <Link to="/">
-                        <img src={AppLogo} className="app_logo" alt="TrichMind Logo" height={50} />
+                        <img
+                            src={AppLogo}
+                            className="app_logo"
+                            alt="TrichMind Logo"
+                            height={50}
+                        />
                     </Link>
 
                     <UserMenuWrapper ref={menuRef}>
-                        <UserButton onClick={toggleMenu}>
-                            <img src={UserIcon} alt="User" />
+                        <UserButton onClick={toggleMenu} aria-label="User menu">
+                            <img src={avatarUrl || UserIcon} alt="User avatar" />
                         </UserButton>
 
                         <DropdownMenu open={menuOpen}>
-                            <MenuItem onClick={() => navigate("/profile")}>
-                                Profile
-                            </MenuItem>
-
+                            <MenuItem onClick={() => navigate("/profile")}>Profile</MenuItem>
                             <MenuItem
                                 onClick={() => {
                                     logout();
@@ -356,6 +372,7 @@ export const HomePage: React.FC = () => {
                 </DashboardSection>
             </PageWrapper>
 
+            {/* Bottom nav (shown for authenticated users) */}
             <BottomNav />
         </>
     );
