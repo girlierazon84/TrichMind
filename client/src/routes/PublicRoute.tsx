@@ -1,19 +1,21 @@
 // client/src/routes/PublicRoute.tsx
 
 import { Navigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks";
+import { ReactNode } from "react";
 
 interface PublicRouteProps {
-    children: React.ReactNode;
+    children: ReactNode;
 }
 
-/**
- * 🪩 PublicRoute
- * Redirects authenticated users away from public pages (like login/register)
- */
-export const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
+export const PublicRoute = ({ children }: PublicRouteProps) => {
     const { isAuthenticated } = useAuth();
-    return isAuthenticated ? <Navigate to="/" replace /> : <>{children}</>;
+
+    if (isAuthenticated) {
+        return <Navigate to="/" replace />;
+    }
+
+    return <>{children}</>;
 };
 
 export default PublicRoute;
