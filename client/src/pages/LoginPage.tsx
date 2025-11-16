@@ -30,9 +30,6 @@ const smoothRise = keyframes`
 const PageWrapper = styled.main`
     margin: -50px 0;
     min-height: 100vh;
-    border-radius: 25px;
-    border: 1px solid ${({ theme }) => theme.colors.card_bg};
-    box-shadow: 2px 4px 30px rgba(3, 79, 79, 0.5);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -55,7 +52,8 @@ const PremiumCard = styled.div<{ $visible: boolean }>`
 const Logo = styled.img`
     width: 95px;
     height: auto;
-    margin: -40px 0 2rem 0;
+    margin: 1rem auto;
+    display: block;
 `;
 
 const Title = styled.h1`
