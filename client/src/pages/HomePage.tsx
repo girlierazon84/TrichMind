@@ -52,7 +52,6 @@ export interface PredictResponse {
 /* -----------------------------------------------------
     Calm Premium Animations
 ----------------------------------------------------- */
-
 const fadeIn = keyframes`
     from { opacity: 0; }
     to { opacity: 1; }
@@ -76,7 +75,6 @@ const dropdownFade = keyframes`
 /* -----------------------------------------------------
     Styled Components
 ----------------------------------------------------- */
-
 const PageWrapper = styled.div`
     width: 100%;
     min-height: calc(100vh - 70px);
@@ -101,6 +99,10 @@ const Header = styled.header`
     align-items: center;
     margin-bottom: ${({ theme }) => theme.spacing(5)};
     animation: ${smoothRise} 0.5s ease-out;
+
+    .app_logo {
+        height: 100px;
+    }
 `;
 
 const UserMenuWrapper = styled.div`
@@ -201,7 +203,6 @@ const WelcomeText = styled.h2`
 /* -----------------------------------------------------
     Component
 ----------------------------------------------------- */
-
 export const HomePage: React.FC = () => {
     const navigate = useNavigate();
     const { user, isAuthenticated, logout } = useAuth();
@@ -307,7 +308,7 @@ export const HomePage: React.FC = () => {
             <PageWrapper>
                 <Header>
                     <Link to="/">
-                        <img src={AppLogo} alt="TrichMind Logo" height={50} />
+                        <img src={AppLogo} className="app_logo" alt="TrichMind Logo" height={50} />
                     </Link>
 
                     <UserMenuWrapper ref={menuRef}>
