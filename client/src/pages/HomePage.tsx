@@ -133,7 +133,7 @@ interface PredictResponse {
 }
 
 /* -----------------------------------------------------
-   Component
+    Component
 ----------------------------------------------------- */
 
 export const HomePage: React.FC = () => {
