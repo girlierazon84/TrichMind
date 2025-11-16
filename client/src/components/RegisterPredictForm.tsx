@@ -5,6 +5,8 @@ import { Link, useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { ThemeButton, FormInput } from "@/components";
 import { useRegisterAndPredict } from "@/hooks";
+import { UserIcon, BrainIcon } from "@/assets/icons";
+
 
 /* -----------------------------------------------------
     ANIMATIONS — calm, premium, soft
@@ -34,15 +36,30 @@ const FormContainer = styled.form`
   gap: 1.5rem;
   border-radius: 18px;
   animation: ${slideUp} 0.55s ease-out;
+
+  .submit-button {
+    margin-top: 1rem;
+  }
+
+  label {
+    font-weight: 600;
+    color: ${({ theme }) => theme.colors.fifthly};
+  }
 `;
 
 const SectionTitle = styled.h3`
   font-size: 1rem;
   font-weight: 600;
   text-align: left;
-  color: ${({ theme }) => theme.colors.primary};
+  color: ${({ theme }) => theme.colors.text_primary};
   margin-bottom: 1rem;
   animation: ${fadeIn} 0.6s ease-out;
+
+  img {
+    width: 17px;
+    height: 17px;
+    margin-right: 0.5rem;
+  }
 `;
 
 const ErrorMessage = styled.p`
@@ -52,7 +69,7 @@ const ErrorMessage = styled.p`
 `;
 
 const FooterText = styled.p`
-  margin-top: 1rem;
+  margin: 2rem 0;
   font-size: 0.9rem;
   color: ${({ theme }) => theme.colors.text_secondary};
   animation: ${fadeIn} 1s ease-out;
@@ -176,7 +193,10 @@ export const RegisterPredictForm: React.FC = () => {
 
       {/* Registration Form */}
       <FormContainer onSubmit={handleSubmit}>
-        <SectionTitle>👤 Account Details</SectionTitle>
+        <SectionTitle>
+          <img src={ UserIcon } alt="User Icon" />
+          ACCOUNT DETAILS
+        </SectionTitle>
 
         <FormInput
           name="email"
@@ -204,8 +224,6 @@ export const RegisterPredictForm: React.FC = () => {
           onChange={handleChange}
         />
 
-        <SectionTitle>📅 Background</SectionTitle>
-
         <FormInput
           name="date_of_birth"
           label="Date of Birth"
@@ -214,6 +232,11 @@ export const RegisterPredictForm: React.FC = () => {
           onChange={handleChange}
           required
         />
+
+        <SectionTitle>
+          <img src={ BrainIcon } alt="Brain Icon" />
+          BEHAVIOR & EMOTIONS
+        </SectionTitle>
 
         <FormInput
           name="age_of_onset"
@@ -237,8 +260,6 @@ export const RegisterPredictForm: React.FC = () => {
           required
         />
 
-        <SectionTitle>🧠 Behavior & Emotions</SectionTitle>
-
         <FormInput
           name="pulling_severity"
           label="Pulling Severity (1–10)"
@@ -253,7 +274,7 @@ export const RegisterPredictForm: React.FC = () => {
         <FormInput
           name="pulling_frequency"
           label="How often do you pull?"
-          placeholder="daily, weekly, monthly"
+          placeholder="e.g. daily, weekly, several times a week, monthly, rarely"
           value={form.pulling_frequency}
           onChange={handleChange}
           required
@@ -261,8 +282,8 @@ export const RegisterPredictForm: React.FC = () => {
 
         <FormInput
           name="pulling_awareness"
-          label="Awareness while pulling"
-          placeholder="yes, sometimes, no"
+          label="Are you aware while pulling?"
+          placeholder="e.g. yes, sometimes, no"
           value={form.pulling_awareness}
           onChange={handleChange}
           required
@@ -270,8 +291,8 @@ export const RegisterPredictForm: React.FC = () => {
 
         <FormInput
           name="successfully_stopped"
-          label="Successfully stopped?"
-          placeholder="yes or no"
+          label="Have you successfully stopped?"
+          placeholder="e.g. yes, no"
           value={form.successfully_stopped}
           onChange={handleChange}
           required
@@ -279,7 +300,7 @@ export const RegisterPredictForm: React.FC = () => {
 
         <FormInput
           name="how_long_stopped_days"
-          label="How long stopped (days)"
+          label="How long you stopped pulling? (days)"
           type="number"
           min={0}
           value={form.how_long_stopped_days}
@@ -290,13 +311,13 @@ export const RegisterPredictForm: React.FC = () => {
         <FormInput
           name="emotion"
           label="Current Emotion"
-          placeholder="anxious, calm, stressed"
+          placeholder="e.g. anxious, calm, stressed"
           value={form.emotion}
           onChange={handleChange}
           required
         />
 
-        <ThemeButton type="submit" disabled={submitting}>
+        <ThemeButton className="submit-button" type="submit" disabled={submitting}>
           {submitting ? "Submitting..." : "Register & Predict Relapse Risk"}
         </ThemeButton>
 
