@@ -1,14 +1,154 @@
 // client/src/pages/ProfilePage.tsx
 
 import React, { useEffect, useState } from "react";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import { useAuth } from "@/hooks";
-import { axiosClient, authApi } from "@/services"; // ✅ FIX: import authApi
+import { axiosClient, authApi } from "@/services";
 import { ThemeButton, FormInput } from "@/components";
+import { useNavigate } from "react-router-dom";
+import backIcon from "@/assets/icons/back.png"; // ✅ make sure you have an icon
 
-/* ------------------------------------------
- * Types
- * ------------------------------------------ */
+/* -----------------------------------------------------
+   Animations
+----------------------------------------------------- */
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
+/* -----------------------------------------------------
+   Styled Components
+----------------------------------------------------- */
+const Wrapper = styled.main`
+  margin: 2.5rem auto;
+  padding: 2rem;
+  animation: ${fadeIn} 0.4s ease-out;
+
+  @media (max-width: 768px) {
+    padding: 1.5rem;
+  }
+`;
+
+const Header = styled.header`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+`;
+
+const BackButton = styled.button`
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+
+  img {
+    width: 28px;
+    height: 28px;
+    filter: grayscale(0.3);
+    transition: transform 0.2s ease, filter 0.2s ease;
+  }
+
+  &:hover img {
+    transform: translateX(-3px);
+    filter: grayscale(0);
+  }
+`;
+
+const Title = styled.h1`
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: ${({ theme }) => theme.colors.primary};
+  margin: 0;
+  flex: 1;
+  text-align: center;
+`;
+
+const AvatarWrapper = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  position: relative;
+`;
+
+const Avatar = styled.img`
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid ${({ theme }) => theme.colors.primary};
+`;
+
+const EditAvatarButton = styled.label`
+  position: absolute;
+  bottom: 4px;
+  right: calc(50% - 55px);
+  background: ${({ theme }) => theme.colors.primary};
+  color: white;
+  padding: 0.35rem 0.7rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-weight: 600;
+`;
+
+const SectionTitle = styled.h3`
+  margin: 1.25rem 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.primary};
+`;
+
+const ButtonRow = styled.div`
+  margin-top: 2rem;
+  display: flex;
+  gap: 1rem;
+
+  button {
+    flex: 1;
+  }
+`;
+
+const LoadingText = styled.p`
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.1rem;
+`;
+
+const ErrorMessage = styled.p`
+  color: ${({ theme }) => theme.colors.high_risk};
+  text-align: center;
+  margin-bottom: 1rem;
+`;
+
+const SuccessMessage = styled.p`
+  color: ${({ theme }) => theme.colors.primary};
+  text-align: center;
+  margin-bottom: 1rem;
+`;
+
+const PasswordBox = styled.div`
+  margin-top: 2rem;
+  padding: 1.25rem;
+`;
+
+const PasswordTitle = styled.h3`
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: ${({ theme }) => theme.colors.primary};
+`;
+
+const PasswordMessage = styled.p<{ success?: boolean }>`
+  color: ${({ success, theme }) =>
+        success ? theme.colors.primary : theme.colors.high_risk};
+  margin-top: 1rem;
+  text-align: center;
+`;
+
+/* -----------------------------------------------------
+   Component
+----------------------------------------------------- */
 interface ExtendedUser {
     id: string;
     email: string;
@@ -18,117 +158,8 @@ interface ExtendedUser {
     avatarUrl?: string;
 }
 
-/* ------------------------------------------
- * Styled Components
- * ------------------------------------------ */
-const Wrapper = styled.main`
-    max-width: 760px;
-    margin: 2.5rem auto;
-    padding: 2rem;
-    background: ${({ theme }) => theme.colors.card_bg};
-    border-radius: 18px;
-    box-shadow: ${({ theme }) => theme.colors.card_shadow};
-`;
-
-const Title = styled.h1`
-    font-size: 1.9rem;
-    font-weight: 700;
-    color: ${({ theme }) => theme.colors.primary};
-    margin-bottom: 1rem;
-    text-align: center;
-`;
-
-const AvatarWrapper = styled.div`
-    display: flex;
-    justify-content: center;
-    margin-bottom: 1.5rem;
-    position: relative;
-`;
-
-const Avatar = styled.img`
-    width: 110px;
-    height: 110px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 3px solid ${({ theme }) => theme.colors.primary};
-`;
-
-const EditAvatarButton = styled.label`
-    position: absolute;
-    bottom: 4px;
-    right: calc(50% - 55px);
-    background: ${({ theme }) => theme.colors.primary};
-    color: white;
-    padding: 0.35rem 0.7rem;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    cursor: pointer;
-    font-weight: 600;
-`;
-
-const SectionTitle = styled.h3`
-    margin: 1.25rem 0 0.75rem;
-    font-size: 1rem;
-    font-weight: 600;
-    color: ${({ theme }) => theme.colors.primary};
-`;
-
-const ButtonRow = styled.div`
-    margin-top: 2rem;
-    display: flex;
-    gap: 1rem;
-
-    button {
-        flex: 1;
-    }
-`;
-
-const LoadingText = styled.p`
-    text-align: center;
-    padding: 2rem;
-    font-size: 1.1rem;
-`;
-
-const ErrorMessage = styled.p`
-    color: ${({ theme }) => theme.colors.high_risk};
-    text-align: center;
-    margin-bottom: 1rem;
-`;
-
-const SuccessMessage = styled.p`
-    color: ${({ theme }) => theme.colors.primary};
-    text-align: center;
-    margin-bottom: 1rem;
-`;
-
-/* FIX: card_bg_alt → fallback to card_bg */
-const PasswordBox = styled.div`
-    margin-top: 2rem;
-    padding: 1.25rem;
-    border-radius: 12px;
-    background: ${({ theme }) =>
-        theme.colors.card_bg || theme.colors.card_bg};
-    box-shadow: ${({ theme }) => theme.colors.card_shadow};
-`;
-
-const PasswordTitle = styled.h3`
-    font-size: 1.05rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    color: ${({ theme }) => theme.colors.primary};
-`;
-
-const PasswordMessage = styled.p<{ success?: boolean }>`
-    color: ${({ success, theme }) =>
-        success ? theme.colors.primary : theme.colors.high_risk};
-    margin-top: 1rem;
-    text-align: center;
-`;
-
-/* ------------------------------------------
- * Component
- * ------------------------------------------ */
 export const ProfilePage: React.FC = () => {
+    const navigate = useNavigate();
     const { isAuthenticated, logout } = useAuth();
 
     const [profile, setProfile] = useState<ExtendedUser | null>(null);
@@ -138,7 +169,6 @@ export const ProfilePage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
 
-    // Password change
     const [oldPassword, setOldPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -146,9 +176,7 @@ export const ProfilePage: React.FC = () => {
     const [passwordSuccess, setPasswordSuccess] = useState(false);
     const [changing, setChanging] = useState(false);
 
-    /* --------------------------------------------------------
-     * Load profile
-     * -------------------------------------------------------- */
+    /* Load profile */
     useEffect(() => {
         if (!isAuthenticated) return;
 
@@ -162,31 +190,23 @@ export const ProfilePage: React.FC = () => {
             .finally(() => setLoading(false));
     }, [isAuthenticated]);
 
-    /* --------------------------------------------------------
-     * Input change
-     * -------------------------------------------------------- */
+    /* Handle input change */
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!profile) return;
         setProfile({ ...profile, [e.target.name]: e.target.value });
     };
 
-    /* --------------------------------------------------------
-     * Avatar upload preview only
-     * -------------------------------------------------------- */
+    /* Avatar preview */
     const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         setAvatarPreview(URL.createObjectURL(file));
-        // TODO: Add backend upload later
     };
 
-    /* --------------------------------------------------------
-     * Save profile changes
-     * -------------------------------------------------------- */
+    /* Save profile */
     const handleSave = async () => {
         if (!profile) return;
-
         setSaving(true);
         setError(null);
         setSuccess(null);
@@ -196,7 +216,6 @@ export const ProfilePage: React.FC = () => {
                 "/api/users/profile",
                 profile
             );
-
             setProfile(res.data.user);
             setSuccess("Profile updated successfully!");
         } catch {
@@ -206,9 +225,7 @@ export const ProfilePage: React.FC = () => {
         }
     };
 
-    /* --------------------------------------------------------
-     * Password change
-     * -------------------------------------------------------- */
+    /* Change password */
     const handlePasswordChange = async () => {
         setPasswordMsg(null);
         setPasswordSuccess(false);
@@ -231,10 +248,7 @@ export const ProfilePage: React.FC = () => {
         setChanging(true);
 
         try {
-            await authApi.changePassword({
-                oldPassword,
-                newPassword,
-            });
+            await authApi.changePassword({ oldPassword, newPassword });
 
             setPasswordSuccess(true);
             setPasswordMsg("Password updated successfully!");
@@ -249,16 +263,25 @@ export const ProfilePage: React.FC = () => {
         }
     };
 
-    /* --------------------------------------------------------
-     * UI States
-     * -------------------------------------------------------- */
-    if (!isAuthenticated) return <LoadingText>Please login…</LoadingText>;
-    if (loading) return <LoadingText>Loading your profile…</LoadingText>;
-    if (!profile) return <ErrorMessage>Error loading profile.</ErrorMessage>;
+    /* UI states */
+    if (!isAuthenticated)
+        return <LoadingText>Please login…</LoadingText>;
+
+    if (loading)
+        return <LoadingText>Loading your profile…</LoadingText>;
+
+    if (!profile)
+        return <ErrorMessage>Error loading profile.</ErrorMessage>;
 
     return (
         <Wrapper>
-            <Title>Your Profile</Title>
+            {/* HEADER WITH BACK BUTTON */}
+            <Header>
+                <BackButton onClick={() => navigate("/")}>
+                    <img src={backIcon} alt="Go back" />
+                </BackButton>
+                <Title>Your Profile</Title>
+            </Header>
 
             {/* Avatar */}
             <AvatarWrapper>
@@ -272,14 +295,12 @@ export const ProfilePage: React.FC = () => {
             {error && <ErrorMessage>{error}</ErrorMessage>}
             {success && <SuccessMessage>{success}</SuccessMessage>}
 
-            {/* Editable Fields */}
             <SectionTitle>Account</SectionTitle>
 
             <FormInput
                 label="Email"
                 name="email"
-                value={profile.email}
-                disabled
+                value={profile.email} disabled
                 onChange={() => {}}
             />
 
@@ -347,7 +368,7 @@ export const ProfilePage: React.FC = () => {
                 )}
             </PasswordBox>
 
-            {/* Bottom Buttons */}
+            {/* Action Buttons */}
             <ButtonRow>
                 <ThemeButton onClick={handleSave} disabled={saving}>
                     {saving ? "Saving…" : "Save Changes"}
