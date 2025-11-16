@@ -9,12 +9,19 @@ import {
 import { useAuth } from "@/hooks";
 
 // Import pages directly (safer than barrel import)
-import HomePage from "@/pages/HomePage";
-import LoginPage from "@/pages/LoginPage";
-import RegistrationPage from "@/pages/RegistrationPage";
-import ProfilePage from "@/pages/ProfilePage";
 import { PrivateRoute, PublicRoute } from "@/routes";
-import { BottomNav } from "@/components/BottomNav";
+import { BottomNav } from "@/components";
+import {
+    RegistrationPage,
+    LoginPage,
+    ProfilePage,
+    HomePage,
+    HealthPage,
+    JournalPage,
+    TriggersInsightsPage,
+    TrichGamePage,
+    TrichBotPage
+} from "@/pages";
 
 
 // Define application routes
@@ -26,6 +33,51 @@ export const AppRoutes = () => {
 
             <Routes>
                 {/* HOME */}
+                <Route
+                    path="/trichbot"
+                    element={
+                        <PrivateRoute>
+                            <TrichBotPage />
+                        </PrivateRoute>
+                    }
+                />
+
+                <Route
+                    path="/trichgame"
+                    element={
+                        <PrivateRoute>
+                            <TrichGamePage />
+                        </PrivateRoute>
+                    }
+                />
+
+                <Route
+                    path="/triggers-insights"
+                    element={
+                        <PrivateRoute>
+                            <TriggersInsightsPage />
+                        </PrivateRoute>
+                    }
+                />
+
+                <Route
+                    path="/journal"
+                    element={
+                        <PrivateRoute>
+                            <JournalPage />
+                        </PrivateRoute>
+                    }
+                />
+
+                <Route
+                    path="/health"
+                    element={
+                        <PrivateRoute>
+                            <HealthPage />
+                        </PrivateRoute>
+                    }
+                />
+
                 <Route
                     path="/"
                     element={
