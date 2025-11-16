@@ -8,6 +8,7 @@ export const ThemeButton = styled.button`
     border: none;
     border-radius: 8px;
     padding: 10px 20px;
+    width: 100%;
     cursor: pointer;
     font-weight: 600;
     box-shadow: ${({ theme }) => theme.colors.card_shadow};
