@@ -6,10 +6,10 @@ import { useAuth } from "@/hooks";
 import { axiosClient, authApi } from "@/services";
 import { ThemeButton, FormInput } from "@/components";
 import { useNavigate } from "react-router-dom";
-import backIcon from "@/assets/icons/back.png"; // ✅ make sure you have an icon
+import { BackIcon, UserIcon } from "@/assets/icons";
 
 /* -----------------------------------------------------
-   Animations
+    Animations
 ----------------------------------------------------- */
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(12px); }
@@ -17,16 +17,12 @@ const fadeIn = keyframes`
 `;
 
 /* -----------------------------------------------------
-   Styled Components
+    Styled Components
 ----------------------------------------------------- */
 const Wrapper = styled.main`
   margin: 2.5rem auto;
   padding: 2rem;
   animation: ${fadeIn} 0.4s ease-out;
-
-  @media (max-width: 768px) {
-    padding: 1.5rem;
-  }
 `;
 
 const Header = styled.header`
@@ -59,8 +55,8 @@ const Title = styled.h1`
   font-size: 1.9rem;
   font-weight: 700;
   color: ${({ theme }) => theme.colors.primary};
-  margin: 0;
   flex: 1;
+  margin: 0;
   text-align: center;
 `;
 
@@ -89,7 +85,6 @@ const EditAvatarButton = styled.label`
   border-radius: 20px;
   font-size: 0.75rem;
   cursor: pointer;
-  font-weight: 600;
 `;
 
 const SectionTitle = styled.h3`
@@ -112,19 +107,16 @@ const ButtonRow = styled.div`
 const LoadingText = styled.p`
   text-align: center;
   padding: 2rem;
-  font-size: 1.1rem;
 `;
 
 const ErrorMessage = styled.p`
   color: ${({ theme }) => theme.colors.high_risk};
   text-align: center;
-  margin-bottom: 1rem;
 `;
 
 const SuccessMessage = styled.p`
   color: ${({ theme }) => theme.colors.primary};
   text-align: center;
-  margin-bottom: 1rem;
 `;
 
 const PasswordBox = styled.div`
@@ -134,250 +126,244 @@ const PasswordBox = styled.div`
 
 const PasswordTitle = styled.h3`
   font-size: 1.05rem;
-  font-weight: 600;
   margin-bottom: 1rem;
   color: ${({ theme }) => theme.colors.primary};
 `;
 
 const PasswordMessage = styled.p<{ success?: boolean }>`
   color: ${({ success, theme }) =>
-        success ? theme.colors.primary : theme.colors.high_risk};
+    success ? theme.colors.primary : theme.colors.high_risk};
   margin-top: 1rem;
   text-align: center;
 `;
 
 /* -----------------------------------------------------
-   Component
+    Component
 ----------------------------------------------------- */
 interface ExtendedUser {
-    id: string;
-    email: string;
-    displayName?: string;
-    age?: number;
-    years_since_onset?: number;
-    avatarUrl?: string;
+  id: string;
+  email: string;
+  displayName?: string;
+  age?: number;
+  years_since_onset?: number;
+  avatarUrl?: string;
 }
 
 export const ProfilePage: React.FC = () => {
-    const navigate = useNavigate();
-    const { isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
+  const { isAuthenticated, logout } = useAuth();
 
-    const [profile, setProfile] = useState<ExtendedUser | null>(null);
-    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
+  const [profile, setProfile] = useState<ExtendedUser | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
-    const [oldPassword, setOldPassword] = useState("");
-    const [newPassword, setNewPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [passwordMsg, setPasswordMsg] = useState<string | null>(null);
-    const [passwordSuccess, setPasswordSuccess] = useState(false);
-    const [changing, setChanging] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-    /* Load profile */
-    useEffect(() => {
-        if (!isAuthenticated) return;
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordMsg, setPasswordMsg] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [changing, setChanging] = useState(false);
 
-        axiosClient
-            .get<{ ok: boolean; user: ExtendedUser }>("/api/auth/me")
-            .then((res) => {
-                setProfile(res.data.user);
-                setAvatarPreview(res.data.user.avatarUrl || "/assets/icons/user.png");
-            })
-            .catch(() => setError("Failed to load profile."))
-            .finally(() => setLoading(false));
-    }, [isAuthenticated]);
+  /* Load profile */
+  useEffect(() => {
+    if (!isAuthenticated) return;
 
-    /* Handle input change */
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!profile) return;
-        setProfile({ ...profile, [e.target.name]: e.target.value });
-    };
+    axiosClient
+      .get<{ ok: boolean; user: ExtendedUser }>("/api/auth/me")
+      .then((res) => {
+        setProfile(res.data.user);
+        setAvatarPreview(res.data.user.avatarUrl || "/assets/icons/user.png");
+      })
+      .catch(() => setError("Failed to load profile."))
+      .finally(() => setLoading(false));
+  }, [isAuthenticated]);
 
-    /* Avatar preview */
-    const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+  /* Input change */
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!profile) return;
+    setProfile({ ...profile, [e.target.name]: e.target.value });
+  };
 
-        setAvatarPreview(URL.createObjectURL(file));
-    };
+  /* Avatar upload */
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    /* Save profile */
-    const handleSave = async () => {
-        if (!profile) return;
-        setSaving(true);
-        setError(null);
-        setSuccess(null);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
 
-        try {
-            const res = await axiosClient.patch<{ ok: boolean; user: ExtendedUser }>(
-                "/api/users/profile",
-                profile
-            );
-            setProfile(res.data.user);
-            setSuccess("Profile updated successfully!");
-        } catch {
-            setError("Failed to save changes.");
-        } finally {
-            setSaving(false);
-        }
-    };
+  /* Save profile */
+  const handleSave = async () => {
+    if (!profile) return;
 
-    /* Change password */
-    const handlePasswordChange = async () => {
-        setPasswordMsg(null);
-        setPasswordSuccess(false);
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
 
-        if (!oldPassword || !newPassword) {
-            setPasswordMsg("All fields required.");
-            return;
-        }
+    try {
+      const res = await axiosClient.patch<{ ok: boolean; user: ExtendedUser }>(
+        "/api/users/profile",
+        profile
+      );
 
-        if (newPassword.length < 8) {
-            setPasswordMsg("New password must be at least 8 characters.");
-            return;
-        }
+      setProfile(res.data.user);
+      setSuccess("Profile updated successfully!");
+    } catch {
+      setError("Failed to save changes.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
-        if (newPassword !== confirmPassword) {
-            setPasswordMsg("New passwords do not match.");
-            return;
-        }
+  /* Change password */
+  const handlePasswordChange = async () => {
+    setPasswordMsg(null);
+    setPasswordSuccess(false);
 
-        setChanging(true);
+    if (!oldPassword || !newPassword) {
+      setPasswordMsg("All fields required.");
+      return;
+    }
 
-        try {
-            await authApi.changePassword({ oldPassword, newPassword });
+    if (newPassword.length < 8) {
+      setPasswordMsg("Password must be at least 8 characters.");
+      return;
+    }
 
-            setPasswordSuccess(true);
-            setPasswordMsg("Password updated successfully!");
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg("Passwords do not match.");
+      return;
+    }
 
-            setOldPassword("");
-            setNewPassword("");
-            setConfirmPassword("");
-        } catch {
-            setPasswordMsg("Incorrect old password OR failed to update.");
-        } finally {
-            setChanging(false);
-        }
-    };
+    setChanging(true);
 
-    /* UI states */
-    if (!isAuthenticated)
-        return <LoadingText>Please login…</LoadingText>;
+    try {
+      await authApi.changePassword({ oldPassword, newPassword });
+      setPasswordSuccess(true);
+      setPasswordMsg("Password updated successfully!");
 
-    if (loading)
-        return <LoadingText>Loading your profile…</LoadingText>;
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch {
+      setPasswordMsg("Incorrect old password.");
+    } finally {
+      setChanging(false);
+    }
+  };
 
-    if (!profile)
-        return <ErrorMessage>Error loading profile.</ErrorMessage>;
+  /* UI states */
+  if (!isAuthenticated) return <LoadingText>Please login…</LoadingText>;
+  if (loading) return <LoadingText>Loading your profile…</LoadingText>;
+  if (!profile) return <ErrorMessage>Error loading profile.</ErrorMessage>;
 
-    return (
-        <Wrapper>
-            {/* HEADER WITH BACK BUTTON */}
-            <Header>
-                <BackButton onClick={() => navigate("/")}>
-                    <img src={backIcon} alt="Go back" />
-                </BackButton>
-                <Title>Your Profile</Title>
-            </Header>
+  return (
+    <Wrapper>
+      <Header>
+        <BackButton onClick={() => navigate("/")}>
+          <img src={BackIcon} alt="Go back" />
+        </BackButton>
+        <Title>Your Profile</Title>
+      </Header>
 
-            {/* Avatar */}
-            <AvatarWrapper>
-                <Avatar src={avatarPreview || "/assets/icons/user.png"} alt="avatar" />
-                <EditAvatarButton>
-                    Change
-                    <input type="file" hidden accept="image/*" onChange={handleAvatarUpload} />
-                </EditAvatarButton>
-            </AvatarWrapper>
+      <AvatarWrapper>
+        <Avatar src={avatarPreview || UserIcon} alt="avatar" />
+        <EditAvatarButton>
+          Change
+          <input type="file" hidden accept="image/*" onChange={handleAvatarUpload} />
+        </EditAvatarButton>
+      </AvatarWrapper>
 
-            {error && <ErrorMessage>{error}</ErrorMessage>}
-            {success && <SuccessMessage>{success}</SuccessMessage>}
+      {error && <ErrorMessage>{error}</ErrorMessage>}
+      {success && <SuccessMessage>{success}</SuccessMessage>}
 
-            <SectionTitle>Account</SectionTitle>
+      <SectionTitle>Account</SectionTitle>
 
-            <FormInput
-                label="Email"
-                name="email"
-                value={profile.email} disabled
-                onChange={() => {}}
-            />
+      <FormInput
+        label="Email"
+        name="email"
+        value={profile.email}
+        disabled
+        onChange={() => {}}
+      />
 
-            <FormInput
-                label="Display Name"
-                name="displayName"
-                value={profile.displayName || ""}
-                onChange={handleChange}
-            />
+      <FormInput
+        label="Display Name"
+        name="displayName"
+        value={profile.displayName || ""}
+        onChange={handleChange}
+      />
 
-            <SectionTitle>Details</SectionTitle>
+      <SectionTitle>Details</SectionTitle>
 
-            <FormInput
-                label="Age"
-                name="age"
-                type="number"
-                value={profile.age ?? ""}
-                onChange={handleChange}
-            />
+      <FormInput
+        label="Age"
+        name="age"
+        type="number"
+        value={profile.age ?? ""}
+        onChange={handleChange}
+      />
 
-            <FormInput
-                label="Years Since Onset"
-                name="years_since_onset"
-                type="number"
-                value={profile.years_since_onset ?? ""}
-                onChange={handleChange}
-            />
+      <FormInput
+        label="Years Since Onset"
+        name="years_since_onset"
+        type="number"
+        value={profile.years_since_onset ?? ""}
+        onChange={handleChange}
+      />
 
-            {/* Password Change */}
-            <PasswordBox>
-                <PasswordTitle>Change Password</PasswordTitle>
+      {/* Password Change */}
+      <PasswordBox>
+        <PasswordTitle>Change Password</PasswordTitle>
 
-                <FormInput
-                    label="Current Password"
-                    name="oldPassword"
-                    type="password"
-                    value={oldPassword}
-                    onChange={(e) => setOldPassword(e.target.value)}
-                />
+        <FormInput
+          label="Current Password"
+          name="oldPassword"
+          type="password"
+          value={oldPassword}
+          onChange={(e) => setOldPassword(e.target.value)}
+        />
 
-                <FormInput
-                    label="New Password"
-                    name="newPassword"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                />
+        <FormInput
+          label="New Password"
+          name="newPassword"
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+        />
 
-                <FormInput
-                    label="Confirm New Password"
-                    name="confirmPassword"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                />
+        <FormInput
+          label="Confirm New Password"
+          name="confirmPassword"
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+        />
 
-                <ThemeButton onClick={handlePasswordChange} disabled={changing}>
-                    {changing ? "Updating…" : "Update Password"}
-                </ThemeButton>
+        <ThemeButton onClick={handlePasswordChange} disabled={changing}>
+          {changing ? "Updating…" : "Update Password"}
+        </ThemeButton>
 
-                {passwordMsg && (
-                    <PasswordMessage success={passwordSuccess}>
-                        {passwordMsg}
-                    </PasswordMessage>
-                )}
-            </PasswordBox>
+        {passwordMsg && (
+          <PasswordMessage success={passwordSuccess}>
+            {passwordMsg}
+          </PasswordMessage>
+        )}
+      </PasswordBox>
 
-            {/* Action Buttons */}
-            <ButtonRow>
-                <ThemeButton onClick={handleSave} disabled={saving}>
-                    {saving ? "Saving…" : "Save Changes"}
-                </ThemeButton>
+      <ButtonRow>
+        <ThemeButton onClick={handleSave} disabled={saving}>
+          {saving ? "Saving…" : "Save Changes"}
+        </ThemeButton>
 
-                <ThemeButton onClick={logout}>Logout</ThemeButton>
-            </ButtonRow>
-        </Wrapper>
-    );
+        <ThemeButton onClick={logout}>Logout</ThemeButton>
+      </ButtonRow>
+    </Wrapper>
+  );
 };
 
 export default ProfilePage;
