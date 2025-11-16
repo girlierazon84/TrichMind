@@ -1,61 +1,35 @@
 // client/src/pages/ProfilePage.tsx
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import styled, { keyframes, css } from "styled-components";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks";
 import { axiosClient, authApi } from "@/services";
 import { ThemeButton, FormInput } from "@/components";
-import { useNavigate } from "react-router-dom";
 import { BackIcon, UserIcon } from "@/assets/icons";
 
 
 /* -----------------------------------------------------
     Animations
 ----------------------------------------------------- */
-const fadeIn = keyframes`
-  from { opacity: 0; transform: translateY(16px); }
+const pageFade = keyframes`
+  from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
 `;
 
-const cardRise = keyframes`
-  from { opacity: 0; transform: translateY(22px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-`;
-
 const pulse = keyframes`
-  0%   { box-shadow: 0 0 0 0 rgba(73, 143, 255, 0.45); }
-  70%  { box-shadow: 0 0 0 12px rgba(73, 143, 255, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(73, 143, 255, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(91, 138, 255, 0.5); transform: translateY(0); }
+  70%  { box-shadow: 0 0 0 12px rgba(91, 138, 255, 0); transform: translateY(-1px); }
+  100% { box-shadow: 0 0 0 0 rgba(91, 138, 255, 0); transform: translateY(0); }
 `;
 
 /* -----------------------------------------------------
-    Styled Components — Layout
+    Styled Components
 ----------------------------------------------------- */
 const Wrapper = styled.main`
-  min-height: calc(100vh - 70px);
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 2.5rem 1.5rem;
-  animation: ${fadeIn} 0.45s ease-out;
-
-  @media (max-width: 768px) {
-    padding: 1.5rem 1rem 3.5rem;
-  }
-`;
-
-const ProfileCard = styled.section`
-  width: 100%;
-  max-width: 720px;
-  background: ${({ theme }) => theme.colors.card_bg};
-  border-radius: 24px;
-  padding: 2rem 2.4rem 2.4rem;
-  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
-  animation: ${cardRise} 0.5s ease-out;
-
-  @media (max-width: 768px) {
-    padding: 1.6rem 1.4rem 2.2rem;
-  }
+  margin: 2.5rem auto;
+  padding: 2.2rem 2rem 2.5rem;
+  animation: ${pageFade} 0.45s ease-out;
 `;
 
 const Header = styled.header`
@@ -75,7 +49,7 @@ const BackButton = styled.button`
     width: 28px;
     height: 28px;
     filter: grayscale(0.3);
-    transition: transform 0.2s ease, filter 0.2s ease;
+    transition: 0.2s ease;
   }
 
   &:hover img {
@@ -89,103 +63,72 @@ const Title = styled.h1`
   font-weight: 700;
   color: ${({ theme }) => theme.colors.primary};
   flex: 1;
-  margin: 0;
   text-align: center;
 `;
 
-/* -----------------------------------------------------
-    Avatar & Cropping
------------------------------------------------------ */
 const AvatarWrapper = styled.div`
   display: flex;
   justify-content: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.8rem;
   position: relative;
 `;
 
-const AvatarFrame = styled.div`
-  width: 110px;
-  height: 110px;
+const AvatarOuter = styled.div`
+  width: 126px;
+  height: 126px;
   border-radius: 50%;
-  border: 3px solid ${({ theme }) => theme.colors.primary};
-  overflow: hidden;
+  padding: 3px;
+  background: radial-gradient(circle at 30% 0, #fff, transparent 55%),
+              radial-gradient(circle at 80% 110%, rgba(140, 189, 255, 0.7), transparent 60%);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 30% 20%, #ffffff, #dbeafe);
 `;
 
-const AvatarImage = styled.img<{ $zoom?: number }>`
-  width: 100%;
-  height: 100%;
+const Avatar = styled.img`
+  width: 116px;
+  height: 116px;
+  border-radius: 50%;
   object-fit: cover;
-  transform: scale(${({ $zoom = 1 }) => $zoom});
-  transition: transform 0.2s ease-out;
 `;
 
 const EditAvatarButton = styled.label`
   position: absolute;
   bottom: 4px;
-  right: calc(50% - 55px);
+  right: calc(50% - 60px);
   background: ${({ theme }) => theme.colors.primary};
   color: white;
   padding: 0.35rem 0.75rem;
-  border-radius: 20px;
+  border-radius: 999px;
   font-size: 0.75rem;
   cursor: pointer;
   font-weight: 600;
 `;
 
-/* Cropping Modal */
-const CropOverlay = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 6000;
+/* FORM SECTIONS */
+const SectionRow = styled.div`
+  display: grid;
+  grid-template-columns: 1.3fr 1.1fr;
+  gap: 2rem;
+
+  hr.hr {
+    border: none;
+    border-top: 1px dashed ${({ theme }) => theme.colors.text_secondary};
+    margin: 1rem 0;
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
 `;
 
-const CropCard = styled.div`
-  background: ${({ theme }) => theme.colors.card_bg};
-  border-radius: 20px;
-  padding: 1.8rem 1.6rem 1.4rem;
-  max-width: 420px;
-  width: 92%;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.5);
+const Section = styled.section`
+  padding: 1.25rem;
 `;
 
-const CropTitle = styled.h2`
-  font-size: 1.25rem;
-  margin: 0 0 1rem 0;
-  text-align: center;
-  color: ${({ theme }) => theme.colors.primary};
-`;
-
-const CropPreview = styled.div`
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1rem;
-`;
-
-const CropSlider = styled.input.attrs({ type: "range" })`
-  width: 100%;
-  margin: 0.5rem 0 1rem;
-`;
-
-const CropActions = styled.div`
-  display: flex;
-  justify-content: center;
-`;
-
-/* -----------------------------------------------------
-    Text & Messages
------------------------------------------------------ */
 const SectionTitle = styled.h3`
-  margin: 1.25rem 0 0.75rem;
-  font-size: 1rem;
-  font-weight: 600;
+  margin-bottom: 0.75rem;
   color: ${({ theme }) => theme.colors.primary};
 `;
 
@@ -193,58 +136,95 @@ const ButtonRow = styled.div`
   margin-top: 2rem;
   display: flex;
   gap: 1rem;
+`;
+
+const PrimarySaveButton = styled(ThemeButton)<{ $pulse?: boolean }>`
+  ${({ $pulse }) =>
+    $pulse &&
+    css`
+      animation: ${pulse} 1.6s ease-out infinite;
+    `}
+`;
+
+/* SECONDARY BUTTON FIX */
+const SecondaryButton = styled(ThemeButton)`
+  opacity: 0.75;
+`;
+
+/* Loading text shown while auth/profile loads */
+const LoadingText = styled.div`
+  padding: 1.5rem;
+  text-align: center;
+  color: ${({ theme }) => theme.colors.primary};
+`;
+
+const PasswordMessage = styled.div<{ success?: boolean }>`
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  font-weight: 600;
+  color: ${({ success, theme }) => (success ? "#0a7a3a" : theme.colors.primary)};
+  background: ${({ success }) => (success ? "rgba(10,122,58,0.06)" : "transparent")};
+`;
+
+/* --------------- CROP MODAL ---------------- */
+const CropOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 4500;
+`;
+
+const CropCard = styled.div`
+  background: ${({ theme }) => theme.colors.card_bg};
+  padding: 1.5rem;
+  border-radius: 18px;
+  width: 90%;
+  max-width: 420px;
+`;
+
+const CropTitle = styled.h2`
+  text-align: center;
+  color: ${({ theme }) => theme.colors.primary};
+  margin-bottom: 1rem;
+`;
+
+const CropArea = styled.div`
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin: 0 auto 1.2rem;
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+const CropPreview = styled.img<{ $zoom: number }>`
+  width: ${({ $zoom }) => $zoom * 100}%;
+  height: ${({ $zoom }) => $zoom * 100}%;
+  object-fit: cover;
+`;
+
+const SliderRow = styled.div`
+  margin-bottom: 1.2rem;
+`;
+
+const CropButtons = styled.div`
+  display: flex;
+  gap: 0.75rem;
 
   button {
     flex: 1;
   }
 `;
 
-const LoadingText = styled.p`
-  text-align: center;
-  padding: 2rem;
-`;
-
-const ErrorMessage = styled.p`
-  color: ${({ theme }) => theme.colors.high_risk};
-  text-align: center;
-`;
-
-const SuccessMessage = styled.p`
-  color: ${({ theme }) => theme.colors.primary};
-  text-align: center;
-`;
-
-const PasswordBox = styled.div`
-  margin-top: 2rem;
-  padding: 1.25rem;
-  border-radius: 16px;
-  background: rgba(148, 163, 184, 0.07);
-`;
-
-const PasswordTitle = styled.h3`
-  font-size: 1.05rem;
-  margin-bottom: 1rem;
-  color: ${({ theme }) => theme.colors.primary};
-`;
-
-const PasswordMessage = styled.p<{ success?: boolean }>`
-  color: ${({ success, theme }) =>
-    success ? theme.colors.primary : theme.colors.high_risk};
-  margin-top: 1rem;
-  text-align: center;
-`;
-
-/* Pulsing Save Button */
-const SaveButton = styled(ThemeButton)<{ $dirty?: boolean }>`
-  ${({ $dirty }) =>
-    $dirty &&
-    css`
-      animation: ${pulse} 1.4s ease-out infinite;
-    `}
-`;
-
 /* -----------------------------------------------------
-    Component
+    Component Types
 ----------------------------------------------------- */
 interface ExtendedUser {
   id: string;
@@ -255,134 +235,139 @@ interface ExtendedUser {
   avatarUrl?: string;
 }
 
+/* -----------------------------------------------------
+    Component
+----------------------------------------------------- */
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, logout } = useAuth();
 
   const [profile, setProfile] = useState<ExtendedUser | null>(null);
+  const [initialProfile, setInitialProfile] = useState<ExtendedUser | null>(null);
+
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [avatarZoom, setAvatarZoom] = useState(1);
+  const [avatarSource, setAvatarSource] = useState<HTMLImageElement | null>(null);
+  const [zoom, setZoom] = useState(1);
   const [showCropper, setShowCropper] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [isDirty, setIsDirty] = useState(false);
 
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordMsg, setPasswordMsg] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
-  const [changing, setChanging] = useState(false);
 
   /* Load profile */
   useEffect(() => {
     if (!isAuthenticated) return;
 
     axiosClient
-      .get<{ ok: boolean; user: ExtendedUser }>("/api/auth/me")
+      .get<{ user: ExtendedUser }>("/api/auth/me")
       .then((res) => {
         setProfile(res.data.user);
+        setInitialProfile(res.data.user);
         setAvatarPreview(res.data.user.avatarUrl || UserIcon);
       })
-      .catch(() => setError("Failed to load profile."))
       .finally(() => setLoading(false));
   }, [isAuthenticated]);
+
+  /* Track if form has changed */
+  const hasChanges = useMemo(() => {
+    if (!profile || !initialProfile) return false;
+    return JSON.stringify(profile) !== JSON.stringify(initialProfile);
+  }, [profile, initialProfile]);
 
   /* Input change */
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!profile) return;
-    setProfile({ ...profile, [e.target.name]: e.target.value });
-    setIsDirty(true);
+
+    const { name, value } = e.target;
+    setProfile({
+      ...profile,
+      [name]: name === "age" || name === "years_since_onset" ? Number(value) : value,
+    });
   };
 
-  /* Avatar upload — open cropper */
+  /* Avatar upload */
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const url = URL.createObjectURL(file);
-    setAvatarPreview(url);
-    setAvatarZoom(1.1); // small zoom by default
-    setShowCropper(true);
-    setIsDirty(true);
+    const img = new Image();
+    img.onload = () => {
+      setAvatarSource(img);
+      setZoom(1);
+      setShowCropper(true);
+    };
+    img.src = URL.createObjectURL(file);
   };
 
-  const closeCropper = () => {
+  /* Save avatar crop */
+  const applyAvatarCrop = () => {
+    if (!avatarSource) return;
+
+    const canvas = document.createElement("canvas");
+    const size = 260;
+    canvas.width = size;
+    canvas.height = size;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const w = avatarSource.width * zoom;
+    const h = avatarSource.height * zoom;
+    const x = (size - w) / 2;
+    const y = (size - h) / 2;
+
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+    ctx.clip();
+
+    ctx.drawImage(avatarSource, x, y, w, h);
+
+    const url = canvas.toDataURL();
+    setAvatarPreview(url);
+    setProfile((p) => (p ? { ...p, avatarUrl: url } : p));
     setShowCropper(false);
   };
 
-  /* Save profile (avatarUrl would normally be handled by backend upload) */
+  /* Save profile */
   const handleSave = async () => {
     if (!profile) return;
 
     setSaving(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const res = await axiosClient.patch<{ ok: boolean; user: ExtendedUser }>(
-        "/api/users/profile",
-        profile
-      );
-
-      setProfile(res.data.user);
-      setSuccess("Profile updated successfully!");
-      setIsDirty(false);
-    } catch {
-      setError("Failed to save changes.");
-    } finally {
-      setSaving(false);
-    }
+    const res = await axiosClient.patch("/api/users/profile", profile);
+    setProfile(res.data.user);
+    setInitialProfile(res.data.user);
+    setSaving(false);
   };
 
   /* Change password */
   const handlePasswordChange = async () => {
     setPasswordMsg(null);
-    setPasswordSuccess(false);
-
-    if (!oldPassword || !newPassword) {
-      setPasswordMsg("All fields required.");
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      setPasswordMsg("Password must be at least 8 characters.");
-      return;
-    }
-
     if (newPassword !== confirmPassword) {
       setPasswordMsg("Passwords do not match.");
       return;
     }
 
-    setChanging(true);
-
     try {
       await authApi.changePassword({ oldPassword, newPassword });
       setPasswordSuccess(true);
-      setPasswordMsg("Password updated successfully!");
-
-      setOldPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
+      setPasswordMsg("Password updated!");
     } catch {
       setPasswordMsg("Incorrect old password.");
-    } finally {
-      setChanging(false);
     }
   };
 
   /* UI states */
   if (!isAuthenticated) return <LoadingText>Please login…</LoadingText>;
   if (loading) return <LoadingText>Loading your profile…</LoadingText>;
-  if (!profile) return <ErrorMessage>Error loading profile.</ErrorMessage>;
 
   return (
-    <Wrapper>
-      <ProfileCard>
+    <>
+      <Wrapper>
         <Header>
           <BackButton onClick={() => navigate("/")}>
             <img src={BackIcon} alt="Go back" />
@@ -392,142 +377,136 @@ export const ProfilePage: React.FC = () => {
 
         {/* Avatar */}
         <AvatarWrapper>
-          <AvatarFrame>
-            <AvatarImage
-              src={avatarPreview || UserIcon}
-              alt="avatar"
-              $zoom={avatarZoom}
-            />
-          </AvatarFrame>
+          <AvatarOuter>
+            <Avatar src={avatarPreview || UserIcon} />
+          </AvatarOuter>
+
           <EditAvatarButton>
             Change
-            <input
-              type="file"
-              hidden
-              accept="image/*"
-              onChange={handleAvatarUpload}
-            />
+            <input type="file" hidden accept="image/*" onChange={handleAvatarUpload} />
           </EditAvatarButton>
         </AvatarWrapper>
 
-        {error && <ErrorMessage>{error}</ErrorMessage>}
-        {success && <SuccessMessage>{success}</SuccessMessage>}
+        {/* FORM */}
+        <SectionRow>
+          <Section>
+            <SectionTitle>Account</SectionTitle>
 
-        <SectionTitle>Account</SectionTitle>
+            <FormInput
+              label="Email"
+              name="email"
+              value={profile?.email || ""} disabled
+              onChange={() => {}}
+              />
 
-        <FormInput
-          label="Email"
-          name="email"
-          value={profile.email}
-          disabled
-          onChange={() => {}}
-        />
+            <FormInput
+              label="Display Name"
+              name="displayName"
+              value={profile?.displayName || ""}
+              onChange={handleChange}
+            />
 
-        <FormInput
-          label="Display Name"
-          name="displayName"
-          value={profile.displayName || ""}
-          onChange={handleChange}
-        />
+            <SectionTitle>Details</SectionTitle>
 
-        <SectionTitle>Details</SectionTitle>
+            <FormInput
+              label="Age"
+              name="age"
+              type="number"
+              value={profile?.age || ""}
+              onChange={handleChange}
+            />
 
-        <FormInput
-          label="Age"
-          name="age"
-          type="number"
-          value={profile.age ?? ""}
-          onChange={handleChange}
-        />
+            <FormInput
+              label="Years Since Onset"
+              name="years_since_onset"
+              type="number"
+              value={profile?.years_since_onset || ""}
+              onChange={handleChange}
+            />
+          </Section>
+          <hr className="hr"/>
+          <Section>
+            <SectionTitle>Password</SectionTitle>
 
-        <FormInput
-          label="Years Since Onset"
-          name="years_since_onset"
-          type="number"
-          value={profile.years_since_onset ?? ""}
-          onChange={handleChange}
-        />
+            <FormInput
+              label="Old Password"
+              name="old_password"
+              type="password"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+            />
 
-        {/* Password Change */}
-        <PasswordBox>
-          <PasswordTitle>Change Password</PasswordTitle>
+            <FormInput
+              label="New Password"
+              name="new_password"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
 
-          <FormInput
-            label="Current Password"
-            name="oldPassword"
-            type="password"
-            value={oldPassword}
-            onChange={(e) => setOldPassword(e.target.value)}
-          />
+            <FormInput
+              label="Confirm Password"
+              name="confirm_password"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
 
-          <FormInput
-            label="New Password"
-            name="newPassword"
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-          />
+            <ThemeButton onClick={handlePasswordChange}>
+              Update Password
+            </ThemeButton>
 
-          <FormInput
-            label="Confirm New Password"
-            name="confirmPassword"
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-          />
+            {passwordMsg && (
+              <PasswordMessage success={passwordSuccess}>
+                {passwordMsg}
+              </PasswordMessage>
+            )}
+          </Section>
+        </SectionRow>
 
-          <ThemeButton onClick={handlePasswordChange} disabled={changing}>
-            {changing ? "Updating…" : "Update Password"}
-          </ThemeButton>
-
-          {passwordMsg && (
-            <PasswordMessage success={passwordSuccess}>
-              {passwordMsg}
-            </PasswordMessage>
-          )}
-        </PasswordBox>
-
-        {/* Action Buttons */}
         <ButtonRow>
-          <SaveButton onClick={handleSave} disabled={saving || !isDirty} $dirty={isDirty}>
-            {saving ? "Saving…" : isDirty ? "Save Changes" : "All Saved"}
-          </SaveButton>
+          <PrimarySaveButton onClick={handleSave} $pulse={hasChanges}>
+            {saving ? "Saving…" : hasChanges ? "Save Changes" : "Saved"}
+          </PrimarySaveButton>
 
           <ThemeButton onClick={logout}>Logout</ThemeButton>
         </ButtonRow>
-      </ProfileCard>
+      </Wrapper>
 
-      {/* Simple “cropping” modal with zoom control */}
-      {showCropper && avatarPreview && (
-        <CropOverlay onClick={closeCropper}>
-          <CropCard onClick={(e) => e.stopPropagation()}>
+      {/* Avatar Cropper */}
+      {showCropper && avatarSource && (
+        <CropOverlay>
+          <CropCard>
             <CropTitle>Adjust your avatar</CropTitle>
 
-            <CropPreview>
-              <AvatarFrame>
-                <AvatarImage
-                  src={avatarPreview}
-                  alt="avatar preview"
-                  $zoom={avatarZoom}
-                />
-              </AvatarFrame>
-            </CropPreview>
+            <CropArea>
+              <CropPreview src={avatarSource.src} $zoom={zoom} />
+            </CropArea>
 
-            <CropSlider
-              min={1}
-              max={1.8}
-              step={0.02}
-              value={avatarZoom}
-              onChange={(e) => setAvatarZoom(parseFloat(e.target.value))}
-            />
+            <SliderRow>
+              <label>Zoom</label>
+              <input
+                type="range"
+                title="range"
+                min={1}
+                max={2.4}
+                step={0.02}
+                value={zoom}
+                onChange={(e) => setZoom(parseFloat(e.target.value))}
+              />
+            </SliderRow>
 
-            <CropActions>
-              <ThemeButton onClick={closeCropper}>Looks good</ThemeButton>
-            </CropActions>
+            <CropButtons>
+              <SecondaryButton onClick={() => setShowCropper(false)}>
+                Cancel
+              </SecondaryButton>
+
+              <ThemeButton onClick={applyAvatarCrop}>Apply Avatar</ThemeButton>
+            </CropButtons>
           </CropCard>
         </CropOverlay>
       )}
-    </Wrapper>
+    </>
   );
 };
 
