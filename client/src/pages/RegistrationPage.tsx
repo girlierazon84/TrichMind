@@ -30,7 +30,7 @@ const softPop = keyframes`
 const RegistrationContainer = styled.main`
   min-height: 100vh;
   width: 100%;
-  margin-top: -50px;
+  margin: -50px 0;
   display: flex;
   border-radius: 25px;
   border: 1px solid ${({ theme }) => theme.colors.card_bg};
