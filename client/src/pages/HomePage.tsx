@@ -16,7 +16,6 @@ import {
     CopingStrategiesCard,
     RiskTrendChart,
 } from "@/components";
-import { BottomNav } from "@/components/BottomNav";
 import { useAuth } from "@/hooks";
 import { AppLogo } from "@/assets/images";
 import { UserIcon } from "@/assets/icons";
@@ -367,9 +366,6 @@ export const HomePage: React.FC = () => {
                     <RiskTrendChart />
                 </DashboardSection>
             </PageWrapper>
-
-            {/* Bottom nav (shown for authenticated users) */}
-            <BottomNav />
         </>
     );
 };
