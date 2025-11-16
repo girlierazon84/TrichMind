@@ -70,7 +70,6 @@ const Card = styled.div<{ risk: RiskLevel; compact?: boolean }>`
     margin-top: ${({ theme, compact }) => (compact ? theme.spacing(4) : theme.spacing(6))};
     animation: ${fadeIn} 0.45s ease-out;
     width: 100%;
-    max-width: ${({ compact }) => (compact ? "420px" : "540px")};
     align-self: center;
 
     ${({ risk }) =>
