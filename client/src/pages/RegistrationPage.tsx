@@ -2,7 +2,7 @@
 
 import styled, { keyframes } from "styled-components";
 import { RegisterPredictForm } from "@/components";
-import AppLogo from "@/assets/images/app_logo.png";
+import { AppLogo } from "@/assets/images";
 
 /* -----------------------------------------------------
     PREMIUM ANIMATIONS
@@ -30,37 +30,31 @@ const softPop = keyframes`
 const RegistrationContainer = styled.main`
   min-height: 100vh;
   width: 100%;
-  padding: 2.5rem 1.5rem;
-  background: linear-gradient(
-      135deg,
-      ${({ theme }) => theme.colors.page_bg} 0%,
-      ${({ theme }) => theme.colors.card_bg} 100%
-  );
+  margin-top: -50px;
   display: flex;
+  border-radius: 25px;
+  border: 1px solid ${({ theme }) => theme.colors.card_bg};
+  box-shadow: 2px 4px 30px rgba(3, 79, 79, 0.5);
   flex-direction: column;
-  align-items: center;
   animation: ${fadeIn} 0.6s ease-out;
 `;
 
 const LogoWrapper = styled.div`
   display: flex;
   justify-content: center;
-  margin-top: 1rem;
+  margin: 3rem 0 0 0;
   animation: ${floatUp} 0.8s ease-out;
 `;
 
 const Logo = styled.img`
   width: 110px;
-  height: auto;
+  height: 120px;
   opacity: 0.95;
   user-select: none;
 `;
 
 const PageCard = styled.div`
-  padding: 2rem;
-  margin-top: 1.5rem;
   border-radius: 20px;
-  max-width: 560px;
   width: 100%;
   animation: ${softPop} 0.5s ease-out;
 
@@ -74,7 +68,7 @@ const Title = styled.h1`
   font-weight: 700;
   color: ${({ theme }) => theme.colors.primary};
   text-align: center;
-  margin-bottom: 1.5rem;
+  margin: 0 0 2.5rem 0;
   animation: ${floatUp} 0.7s ease-out;
 `;
 
@@ -86,7 +80,7 @@ export const RegistrationPage: React.FC = () => {
   return (
     <RegistrationContainer>
       <LogoWrapper>
-        <Logo src={AppLogo} alt="TrichMind Logo" />
+        <Logo src={ AppLogo } alt="TrichMind Logo" />
       </LogoWrapper>
 
       <PageCard>
