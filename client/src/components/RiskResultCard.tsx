@@ -49,56 +49,72 @@ const softGlow = keyframes`
 /* ──────────────────────────────
     🎨 Styled Components
 ────────────────────────────── */
-const Card = styled.div<{ risk: RiskLevel; compact?: boolean }>`
-    background: ${({ theme, risk }) =>
-        risk === "low"
+const Card = styled.div<{ $risk: RiskLevel; $compact?: boolean }>`
+    background: ${({ theme, $risk }) =>
+        $risk === "low"
             ? theme.colors.low_risk_gradient
-            : risk === "medium"
+            : $risk === "medium"
                 ? theme.colors.medium_risk_gradient
                 : theme.colors.high_risk_gradient};
 
-    color: ${({ risk }) =>
-        risk === "low" ? "#064e3b" : risk === "medium" ? "#78350f" : "#7f1d1d"};
+    color: ${({ $risk }) =>
+        $risk === "low" ? "#064e3b" : $risk === "medium" ? "#78350f" : "#7f1d1d"};
 
-    padding: ${({ theme, compact }) => (compact ? theme.spacing(5) : theme.spacing(8))};
+    padding: ${({ theme, $compact }) => ($compact ? theme.spacing(5) : theme.spacing(8))};
     border-radius: ${({ theme }) => theme.radius.lg};
     box-shadow: ${({ theme }) => theme.colors.card_shadow};
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    margin-top: ${({ theme, compact }) => (compact ? theme.spacing(4) : theme.spacing(6))};
+    margin-top: ${({ theme, $compact }) => ($compact ? theme.spacing(4) : theme.spacing(6))};
     animation: ${fadeIn} 0.45s ease-out;
     width: 100%;
     align-self: center;
 
-    ${({ risk }) =>
-        risk === "high" &&
+    ${({ $risk }) =>
+        $risk === "high" &&
         css`
             animation: ${fadeIn} 0.45s ease-out, ${pulseHigh} 3s ease-in-out infinite;
         `}
 `;
 
-const Title = styled.h3<{ compact?: boolean }>`
-    font-size: ${({ compact }) => (compact ? "1.1rem" : "1.4rem")};
+const Title = styled.h3<{ $compact?: boolean }>`
+    font-size: ${({ $compact }) => ($compact ? "1.1rem" : "1.4rem")};
     font-weight: 700;
     margin-bottom: ${({ theme }) => theme.spacing(4)};
 `;
 
-const RiskLabel = styled.div<{ compact?: boolean }>`
-    font-size: ${({ compact }) => (compact ? "1.5rem" : "2rem")};
+const RiskLabel = styled.div<{ $compact?: boolean }>`
+    font-size: ${({ $compact }) => ($compact ? "1.5rem" : "2rem")};
     font-weight: 800;
     text-transform: uppercase;
     margin-bottom: ${({ theme }) => theme.spacing(1)};
 `;
 
-const ScoreLine = styled.div<{ compact?: boolean }>`
-    font-size: ${({ compact }) => (compact ? "0.9rem" : "1rem")};
+const ScoreLine = styled.div<{ $compact?: boolean }>`
+    font-size: ${({ $compact }) => ($compact ? "0.9rem" : "1rem")};
     margin-bottom: ${({ theme }) => theme.spacing(3)};
     animation: ${softGlow} 0.5s ease-out;
+
     b {
-        font-size: ${({ compact }) => (compact ? "1rem" : "1.15rem")};
+        font-size: ${({ $compact }) => ($compact ? "1rem" : "1.15rem")};
     }
+`;
+
+const QuoteText = styled.p<{ $compact?: boolean }>`
+    font-style: italic;
+    font-size: ${({ $compact }) => ($compact ? "0.8rem" : "0.85rem")};
+    color: ${({ theme }) => theme.colors.text_secondary};
+    margin-top: ${({ theme }) => theme.spacing(3)};
+    animation: ${fadeIn} 0.6s ease-out;
+`;
+
+const ModelInfo = styled.div<{ $compact?: boolean }>`
+    font-size: ${({ $compact }) => ($compact ? "0.7rem" : "0.75rem")};
+    color: ${({ theme }) => theme.colors.text_secondary};
+    margin-top: ${({ theme }) => theme.spacing(3)};
+    opacity: 0.85;
 `;
 
 const ConfidenceWrapper = styled.div`
@@ -131,28 +147,12 @@ const ConfidenceBar = styled.div<{ width: number }>`
     transition: width 0.8s ease-out;
 `;
 
-const QuoteText = styled.p<{ compact?: boolean }>`
-    font-style: italic;
-    font-size: ${({ compact }) => (compact ? "0.8rem" : "0.85rem")};
-    color: ${({ theme }) => theme.colors.text_secondary};
-    margin-top: ${({ theme }) => theme.spacing(3)};
-    animation: ${fadeIn} 0.6s ease-out;
-`;
-
-const ModelInfo = styled.div<{ compact?: boolean }>`
-    font-size: ${({ compact }) => (compact ? "0.7rem" : "0.75rem")};
-    color: ${({ theme }) => theme.colors.text_secondary};
-    margin-top: ${({ theme }) => theme.spacing(3)};
-    opacity: 0.85;
-`;
-
 /* ──────────────────────────────
     🧠 Component
 ────────────────────────────── */
 export const RiskResultCard: React.FC<RiskResultCardProps> = ({
     data,
     quote,
-    className,
     compact = false,
 }) => {
     const { risk_score, risk_bucket, confidence, model_version } = data;
@@ -201,11 +201,11 @@ export const RiskResultCard: React.FC<RiskResultCardProps> = ({
     const shownQuote = quote || fallbackQuotes[band];
 
     return (
-        <Card risk={band} className={className} compact={compact}>
-            <Title compact={compact}>Relapse Risk Summary</Title>
-            <RiskLabel compact={compact}>{band.toUpperCase()}</RiskLabel>
+        <Card $risk={band} $compact={compact}>
+            <Title $compact={compact}>Relapse Risk Summary</Title>
+            <RiskLabel $compact={compact}>{band.toUpperCase()}</RiskLabel>
 
-            <ScoreLine compact={compact}>
+            <ScoreLine $compact={compact}>
                 Score: <b>{scorePercent}%</b>
             </ScoreLine>
 
@@ -219,8 +219,8 @@ export const RiskResultCard: React.FC<RiskResultCardProps> = ({
                 </ConfidenceBarTrack>
             </ConfidenceWrapper>
 
-            {shownQuote && <QuoteText compact={compact}>“{shownQuote}”</QuoteText>}
-            <ModelInfo compact={compact}>
+            {shownQuote && <QuoteText $compact={compact}>“{shownQuote}”</QuoteText>}
+            <ModelInfo $compact={compact}>
                 Model: {model_version || "v1.0.0"}
             </ModelInfo>
         </Card>
