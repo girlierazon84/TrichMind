@@ -15,8 +15,8 @@ import {
     DailyProgressCardAuto,
     CopingStrategiesCard,
     RiskTrendChart,
+    ThemeButton
 } from "@/components";
-import { ThemeButton } from "@/components";
 import { useAuth } from "@/hooks";
 import { AppLogo } from "@/assets/images";
 import { UserIcon } from "@/assets/icons";
@@ -193,11 +193,13 @@ const MenuItem = styled.button`
 const Section = styled.section<{ $delay?: number; $pop?: boolean }>`
     width: 100%;
     max-width: 960px;
+
     background: ${({ theme }) => theme.colors.card_bg};
     border-radius: ${({ theme }) => theme.radius.lg};
+    box-shadow: ${({ theme }) => theme.colors.card_shadow};
+
     padding: ${({ theme }) => theme.spacing(5)};
     margin-bottom: ${({ theme }) => theme.spacing(4)};
-    box-shadow: ${({ theme }) => theme.colors.card_shadow};
 
     animation: ${({ $pop }) => ($pop ? softPop : smoothRise)} 0.6s ease-out;
     animation-delay: ${({ $delay }) => ($delay ? `${$delay}ms` : "0ms")};
