@@ -1,11 +1,25 @@
 // client/src/hooks/useRiskTrendChart.ts
 
 import { useState, useEffect } from "react";
-import apiClient from "@/services/axiosClient";
+import { predictApi }from "@/services";
 
+
+// ──────────────────────────────
+// Types
+// ──────────────────────────────
 export interface HistoryPoint {
     date: string;
     score: number;
+}
+
+type PredictResponse = {
+    data: {
+        trend: HistoryPoint[];
+    };
+};
+
+interface PredictApi {
+    predict: (opts: { path: string }) => Promise<PredictResponse>;
 }
 
 export const useRiskTrendChart = () => {
@@ -18,7 +32,8 @@ export const useRiskTrendChart = () => {
 
         const fetchTrend = async () => {
             try {
-                const res = await apiClient.get<{ trend: HistoryPoint[] }>("/health/risk-trend");
+                const api = predictApi as unknown as PredictApi;
+                const res = await api.predict({ path: "/health/risk-trend" });
 
                 const trend: HistoryPoint[] = res.data.trend.map((t: HistoryPoint) => ({
                     date: t.date,
