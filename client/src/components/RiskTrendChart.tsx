@@ -1,6 +1,6 @@
 // client/src/components/RiskTrendChart.tsx
 
-import React from "react";
+import React, { useMemo } from "react";
 import styled, { useTheme } from "styled-components";
 import { fadeIn, slideUp } from "@/styles";
 import {
@@ -12,7 +12,32 @@ import {
     CartesianGrid,
     ResponsiveContainer,
 } from "recharts";
-import { useRiskTrendChart } from "@/hooks";
+import {
+    useRiskTrendChart,
+    usePredictedRiskTrend,
+    HistoryPoint
+} from "@/hooks";
+
+
+// ──────────────────────────────
+// Types
+// ──────────────────────────────
+interface PastPoint {
+    date: string;
+    risk_score: number;
+    type: "past";
+}
+
+interface FuturePoint {
+    date: string;
+    risk_score: number;
+    type: "future";
+}
+
+interface PredictionPoint {
+    day: number;
+    predicted_risk: number;
+}
 
 
 // ──────────────────────────────
@@ -52,20 +77,56 @@ const Message = styled.p`
     margin-top: 2rem;
 `;
 
+
+// ──────────────────────────────
+// Component
 // ──────────────────────────────
 export const RiskTrendChart: React.FC = () => {
-    const { data, loading, error } = useRiskTrendChart();
     const theme = useTheme();
 
-    if (loading) return <Message>Loading risk trend...</Message>;
-    if (error) return <ErrorText>⚠️ {error}</ErrorText>;
-    if (!data.length) return <Message>No trend data available yet.</Message>;
+    const { data: history, loading: historyLoading, error: historyError } = useRiskTrendChart();
+    const { trend: predicted, loading: predLoading, error: predError } = usePredictedRiskTrend(14);
+
+    const loading = historyLoading || predLoading;
+    const error = historyError || predError;
+
+    const mergedData = useMemo(() => {
+        const past: PastPoint[] = (history ?? []).map((item: HistoryPoint) => ({
+            date: item.date,
+            risk_score: item.score * 100,
+            type: "past",
+        }));
+
+        const lastDate = past.length ? new Date(past[past.length - 1].date) : new Date();
+
+        const future: FuturePoint[] = (predicted ?? []).map(
+            (item: PredictionPoint, i) => {
+                const d = new Date(lastDate);
+                d.setDate(d.getDate() + (i + 1));
+
+                return {
+                    date: d.toISOString(),
+                    risk_score: item.predicted_risk * 100,
+                    type: "future",
+                };
+            }
+        );
+
+        return [...past, ...future];
+    }, [history, predicted]);
+
+
+    if (loading) return <Message>Loading trend data...</Message>;
+    if (error) return <ErrorText>⚠️ Failed to load risk trends.</ErrorText>;
+    if (!mergedData.length) return <Message>No trend data available.</Message>;
+
 
     return (
         <ChartWrapper>
-            <ChartTitle>📈 Relapse Risk Trend</ChartTitle>
+            <ChartTitle>📈 Combined Relapse Risk Trend (Past + Predictions)</ChartTitle>
+
             <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
+                <LineChart data={mergedData}>
                     <defs>
                         <linearGradient id="riskGradient" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor={theme.colors.high_risk} stopOpacity={0.9} />
@@ -74,30 +135,30 @@ export const RiskTrendChart: React.FC = () => {
                         </linearGradient>
                     </defs>
 
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ddd" />
 
                     <XAxis
                         dataKey="date"
-                        tickFormatter={(v: string) =>
-                            new Date(v).toLocaleDateString(undefined, { month: "short", day: "numeric" })
-                        }
                         stroke={theme.colors.text_secondary}
+                        tickFormatter={(v: string) =>
+                            new Date(v).toLocaleDateString(undefined, {
+                                month: "short",
+                                day: "numeric",
+                            })
+                        }
                     />
+
                     <YAxis
                         domain={[0, 100]}
-                        tickFormatter={(v: number) => `${v}%`}
+                        tickFormatter={(v) => `${v}%`}
                         stroke={theme.colors.text_secondary}
                     />
 
                     <Tooltip
-                        formatter={(value: number) => [`${value.toFixed(1)}%`, "Risk Score"]}
-                        labelFormatter={(label: string) =>
-                            new Date(label).toLocaleDateString(undefined, {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                            })
-                        }
+                        formatter={(value: number, _label, obj) => [
+                            `${value.toFixed(1)}%`,
+                            obj.payload.type === "past" ? "Historical" : "Predicted",
+                        ]}
                     />
 
                     <Line
@@ -106,10 +167,17 @@ export const RiskTrendChart: React.FC = () => {
                         stroke="url(#riskGradient)"
                         strokeWidth={3}
                         dot={{ r: 3 }}
-                        activeDot={{ r: 6, stroke: theme.colors.card_bg, strokeWidth: 2 }}
-                        isAnimationActive
-                        animationDuration={900}
-                        animationEasing="ease-out"
+                        data={mergedData.filter((d) => d.type === "past")}
+                    />
+
+                    <Line
+                        type="monotone"
+                        dataKey="risk_score"
+                        stroke={theme.colors.medium_risk}
+                        strokeDasharray="6 6"
+                        strokeWidth={3}
+                        dot={false}
+                        data={mergedData.filter((d) => d.type === "future")}
                     />
                 </LineChart>
             </ResponsiveContainer>
