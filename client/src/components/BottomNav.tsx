@@ -60,6 +60,14 @@ const NavItem = styled(NavLink)`
     &.active img {
         filter: grayscale(0);
     }
+
+    @media (max-width: 768px) {
+        font-size: 0.7rem;
+        img {
+            width: 20px;
+            height: 20px;
+        }
+    }
 `;
 
 type NavConfig = { to: string; icon: string; label: string };
