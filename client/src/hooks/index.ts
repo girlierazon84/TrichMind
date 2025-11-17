@@ -7,6 +7,7 @@ export * from "./usePredict";
 export * from "./useRegisterAndPredict";
 export * from "./useSoberStreak";
 export * from "./useRiskTrendChart";
+export * from "./usePredictedRiskTrend";
 
 export * from "./useUser";
 export * from "./useLogger";
