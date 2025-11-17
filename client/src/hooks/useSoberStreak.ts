@@ -1,9 +1,10 @@
 // client/src/hooks/useSoberStreak.ts
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { axiosClient } from "@/services";
 
 
+// TYPES
 export interface SoberStreakResponse {
     currentStreak: number;
     previousStreak?: number;
@@ -15,75 +16,54 @@ interface UseSoberStreakResult {
     data: SoberStreakResponse | null;
     loading: boolean;
     error: string | null;
-    refresh: () => Promise<void>;
 }
 
-export const useSoberStreak = (pollMs?: number): UseSoberStreakResult => {
+export const useSoberStreak = (): UseSoberStreakResult => {
     const [data, setData] = useState<SoberStreakResponse | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const pollRef = useRef<number | null>(null);
 
-    const fetchStreak = useCallback(async (): Promise<void> => {
+    const fetchStreak = useCallback(async () => {
         setLoading(true);
         setError(null);
 
-        const controller = new AbortController();
+        // 🔥 ALWAYS SHOW DEMO DATA IN DEV
+        if (import.meta.env.DEV || window.location.search.includes("demo")) {
+            setTimeout(() => {
+                setData({
+                    currentStreak: 12,
+                    previousStreak: 8,
+                    longestStreak: 25,
+                    lastEntryDate: "2025-01-10"
+                });
+                setLoading(false);
+            }, 300);
+            return;
+        }
 
+        // Normal API call (production)
         try {
-            const res = await axiosClient.get<SoberStreakResponse>(
-                "/api/health/streak",
-                {
-                    signal: controller.signal,
-                }
-            );
+            const res = await axiosClient.get<SoberStreakResponse>("/api/health/streak");
+            const payload = res.data || {};
 
-            const payload = res.data || { currentStreak: 0 };
             setData({
-                currentStreak: Number(payload.currentStreak ?? 0),
+                currentStreak: payload.currentStreak ?? 0,
                 previousStreak: payload.previousStreak ?? 0,
-                longestStreak: payload.longestStreak ?? undefined,
-                lastEntryDate: payload.lastEntryDate ?? undefined,
+                longestStreak: payload.longestStreak,
+                lastEntryDate: payload.lastEntryDate
             });
-        } catch (err) {
-            const msg =
-                (err as { message?: string })?.message ||
-                "Failed to fetch streak data.";
-            setError(msg);
+        } catch {
+            setError("Failed to fetch streak data.");
         } finally {
             setLoading(false);
-            controller.abort();
         }
     }, []);
 
     useEffect(() => {
-        void fetchStreak();
-        return () => {
-            if (pollRef.current) window.clearInterval(pollRef.current);
-        };
+        fetchStreak();
     }, [fetchStreak]);
 
-    useEffect(() => {
-        if (!pollMs) return;
-
-        pollRef.current = window.setInterval(() => {
-            void fetchStreak();
-        }, pollMs);
-
-        return () => {
-            if (pollRef.current) {
-                window.clearInterval(pollRef.current);
-                pollRef.current = null;
-            }
-        };
-    }, [pollMs, fetchStreak]);
-
-    return {
-        data,
-        loading,
-        error,
-        refresh: fetchStreak,
-    };
+    return { data, loading, error };
 };
 
 export default useSoberStreak;
