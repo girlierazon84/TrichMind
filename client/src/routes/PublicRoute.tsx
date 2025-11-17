@@ -2,20 +2,15 @@
 
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks";
-import { ReactNode } from "react";
 
-interface PublicRouteProps {
-    children: ReactNode;
-}
 
-export const PublicRoute = ({ children }: PublicRouteProps) => {
-    const { isAuthenticated } = useAuth();
+// A wrapper for <Route> that redirects to the home screen if you're authenticated.
+export const PublicRoute = ({ children }: { children: React.ReactElement }) => {
+    const { isAuthenticated, loading } = useAuth();
 
-    if (isAuthenticated) {
-        return <Navigate to="/" replace />;
-    }
+    if (loading) return <div>Loading...</div>;
 
-    return <>{children}</>;
+    if (isAuthenticated) return <Navigate to="/" replace />;
+
+    return children;
 };
-
-export default PublicRoute;
