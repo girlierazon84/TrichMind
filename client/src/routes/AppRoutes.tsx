@@ -2,6 +2,7 @@
 
 import { Routes, Route, Navigate } from "react-router-dom";
 import { PrivateRoute, PublicRoute } from "@/routes";
+import { AppLayout } from "@/layouts/AppLayout";
 import {
     RegistrationPage,
     LoginPage,
@@ -11,64 +12,17 @@ import {
     JournalPage,
     TriggersInsightsPage,
     TrichGamePage,
-    TrichBotPage,
+    TrichBotPage
 } from "@/pages";
-import { useAuth } from "@/hooks";
-import { BottomNav } from "@/components";
 
 
-// Refactored AppRoutes component
+// Main application routes component
 export const AppRoutes = () => {
-    const { isAuthenticated } = useAuth();
-
     return (
-        <>
-            <Routes>
-                <Route
-                    path="/trichbot"
-                    element={
-                        <PrivateRoute>
-                            <TrichBotPage />
-                        </PrivateRoute>
-                    }
-                />
-
-                <Route
-                    path="/trichgame"
-                    element={
-                        <PrivateRoute>
-                            <TrichGamePage />
-                        </PrivateRoute>
-                    }
-                />
-
-                <Route
-                    path="/triggers-insights"
-                    element={
-                        <PrivateRoute>
-                            <TriggersInsightsPage />
-                        </PrivateRoute>
-                    }
-                />
-
-                <Route
-                    path="/journal"
-                    element={
-                        <PrivateRoute>
-                            <JournalPage />
-                        </PrivateRoute>
-                    }
-                />
-
-                <Route
-                    path="/health"
-                    element={
-                        <PrivateRoute>
-                            <HealthPage />
-                        </PrivateRoute>
-                    }
-                />
-
+        <Routes>
+            {/* App Layout */}
+            <Route element={<AppLayout />}>
+                {/* Private Routes */}
                 <Route
                     path="/"
                     element={
@@ -88,14 +42,51 @@ export const AppRoutes = () => {
                 />
 
                 <Route
-                    path="/register"
+                    path="/health"
                     element={
-                        <PublicRoute>
-                            <RegistrationPage />
-                        </PublicRoute>
+                        <PrivateRoute>
+                            <HealthPage />
+                        </PrivateRoute>
                     }
                 />
 
+                <Route
+                    path="/journal"
+                    element={
+                        <PrivateRoute>
+                            <JournalPage />
+                        </PrivateRoute>
+                    }
+                />
+
+                <Route
+                    path="/triggers-insights"
+                    element={
+                        <PrivateRoute>
+                            <TriggersInsightsPage />
+                        </PrivateRoute>
+                    }
+                />
+
+                <Route
+                    path="/trichgame"
+                    element={
+                        <PrivateRoute>
+                            <TrichGamePage />
+                        </PrivateRoute>
+                    }
+                />
+
+                <Route
+                    path="/trichbot"
+                    element={
+                        <PrivateRoute>
+                            <TrichBotPage />
+                        </PrivateRoute>
+                    }
+                />
+
+                {/* Public Routes */}
                 <Route
                     path="/login"
                     element={
@@ -105,12 +96,18 @@ export const AppRoutes = () => {
                     }
                 />
 
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+                <Route
+                    path="/register"
+                    element={
+                        <PublicRoute>
+                            <RegistrationPage />
+                        </PublicRoute>
+                    }
+                />
 
-            {/* Render BottomNav OUTSIDE <Routes> */}
-            {isAuthenticated && <BottomNav />}
-        </>
+                <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+        </Routes>
     );
 };
 
