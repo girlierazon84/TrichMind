@@ -9,3 +9,4 @@ export * from "./summaryController";
 export * from "./trichBotController";
 export * from "./trichGameController";
 export * from "./triggersInsightsController";
+export * from "./healthTrend";
