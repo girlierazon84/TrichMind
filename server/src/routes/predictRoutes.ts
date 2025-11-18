@@ -68,7 +68,7 @@ router.get(
 ------------------------------------------------------------ */
 
 async function forwardPredict(reqBody: any) {
-    const { data } = await axios.post(`${ML_URL}/predict_friendly`, reqBody, {
+    const { data } = await axios.post(`${ML_URL}/predict`, reqBody, {
         headers: { "Content-Type": "application/json" },
         timeout: 15000,
     });
