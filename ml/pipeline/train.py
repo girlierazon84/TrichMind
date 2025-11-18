@@ -3,9 +3,9 @@
 train.py — TrichMind Relapse Risk Model Trainer (Consistent Label Mapping Edition)
 
 Ensures:
-  - Always consistent label order: low=0, medium=1, high=2
-  - Avoids misalignment between LabelEncoder and model.classes_
-  - Cross-validation and automatic best model selection
+    - Always consistent label order: low=0, medium=1, high=2
+    - Avoids misalignment between LabelEncoder and model.classes_
+    - Cross-validation and automatic best model selection
 """
 
 from __future__ import annotations
@@ -30,6 +30,10 @@ from common.config import (
 from common.transformers import ColumnSelector
 from common.risk import LABELS  # ['low', 'medium', 'high']
 
+
+# ──────────────────────────────
+# Set random seed
+# ──────────────────────────────
 SEED = 42
 np.random.seed(SEED)
 
@@ -77,7 +81,7 @@ def build_labels(df: pd.DataFrame):
         log("⚠️ Only one class detected — applying percentile-based pseudo-labels.")
         q33, q66 = np.percentile(sev, [33, 66])
         y_text = np.where(sev <= q33, "low",
-                          np.where(sev <= q66, "medium", "high"))
+                            np.where(sev <= q66, "medium", "high"))
         y_enc = np.array([LABEL_TO_INT[t] for t in y_text])
         unique, counts = np.unique(y_enc, return_counts=True)
         log(f"Class distribution (synthetic): {dict(zip(unique, counts))}")
@@ -162,8 +166,8 @@ if __name__ == "__main__":
     joblib.dump(best_pipe, MODEL_PATH)
 
     pd.DataFrame([[best_name, acc, prec, rec, f1]],
-                 columns=["Model","Accuracy","Precision","Recall","F1"]
-                 ).to_csv(TRAIN_METRICS_CSV, index=False)
+                    columns=["Model","Accuracy","Precision","Recall","F1"]
+                    ).to_csv(TRAIN_METRICS_CSV, index=False)
 
     hist_row = pd.DataFrame([{
         "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
