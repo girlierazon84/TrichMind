@@ -1,7 +1,7 @@
 // server/src/services/predictService.ts
 
 import axios from "axios";
-import { Predict } from "../models";
+import { Predict, HealthLog } from "../models";
 import { PredictDTO } from "../schemas";
 import { ENV } from "../config";
 import { loggerService } from "./loggerService";
@@ -22,23 +22,21 @@ Handles interactions with the ML model for user predictions.
 -------------------------------------------------------------**/
 export const predictService = {
     async predict(userId: string, input: PredictDTO) {
-        // Construct FastAPI endpoint URL
         const endpoint = `${ENV.ML_BASE_URL}/predict`;
+
         try {
             console.log(`📡 [PredictService] Sending payload to ${endpoint}`);
 
-            // Send POST request to FastAPI ML model
             const { data } = await axios.post<PredictResponse>(endpoint, input, {
-                timeout: 15000, // 15s timeout
+                timeout: 15000,
                 headers: { "Content-Type": "application/json" },
             });
 
             console.log("✅ [PredictService] ML Response:", data);
 
-            // Destructure response data
             const { risk_score, risk_bucket, confidence, model_version } = data;
 
-            // Store prediction in the database
+            // 1️⃣ Store prediction document
             const prediction = await Predict.create({
                 userId,
                 ...input,
@@ -49,14 +47,31 @@ export const predictService = {
                 served_by: "FastAPI",
             });
 
-            // Log successful prediction
-            await loggerService.logInfo("Prediction created", { userId, risk_score });
+            // 2️⃣ Auto-log into HealthLog as a relapseRisk snapshot
+            await HealthLog.create({
+                userId,
+                // You can tweak these defaults or later pipe real values from the client
+                sleepHours: 7,
+                stressLevel: 5,
+                exerciseMinutes: 0,
+                date: new Date(),
+                relapseRisk: {
+                    score: risk_score,
+                    bucket: (risk_bucket as any) ?? "unknown",
+                    confidence: confidence ?? 0,
+                },
+            });
+
+            await loggerService.logInfo("Prediction created & HealthLog recorded", {
+                userId,
+                risk_score,
+            });
+
             return prediction;
         } catch (err: any) {
             console.error("❌ [PredictService] ML request failed:");
             console.error("   Message:", err.message);
 
-            // Log error details
             if (err.response) {
                 console.error("   Response data:", err.response.data);
                 console.error("   Status:", err.response.status);
@@ -64,14 +79,12 @@ export const predictService = {
                 console.error("   No response received from FastAPI service.");
             }
 
-            // Log error to logger service
             await loggerService.logError("Prediction failed", {
                 userId,
                 error: err.message,
                 endpoint,
             });
 
-            // Throw user-friendly error
             throw new Error(
                 err.response?.data?.detail ||
                 err.message ||
@@ -80,3 +93,5 @@ export const predictService = {
         }
     },
 };
+
+export default predictService;
