@@ -524,7 +524,6 @@ export const HomePage: React.FC = () => {
                 </Section>
 
                 <DashboardSection $delay={650}>
-                    <h2>📈 Relapse Risk Analytics</h2>
                     <RiskTrendChart />
                 </DashboardSection>
             </PageWrapper>
