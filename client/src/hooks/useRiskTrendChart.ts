@@ -7,26 +7,32 @@ import { predictApi }from "@/services";
 // ──────────────────────────────
 // Types
 // ──────────────────────────────
+// Historical risk point structure
 export interface HistoryPoint {
     date: string;
     score: number;
 }
 
+// API response structure for prediction
 type PredictResponse = {
     data: {
         trend: HistoryPoint[];
     };
 };
 
+// Predict API interface
 interface PredictApi {
     predict: (opts: { path: string }) => Promise<PredictResponse>;
 }
 
+/** React hook to fetch historical risk trend for charting */
 export const useRiskTrendChart = () => {
+    // State variables
     const [data, setData] = useState<HistoryPoint[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Fetch historical risk trend data
     useEffect(() => {
         let active = true;
 
@@ -55,3 +61,5 @@ export const useRiskTrendChart = () => {
 
     return { data, loading, error };
 };
+
+export default useRiskTrendChart;
