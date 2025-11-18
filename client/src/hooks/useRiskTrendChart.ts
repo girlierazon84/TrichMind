@@ -4,16 +4,24 @@ import { useState, useEffect } from "react";
 import { axiosClient } from "@/services";
 
 
-//----------------------------------------------------------
-// Function to fetch historical risk trend data
-//----------------------------------------------------------
+// ----------------------------------------------------
+// Local Types
+// ----------------------------------------------------
+export interface HistoryPoint {
+    date: string;
+    score: number;
+}
+
+// ----------------------------------------------------
+// Hook: useRiskTrendChart
+// ----------------------------------------------------
 export const useRiskTrendChart = () => {
-    // State variables to hold data, loading status, and error message
-    const [data, setData] = useState([]);
+    // State
+    const [data, setData] = useState<HistoryPoint[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Effect hook to fetch data on component mount
+    // Effects
     useEffect(() => {
         const fetchTrend = async () => {
             try {
