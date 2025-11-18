@@ -50,34 +50,6 @@ const calculateAge = (dob?: string): number => {
     return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
 };
 
-// Map frequency string to numeric code
-const mapFrequency = (v?: string): number => {
-    if (!v) return 0;
-    const x = v.toLowerCase();
-    if (x.includes("rarely")) return 1;
-    if (x.includes("monthly")) return 2;
-    if (x.includes("weekly")) return 3;
-    if (x.includes("several times a week")) return 4;
-    if (x.includes("daily")) return 5;
-    return 0;
-};
-
-// Map awareness string to numeric code
-const mapAwareness = (v?: string): number => {
-    if (!v) return 0;
-    const x = v.toLowerCase();
-    if (x.includes("yes")) return 1;
-    if (x.includes("sometimes")) return 0.5;
-    if (x.includes("no")) return 0.0;
-    return 0;
-};
-
-// Map successful stop string to numeric code
-const mapSuccessful = (v?: string): number => {
-    if (!v) return 0;
-    return v.toLowerCase() === "yes" ? 1 : 0;
-};
-
 /* ---------------------------------------------------------
     Hook
 ----------------------------------------------------------*/
@@ -116,24 +88,33 @@ export const useRegisterAndPredict = () => {
                 await log("Authenticated user detected", { userId: user?.id });
             }
 
-            // 2) Build ML payload
+            // 2) Build *friendly* ML payload (FastAPI /predict_friendly will encode it)
+            const age = calculateAge(form.date_of_birth);
+            const age_of_onset = toNum(form.age_of_onset);
+            const years_since_onset =
+                form.years_since_onset && form.years_since_onset.trim() !== ""
+                    ? toNum(form.years_since_onset)
+                    : undefined; // let backend infer if missing
+
             const payload: PredictPayload = {
+                age,
+                age_of_onset,
+                years_since_onset,
+
                 pulling_severity: toNum(form.pulling_severity),
 
-                pulling_frequency_encoded: mapFrequency(form.pulling_frequency),
-                awareness_level_encoded: mapAwareness(form.pulling_awareness),
+                // Send raw strings (FastAPI PredictFriendly will map them)
+                pulling_frequency: form.pulling_frequency?.trim().toLowerCase() || "",
+                pulling_awareness: form.pulling_awareness?.trim().toLowerCase() || "",
+                successfully_stopped:
+                    form.successfully_stopped?.trim().toLowerCase() || "no",
 
-                how_long_stopped_days_est: toNum(form.how_long_stopped_days),
-                successfully_stopped_encoded: mapSuccessful(form.successfully_stopped),
-
-                years_since_onset: toNum(form.years_since_onset),
-                age: calculateAge(form.date_of_birth),
-                age_of_onset: toNum(form.age_of_onset),
+                how_long_stopped_days: toNum(form.how_long_stopped_days),
 
                 emotion: form.emotion?.trim() || "neutral",
             };
 
-            // 3) Execute ML prediction
+            // 3) Execute ML prediction (frontend -> /api/ml/predict_friendly -> FastAPI /predict_friendly)
             const result = await predict(payload);
             setPrediction(result);
 
