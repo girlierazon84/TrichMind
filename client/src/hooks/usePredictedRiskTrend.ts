@@ -24,6 +24,7 @@ export const usePredictedRiskTrend = (days: number = 14) => {
     useEffect(() => {
         let alive = true;
 
+        // Fetch predicted risk trend from API
         const fetchTrend = async () => {
             try {
                 const res = await axiosClient.get<MLTrendResponse>(`/risk-trend?days=${days}`);
