@@ -2,14 +2,22 @@
 
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { summaryApi, type SummaryLog } from "@/services";
+import {
+    summaryApi,
+    type SummaryLog
+} from "@/services";
 import { useLogger } from "@/hooks";
 
 
+// ─────────────────────────────────────
+// Hook to manage summary creation
+// ─────────────────────────────────────
 export const useSummary = () => {
+    // Loading state
     const [loading, setLoading] = useState(false);
     const { log } = useLogger(false);
 
+    // Create a new summary log
     const create = async (data: Omit<SummaryLog, "_id" | "createdAt">) => {
         setLoading(true);
         try {
