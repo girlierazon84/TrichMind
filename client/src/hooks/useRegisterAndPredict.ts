@@ -1,10 +1,20 @@
 // client/src/hooks/useRegisterAndPredict.ts
 
 import { useState } from "react";
-import { useLogger, useAuth, usePredict } from "@/hooks";
-import type { PredictionResponse, PredictPayload } from "@/types/ml";
+import {
+    useLogger,
+    useAuth,
+    usePredict
+} from "@/hooks";
+import type {
+    PredictionResponse,
+    PredictPayload
+} from "@/types/ml";
 
 
+/* ---------------------------------------------------------
+    Types
+----------------------------------------------------------*/
 export interface RegisterFormData {
     email: string;
     password: string;
