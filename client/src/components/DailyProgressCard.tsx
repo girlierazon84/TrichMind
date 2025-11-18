@@ -36,16 +36,16 @@ const softPulse = keyframes`
 
 // Styled components
 const Wrapper = styled.div<{ $risk: "low" | "medium" | "high" }>`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 1.8rem 1rem;
-  border-radius: ${({ theme }) => theme.radius.lg};
-  animation: ${fadeIn} 0.45s ease-out;
-  margin-bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1.8rem 1rem;
+    border-radius: ${({ theme }) => theme.radius.lg};
+    animation: ${fadeIn} 0.45s ease-out;
+    margin-bottom: 2rem;
 
-  ${({ theme, $risk }) =>
+    ${({ theme, $risk }) =>
         $risk === "low"
             ? css`box-shadow: ${theme.colors.low_risk_gradient};`
             : $risk === "medium"
@@ -55,52 +55,58 @@ const Wrapper = styled.div<{ $risk: "low" | "medium" | "high" }>`
 `;
 
 const Card = styled.div`
-  position: relative;
-  display: inline-flex;
-  animation: ${scaleIn} 0.6s ease-out;
+    position: relative;
+    display: inline-flex;
+    animation: ${scaleIn} 0.6s ease-out;
 `;
 
 const ProgressLabelContainer = styled.div`
-  position: absolute;
-  text-align: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    width: 100%;
+    pointer-events: none;
 `;
 
 const ProgressLabel = styled.div`
-  font-size: 1.5rem;
-  font-weight: 600;
+    font-size: 1.5rem;
+    font-weight: 600;
 `;
 
 const ProgressSub = styled.div`
-  font-size: 0.9rem;
-  opacity: 0.8;
+    font-size: 0.9rem;
+    opacity: 0.8;
 `;
 
 const Trend = styled.div<{ $color: string; $highlight: boolean }>`
-  position: absolute;
-  bottom: -2rem;
-  display: flex;
-  gap: 0.3rem;
-  color: ${({ $color }) => $color};
+    position: absolute;
+    bottom: -2rem;
+    display: flex;
+    gap: 0.3rem;
+    color: ${({ $color }) => $color};
 
-  ${({ $highlight }) =>
+    ${({ $highlight }) =>
         $highlight &&
         css`
-      animation: ${softPulse} 1.5s ease-out 0.4s;
+        animation: ${softPulse} 1.5s ease-out 0.4s;
     `}
 `;
 
 const Caption = styled.div`
-  margin-top: 0.5rem;
-  font-size: 1rem;
-  font-weight: 600;
+    margin-top: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
 `;
 
 const SubMsg = styled.div`
-  margin-top: 0.25rem;
-  font-size: 0.9rem;
-  opacity: 0.8;
+    margin-top: 0.25rem;
+    font-size: 0.9rem;
+    opacity: 0.8;
 `;
 
+// type definitions
 type Props = {
     score: number;
     prevScore?: number;
@@ -111,6 +117,7 @@ type Props = {
     centerSubLabel?: string;
 };
 
+// Main component
 export const DailyProgressCard: React.FC<Props> = ({
     score,
     prevScore = 0,
