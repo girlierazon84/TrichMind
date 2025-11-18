@@ -6,15 +6,13 @@ import { userApi, type UpdateProfileData } from "@/services";
 import { useLogger, useAuth } from "@/hooks";
 
 
-/**
- * 🧠 useUser — manages user profile CRUD operations
- * Integrates backend logging, toasts, and live Auth state sync.
- */
+/** Custom hook to manage user profile actions */
 export const useUser = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const { user, me } = useAuth(); // ✅ to access and refresh auth user state
-    const { log, error: logError } = useLogger(false); // no toast spam for logs
+
+    const { user, refreshUser } = useAuth(); // ✔ FIXED: refreshUser instead of me()
+    const { log, error: logError } = useLogger(false);
 
     /** 👤 Fetch current user profile */
     const getProfile = async () => {
@@ -43,8 +41,8 @@ export const useUser = () => {
             const updated = await userApi.updateProfile(data);
             await log("User profile updated", { fields: Object.keys(data) });
 
-            // 🧩 Automatically refresh Auth user data
-            await me();
+            // ✔ FIX: Refresh Auth user
+            await refreshUser();
 
             toast.success("Profile updated successfully!");
             return updated;
@@ -87,6 +85,6 @@ export const useUser = () => {
         loading,
         error,
     };
-}
+};
 
 export default useUser;
