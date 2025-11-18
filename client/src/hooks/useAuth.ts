@@ -7,6 +7,7 @@ import {
     RegisterData,
     LoginData,
     AuthResponse,
+    userApi,
 } from "@/services";
 import { useLogger } from "@/hooks";
 import type { AxiosError } from "axios";   // ✅ For proper error typing
@@ -150,6 +151,18 @@ export const useAuth = () => {
         newPassword: string;
     }): Promise<{ message: string }> => authApi.resetPassword(data);
 
+    /* -------------------- refresh user -------------------- */
+    const refreshUser = async () => {
+        if (!token) return;
+
+        try {
+            const { user } = await userApi.getProfile();
+            setUser(user);
+        } catch (err) {
+            console.error("Failed to refresh user:", err);
+        }
+    };
+
     return {
         user,
         token,
@@ -160,6 +173,7 @@ export const useAuth = () => {
         forgotPassword,
         resetPassword,
         isAuthenticated: !!user,
+        refreshUser,
     };
 };
 
