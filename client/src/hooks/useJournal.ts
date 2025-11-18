@@ -2,10 +2,14 @@
 
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { journalApi, type JournalEntry } from "@/services";
+import {
+    journalApi,
+    type JournalEntry
+} from "@/services";
 import { useLogger } from "@/hooks";
 
 
+// ------------------------ Journal Hook ------------------------
 export const useJournal = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
