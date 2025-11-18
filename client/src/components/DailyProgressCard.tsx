@@ -5,24 +5,51 @@ import styled, { keyframes, css } from "styled-components";
 import { fadeIn, scaleIn } from "@/styles";
 import { useSoberStreak } from "@/hooks";
 
+
 // Icons
 const ArrowUp = () => (
-    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 19V6" /><path d="M5 12l7-7 7 7" />
+    <svg
+        width={18}
+        height={18}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
+        <path d="M12 19V6" />
+        <path d="M5 12l7-7 7 7" />
     </svg>
 );
 
 const ArrowDown = () => (
-    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 5v13" /><path d="M19 12l-7 7-7-7" />
+    <svg
+        width={18}
+        height={18}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
+        <path d="M12 5v13" />
+        <path d="M19 12l-7 7-7-7" />
     </svg>
 );
 
 const Minus = () => (
-    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+        width={18}
+        height={18}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
         <path d="M5 12h14" />
     </svg>
 );
@@ -36,22 +63,45 @@ const softPulse = keyframes`
 
 // Styled components
 const Wrapper = styled.div<{ $risk: "low" | "medium" | "high" }>`
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
     padding: 1.8rem 1rem;
+    background: ${({ theme }) => theme.colors.card_bg};
     border-radius: ${({ theme }) => theme.radius.lg};
     animation: ${fadeIn} 0.45s ease-out;
     margin-bottom: 2rem;
+    overflow: visible;
 
-    ${({ theme, $risk }) =>
-        $risk === "low"
-            ? css`box-shadow: ${theme.colors.low_risk_gradient};`
-            : $risk === "medium"
-                ? css`box-shadow: ${theme.colors.medium_risk_gradient};`
-                : css`box-shadow: ${theme.colors.high_risk_gradient};`
-    }
+    /* Soft ambient glow that reflects the relapse-risk gradient */
+    ${({ theme, $risk }) => {
+        const gradient =
+            $risk === "low"
+                ? theme.colors.low_risk_gradient
+                : $risk === "medium"
+                ? theme.colors.medium_risk_gradient
+                : theme.colors.high_risk_gradient;
+
+        return css`
+            &::before {
+                content: "";
+                position: absolute;
+                left: 12%;
+                right: 12%;
+                bottom: -18px;
+                height: 26px;
+                background: ${gradient};
+                border-radius: 999px;
+                filter: blur(18px);
+                opacity: 0.8;
+                z-index: -1;
+            }
+
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+        `;
+    }}
 `;
 
 const Card = styled.div`
@@ -90,8 +140,8 @@ const Trend = styled.div<{ $color: string; $highlight: boolean }>`
     ${({ $highlight }) =>
         $highlight &&
         css`
-        animation: ${softPulse} 1.5s ease-out 0.4s;
-    `}
+            animation: ${softPulse} 1.5s ease-out 0.4s;
+        `}
 `;
 
 const Caption = styled.div`
@@ -134,8 +184,9 @@ export const DailyProgressCard: React.FC<Props> = ({
     const isImprovement = score > prevScore;
     const isReset = prevScore > 0 && score === 0;
 
+    // Stroke color for the circular progress (not the glow)
     const color =
-        risk === "low" ? "#21b2ba" : risk === "medium" ? "#f1c40f" : "#e74c3c";
+        risk === "low" ? "#22c55e" : risk === "medium" ? "#f76e19" : "#ff0004";
 
     const [animScore, setAnimScore] = useState(0);
 
@@ -162,7 +213,14 @@ export const DailyProgressCard: React.FC<Props> = ({
         <Wrapper $risk={risk}>
             <Card>
                 <svg width={size} height={size}>
-                    <circle cx={size / 2} cy={size / 2} r={r} stroke="#e4eff0" strokeWidth={stroke} fill="none" />
+                    <circle
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={r}
+                        stroke="#e4eff0"
+                        strokeWidth={stroke}
+                        fill="none"
+                    />
                     <circle
                         cx={size / 2}
                         cy={size / 2}
@@ -182,7 +240,13 @@ export const DailyProgressCard: React.FC<Props> = ({
                 </ProgressLabelContainer>
 
                 <Trend
-                    $color={isImprovement ? "#2ecc71" : isReset ? "#e74c3c" : "#95a5a6"}
+                    $color={
+                        isImprovement
+                            ? "#2ecc71"
+                            : isReset
+                            ? "#e74c3c"
+                            : "#95a5a6"
+                    }
                     $highlight={isImprovement}
                 >
                     {isImprovement ? <ArrowUp /> : isReset ? <ArrowDown /> : <Minus />}
@@ -195,8 +259,8 @@ export const DailyProgressCard: React.FC<Props> = ({
                 {isReset
                     ? "Start fresh — every day counts!"
                     : isImprovement
-                        ? "Keep going strong!"
-                        : "Stay consistent."}
+                    ? "Keep going strong!"
+                    : "Stay consistent."}
             </SubMsg>
         </Wrapper>
     );
@@ -208,7 +272,10 @@ export const DailyProgressCardAuto = () => {
     if (!data) return <p>No streak data yet.</p>;
 
     return (
-        <DailyProgressCard score={data.currentStreak} prevScore={data.previousStreak} />
+        <DailyProgressCard
+            score={data.currentStreak}
+            prevScore={data.previousStreak}
+        />
     );
 };
 
