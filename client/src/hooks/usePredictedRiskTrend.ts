@@ -4,34 +4,40 @@ import { useEffect, useState } from "react";
 import { axiosClient } from "@/services";
 
 
-// Predicted risk point structure
+// --------------------------
+// Types and Interfaces
+// --------------------------
 interface PredictedPoint {
     day: number;
     predicted_risk: number;
 }
 
-// API response structure for risk trend
 interface MLTrendResponse {
     trend: PredictedPoint[];
 }
 
-/** React hook to fetch predicted risk trend over specified days */
+// -----------------------------
+// usePredictedRiskTrend Hook
+// -----------------------------
 export const usePredictedRiskTrend = (days: number = 14) => {
     const [trend, setTrend] = useState<PredictedPoint[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Fetch predicted risk trend on mount or when days change
     useEffect(() => {
         let alive = true;
 
-        // Fetch predicted risk trend from API
+        // Fetch trend data from the backend
         const fetchTrend = async () => {
             try {
-                const res = await axiosClient.get<MLTrendResponse>(`/risk-trend?days=${days}`);
+                const res = await axiosClient.get<MLTrendResponse>(
+                    `/api/ml/risk-trend?days=${days}`
+                );
                 if (alive) {
                     setTrend(res.data.trend);
                 }
-            } catch (err: unknown) {
+            } catch (err) {
                 console.error(err);
                 if (alive) {
                     setError("Failed to load predicted risk trend");
@@ -42,7 +48,9 @@ export const usePredictedRiskTrend = (days: number = 14) => {
         };
 
         fetchTrend();
-        return () => { alive = false };
+        return () => {
+            alive = false;
+        };
     }, [days]);
 
     return { trend, loading, error };
