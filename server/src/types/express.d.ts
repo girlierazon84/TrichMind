@@ -1,15 +1,13 @@
 // server/src/types/express.d.ts
 
-import "@types/express";
+import "express";
 
 
-// Extend Express Request interface to include user property
-declare global {
-    namespace Express {
-        interface Request {
-            user?: {
-                id: string;
-            };
-        }
+// Extend Express Request to include auth property
+declare module "express" {
+    interface Request {
+        auth?: {
+            userId: string;
+        };
     }
 }
