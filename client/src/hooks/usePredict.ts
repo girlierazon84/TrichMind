@@ -4,7 +4,10 @@ import { useState } from "react";
 import { toast } from "react-toastify";
 import { predictApi, alertApi } from "@/services";
 import { useLogger } from "@/hooks";
-import type { PredictPayload, PredictionResponse } from "@/types/ml";
+import type {
+  PredictPayload,
+  PredictionResponse
+} from "@/types/ml";
 
 
 /** Wire shape (allows uppercase buckets) */
@@ -14,6 +17,7 @@ type WirePrediction =
       risk_bucket: "LOW" | "MEDIUM" | "HIGH";
     });
 
+// Normalize API response to consistent risk_bucket format
 const normalize = (resp: WirePrediction): PredictionResponse => {
   const bucket = String(resp.risk_bucket || "medium").toLowerCase() as
     | "low"
@@ -22,8 +26,10 @@ const normalize = (resp: WirePrediction): PredictionResponse => {
   return { ...resp, risk_bucket: bucket };
 };
 
+// Threshold to trigger relapse alerts
 const RELAPSE_ALERT_THRESHOLD = 0.7;
 
+// Retrieve user email from localStorage (if available)
 function getLocalUserEmail(): string | undefined {
   try {
     const raw = localStorage.getItem("user");
@@ -35,6 +41,7 @@ function getLocalUserEmail(): string | undefined {
   }
 }
 
+// React hook for making predictions
 export const usePredict = () => {
   const [result, setResult] = useState<PredictionResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -119,6 +126,7 @@ export const usePredict = () => {
   return { predict, result, loading, error };
 };
 
+// Show supportive toast based on prediction result
 function showSupportiveToast(result: PredictionResponse) {
   const msg =
     result.risk_bucket === "high"
