@@ -8,10 +8,12 @@ import { axiosClient } from "@/services";
 // Function to fetch historical risk trend data
 //----------------------------------------------------------
 export const useRiskTrendChart = () => {
+    // State variables to hold data, loading status, and error message
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Effect hook to fetch data on component mount
     useEffect(() => {
         const fetchTrend = async () => {
             try {
