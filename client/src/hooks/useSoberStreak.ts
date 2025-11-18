@@ -1,10 +1,17 @@
 // client/src/hooks/useSoberStreak.ts
 
-import { useEffect, useState, useCallback } from "react";
+import {
+    useEffect,
+    useState,
+    useCallback
+} from "react";
 import { axiosClient } from "@/services";
 
 
-// TYPES
+// ──────────────────────────────
+// Types
+// ──────────────────────────────
+// Sober streak API response structure
 export interface SoberStreakResponse {
     currentStreak: number;
     previousStreak?: number;
@@ -12,17 +19,21 @@ export interface SoberStreakResponse {
     lastEntryDate?: string;
 }
 
+// Hook return type
 interface UseSoberStreakResult {
     data: SoberStreakResponse | null;
     loading: boolean;
     error: string | null;
 }
 
+/** React hook to fetch user's sober streak data */
 export const useSoberStreak = (): UseSoberStreakResult => {
+    // State variables
     const [data, setData] = useState<SoberStreakResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Fetch sober streak data
     const fetchStreak = useCallback(async () => {
         setLoading(true);
         setError(null);
