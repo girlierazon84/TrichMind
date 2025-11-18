@@ -194,10 +194,6 @@ const Section = styled.section<{ $delay?: number; $pop?: boolean }>`
     width: 100%;
     max-width: 960px;
 
-    background: ${({ theme }) => theme.colors.card_bg};
-    border-radius: ${({ theme }) => theme.radius.lg};
-    box-shadow: ${({ theme }) => theme.colors.card_shadow};
-
     padding: ${({ theme }) => theme.spacing(5)};
     margin-bottom: ${({ theme }) => theme.spacing(4)};
 
