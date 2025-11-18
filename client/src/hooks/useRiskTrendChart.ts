@@ -1,54 +1,41 @@
 // client/src/hooks/useRiskTrendChart.ts
 
 import { useState, useEffect } from "react";
-import { predictApi }from "@/services";
+import { axiosClient } from "@/services";
 
 
-// ──────────────────────────────
-// Types
-// ──────────────────────────────
 // Historical risk point structure
 export interface HistoryPoint {
     date: string;
     score: number;
 }
 
-// API response structure for prediction
-type PredictResponse = {
-    data: {
-        trend: HistoryPoint[];
-    };
-};
-
-// Predict API interface
-interface PredictApi {
-    predict: (opts: { path: string }) => Promise<PredictResponse>;
+// API response structure from backend
+interface RiskTrendResponse {
+    trend: HistoryPoint[];
 }
 
 /** React hook to fetch historical risk trend for charting */
 export const useRiskTrendChart = () => {
-    // State variables
     const [data, setData] = useState<HistoryPoint[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Fetch historical risk trend data
     useEffect(() => {
         let active = true;
 
         const fetchTrend = async () => {
             try {
-                const api = predictApi as unknown as PredictApi;
-                const res = await api.predict({ path: "/health/risk-trend" });
+                // 🔹 Hit your Node health route, NOT the ML predict route
+                const res = await axiosClient.get<RiskTrendResponse>(
+                    "/api/health/risk-trend"
+                );
 
-                const trend: HistoryPoint[] = res.data.trend.map((t: HistoryPoint) => ({
-                    date: t.date,
-                    score: t.score,
-                }));
+                if (!active) return;
 
-                if (active) setData(trend);
+                setData(res.data?.trend ?? []);
             } catch (err) {
-                console.error(err);
+                console.error("[useRiskTrendChart] Failed to load trend:", err);
                 if (active) setError("Failed to load historical trend");
             } finally {
                 if (active) setLoading(false);
@@ -56,7 +43,10 @@ export const useRiskTrendChart = () => {
         };
 
         fetchTrend();
-        return () => { active = false };
+
+        return () => {
+            active = false;
+        };
     }, []);
 
     return { data, loading, error };
