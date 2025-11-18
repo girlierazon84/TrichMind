@@ -3,15 +3,19 @@
 import { useEffect, useState } from "react";
 import { axiosClient } from "@/services";
 
+
+// Predicted risk point structure
 interface PredictedPoint {
     day: number;
     predicted_risk: number;
 }
 
+// API response structure for risk trend
 interface MLTrendResponse {
     trend: PredictedPoint[];
 }
 
+/** React hook to fetch predicted risk trend over specified days */
 export const usePredictedRiskTrend = (days: number = 14) => {
     const [trend, setTrend] = useState<PredictedPoint[]>([]);
     const [loading, setLoading] = useState(true);
@@ -42,3 +46,5 @@ export const usePredictedRiskTrend = (days: number = 14) => {
 
     return { trend, loading, error };
 };
+
+export default usePredictedRiskTrend;
