@@ -2,10 +2,14 @@
 
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { healthApi, type HealthLogData } from "@/services";
+import {
+    healthApi,
+    type HealthLogData
+} from "@/services";
 import { useLogger } from "@/hooks";
 
 
+/** * 🩺 useHealth — React hook for managing health logs */
 export const useHealth = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
