@@ -5,10 +5,15 @@ import { trichBotApi } from "@/services";
 import { useLogger } from "@/hooks";
 
 
+// ─────────────────────────────────────
+// Hook to manage TrichBot interactions
+// ─────────────────────────────────────
 export const useTrichBot = () => {
+    // Loading state
     const [loading, setLoading] = useState(false);
     const { log } = useLogger(false);
 
+    // Send a message to TrichBot
     const sendMessage = async (prompt: string) => {
         setLoading(true);
         try {
