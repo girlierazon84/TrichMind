@@ -12,8 +12,13 @@ import triggersIcon from "../assets/icons/triggers.png";
 import trichGameIcon from "../assets/icons/trichgame.png";
 import trichBotIcon from "../assets/icons/trichbot.png";
 
+
+// -----------------------------------------------------
+//    Bottom Navigation Bar Component
+// -----------------------------------------------------
 type BottomNavBarProps = { visible: boolean };
 
+// Styled Components
 const BottomNavBar = styled.nav<BottomNavBarProps>`
     position: fixed;
     bottom: 0;
@@ -32,6 +37,12 @@ const BottomNavBar = styled.nav<BottomNavBarProps>`
     opacity: ${({ visible }) => (visible ? 1 : 0)};
     transform: ${({ visible }) => (visible ? "translateY(0)" : "translateY(100%)")};
     pointer-events: ${({ visible }) => (visible ? "auto" : "none")};
+
+    @media (min-width: 1025px) {
+        nav {
+            display: none;
+        }
+    }
 `;
 
 const NavItem = styled(NavLink)`
@@ -70,8 +81,10 @@ const NavItem = styled(NavLink)`
     }
 `;
 
+// Navigation Configuration
 type NavConfig = { to: string; icon: string; label: string };
 
+// Immutable array of navigation items
 const navItems: ReadonlyArray<NavConfig> = [
     { to: "/", icon: homeIcon, label: "Home" },
     { to: "/health", icon: healthIcon, label: "Health" },
@@ -81,14 +94,17 @@ const navItems: ReadonlyArray<NavConfig> = [
     { to: "/trichbot", icon: trichBotIcon, label: "TrichBot" },
 ] as const;
 
+// BottomNav Component
 export const BottomNav = () => {
     const [visible, setVisible] = useState<boolean>(true);
 
+    // Effect to handle keyboard visibility on mobile devices
     useEffect(() => {
         // Detect mobile keyboard by comparing height changes
         const threshold = 150; // px difference = keyboard up
         let initialHeight = window.innerHeight;
 
+        // Resize handler
         const handleResize = () => {
             // If orientation changes, refresh baseline
             if (Math.abs(window.innerHeight - initialHeight) > 300) {
@@ -98,6 +114,7 @@ export const BottomNav = () => {
             setVisible(heightDiff < threshold);
         };
 
+        // Event listeners
         window.addEventListener("resize", handleResize);
         // Also hide on focusin of inputs (helps on some devices)
         const handleFocusIn = (e: FocusEvent) => {
