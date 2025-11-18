@@ -1,14 +1,22 @@
 // client/src/hooks/useTrichGame.ts
 
 import { useState } from "react";
-import { trichGameApi, type GameSession } from "@/services";
+import {
+    trichGameApi,
+    type GameSession
+} from "@/services";
 import { useLogger } from "@/hooks";
 
 
+// ─────────────────────────────────────
+// Hook to manage TrichGame sessions
+// ─────────────────────────────────────
 export const useTrichGame = () => {
+    // Loading state
     const [loading, setLoading] = useState(false);
     const { log } = useLogger(false);
 
+    // Start a new game session
     const startSession = async (session: GameSession) => {
         setLoading(true);
         try {
