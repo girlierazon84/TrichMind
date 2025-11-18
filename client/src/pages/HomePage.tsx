@@ -460,9 +460,10 @@ export const HomePage: React.FC = () => {
     }
 
     // Prediction data object
+    const riskBucketLower = bucket.toLowerCase() as 'low' | 'medium' | 'high';
     const predictionData = {
         risk_score: riskScore,
-        risk_bucket: bucket.toLowerCase(),
+        risk_bucket: riskBucketLower,
         risk_code: bucket === "HIGH" ? 2 : bucket === "MEDIUM" ? 1 : 0,
         confidence,
         model_version: "v1.0.0",
