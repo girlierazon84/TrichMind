@@ -11,17 +11,23 @@ import {
     Tooltip,
     CartesianGrid,
     ResponsiveContainer,
+    Legend,
+    ReferenceArea,
 } from "recharts";
 import {
     useRiskTrendChart,
-    usePredictedRiskTrend,
-    HistoryPoint
+    usePredictedRiskTrend
 } from "@/hooks";
 
 
-// ──────────────────────────────
-// Types
-// ──────────────────────────────
+// ----------------------------------------------------
+// Local Types (corrected)
+// ----------------------------------------------------
+export interface HistoryPoint {
+    date: string;
+    score: number;
+}
+
 interface PastPoint {
     date: string;
     risk_score: number;
@@ -39,10 +45,12 @@ interface PredictionPoint {
     predicted_risk: number;
 }
 
+type MergedPoint = PastPoint | FuturePoint;
 
-// ──────────────────────────────
+
+// ----------------------------------------------------
 // Styled Components
-// ──────────────────────────────
+// ----------------------------------------------------
 const ChartWrapper = styled.div`
     width: 100%;
     height: 340px;
@@ -78,41 +86,49 @@ const Message = styled.p`
 `;
 
 
-// ──────────────────────────────
+// ----------------------------------------------------
 // Component
-// ──────────────────────────────
+// ----------------------------------------------------
 export const RiskTrendChart: React.FC = () => {
     const theme = useTheme();
 
-    const { data: history, loading: historyLoading, error: historyError } = useRiskTrendChart();
-    const { trend: predicted, loading: predLoading, error: predError } = usePredictedRiskTrend(14);
+    const { data: history, loading: histLoading, error: histError } = useRiskTrendChart();
+    const { trend: predicted, loading: predLoading, error: predError } =
+        usePredictedRiskTrend(14);
 
-    const loading = historyLoading || predLoading;
-    const error = historyError || predError;
+    const loading = histLoading || predLoading;
+    const error = histError || predError;
 
-    const mergedData = useMemo(() => {
+    // Build merged dataset
+    const { mergedData, forecastStartIndex } = useMemo(() => {
         const past: PastPoint[] = (history ?? []).map((item: HistoryPoint) => ({
             date: item.date,
             risk_score: item.score * 100,
             type: "past",
         }));
 
-        const lastDate = past.length ? new Date(past[past.length - 1].date) : new Date();
+        const lastDate = past.length
+            ? new Date(past[past.length - 1].date)
+            : new Date();
 
         const future: FuturePoint[] = (predicted ?? []).map(
-            (item: PredictionPoint, i) => {
+            (p: PredictionPoint, i) => {
                 const d = new Date(lastDate);
                 d.setDate(d.getDate() + (i + 1));
-
                 return {
                     date: d.toISOString(),
-                    risk_score: item.predicted_risk * 100,
+                    risk_score: p.predicted_risk * 100,
                     type: "future",
                 };
             }
         );
 
-        return [...past, ...future];
+        const merged: MergedPoint[] = [...past, ...future];
+
+        return {
+            mergedData: merged,
+            forecastStartIndex: past.length - 1,
+        };
     }, [history, predicted]);
 
 
@@ -121,9 +137,14 @@ export const RiskTrendChart: React.FC = () => {
     if (!mergedData.length) return <Message>No trend data available.</Message>;
 
 
+    const forecastStartDate =
+        mergedData[forecastStartIndex]?.date ?? mergedData[0].date;
+
     return (
         <ChartWrapper>
-            <ChartTitle>📈 Combined Relapse Risk Trend (Past + Predictions)</ChartTitle>
+            <ChartTitle>
+                📈 Combined Relapse Risk Trend (History + 14-Day Forecast)
+            </ChartTitle>
 
             <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={mergedData}>
@@ -154,22 +175,53 @@ export const RiskTrendChart: React.FC = () => {
                         stroke={theme.colors.text_secondary}
                     />
 
-                    <Tooltip
-                        formatter={(value: number, _label, obj) => [
-                            `${value.toFixed(1)}%`,
-                            obj.payload.type === "past" ? "Historical" : "Predicted",
-                        ]}
+                    {/* Highlight forecast area */}
+                    <ReferenceArea
+                        x1={forecastStartDate}
+                        x2={mergedData[mergedData.length - 1].date}
+                        fill={theme.colors.sixthly}
+                        fillOpacity={0.12}
                     />
 
+                    {/* FIXED Tooltip formatter types */}
+                    <Tooltip
+                        formatter={(value: number, _name, item) => {
+                            const point = item?.payload as MergedPoint;
+                            const label =
+                                point.type === "past" ? "Historical" : "Forecast";
+                            return [`${value.toFixed(1)}%`, label];
+                        }}
+                        labelFormatter={(label: string) =>
+                            new Date(label).toLocaleDateString(undefined, {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                            })
+                        }
+                    />
+
+                    <Legend
+                        formatter={(value) =>
+                            value === "past"
+                                ? "Historical"
+                                : value === "future"
+                                ? "Forecast"
+                                : value
+                        }
+                    />
+
+                    {/* Past (solid line) */}
                     <Line
                         type="monotone"
                         dataKey="risk_score"
                         stroke="url(#riskGradient)"
                         strokeWidth={3}
                         dot={{ r: 3 }}
+                        name="past"
                         data={mergedData.filter((d) => d.type === "past")}
                     />
 
+                    {/* Future (dashed line) */}
                     <Line
                         type="monotone"
                         dataKey="risk_score"
@@ -177,6 +229,7 @@ export const RiskTrendChart: React.FC = () => {
                         strokeDasharray="6 6"
                         strokeWidth={3}
                         dot={false}
+                        name="future"
                         data={mergedData.filter((d) => d.type === "future")}
                     />
                 </LineChart>
