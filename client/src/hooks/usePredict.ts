@@ -112,7 +112,7 @@ export const usePredict = () => {
         message: msg,
         payloadSummary: {
           pulling_severity: payload.pulling_severity,
-          frequency: payload.pulling_frequency_encoded,
+          frequency: payload.pulling_frequency,
           age: payload.age,
         },
       });
