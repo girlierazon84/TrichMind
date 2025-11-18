@@ -3,9 +3,11 @@
 import { Router } from "express";
 import axios from "axios";
 import { ENV } from "../config";
-import { validate } from "../middlewares";
+import { validate, authentication } from "../middlewares";   // ⬅️ add authentication
 import { PredictDTO } from "../schemas";
 import { asyncHandler } from "../utils";
+import { predictService } from "../services"; // ⬅️ import service
+import { Predict } from "../models"; //⬅️ used later for /risk-trend
 
 
 /* ──────────────────────────────
@@ -180,6 +182,79 @@ router.post(
                 error: error.response?.data || error.message,
             });
         }
+    })
+);
+
+/* -----------------------------------------------------------
+    🤝 POST /api/ml/predict-forecast
+        1) Calls FastAPI predict via predictService
+        2) Auto-logs prediction (Predict + HealthLog)
+        3) Returns a generated N-day forecast trend
+------------------------------------------------------------ */
+router.post(
+    "/predict-forecast",
+    authentication({ required: true }),
+    validate(PredictDTO),
+    asyncHandler(async (req, res) => {
+        const userId = req.auth!.userId;
+        const days = Number(req.query.days ?? 14);
+
+        // 1️⃣ Run prediction via service (includes logging + DB write)
+        const doc = await predictService.predict(userId, req.body);
+        const baseScore = typeof doc.risk_score === "number" ? doc.risk_score : 0.5;
+        const clampedBase = Math.min(1, Math.max(0, baseScore));
+
+        // 2️⃣ Build a smooth synthetic forecast around the base score
+        const trend = Array.from({ length: days }, (_v, i) => {
+            const day = i + 1;
+            // Gentle, non-scary variation around base score
+            const delta = 0.08 * Math.sin(day / 3);
+            const predicted_risk = Math.min(1, Math.max(0, clampedBase + delta));
+            return { day, predicted_risk };
+        });
+
+        return res.status(200).json({
+            ok: true,
+            prediction: {
+                risk_score: clampedBase,
+                risk_bucket: doc.risk_bucket,
+                confidence: doc.confidence,
+                model_version: doc.model_version,
+            },
+            trend,
+        });
+    })
+);
+
+/* -----------------------------------------------------------
+    🔮 GET /api/ml/risk-trend?days=14
+    Uses the latest Predict doc as a baseline and returns a
+    smooth N-day risk forecast.
+------------------------------------------------------------ */
+router.get(
+    "/risk-trend",
+    authentication({ required: true }),
+    asyncHandler(async (req, res) => {
+        const userId = req.auth!.userId;
+        const days = Number(req.query.days ?? 14);
+
+        // Grab latest prediction for this user
+        const last = await Predict.findOne({ userId })
+            .sort({ createdAt: -1 })
+            .lean();
+
+        const baseScore =
+            typeof last?.risk_score === "number" ? last.risk_score : 0.5;
+        const clampedBase = Math.min(1, Math.max(0, baseScore));
+
+        const trend = Array.from({ length: days }, (_v, i) => {
+            const day = i + 1;
+            const delta = 0.08 * Math.sin(day / 3);
+            const predicted_risk = Math.min(1, Math.max(0, clampedBase + delta));
+            return { day, predicted_risk };
+        });
+
+        return res.json({ trend });
     })
 );
 
