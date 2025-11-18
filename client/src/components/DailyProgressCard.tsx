@@ -73,6 +73,7 @@ const borderFlow = keyframes`
     100% { background-position: 0% 50%; }
 `;
 
+// Styled Components
 const Wrapper = styled.div<{ $risk: "low" | "medium" | "high" }>`
     position: relative;
     display: flex;
