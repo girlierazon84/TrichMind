@@ -81,7 +81,7 @@ const FooterText = styled.p`
     transition: color 0.2s ease;
 
     &:hover {
-      color: ${({ theme }) => theme.colors.secondary};
+      color: ${({ theme }) => theme.colors.fifthly};
     }
   }
 `;
