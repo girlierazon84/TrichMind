@@ -54,28 +54,39 @@ const Minus = () => (
     </svg>
 );
 
-// Animation
+// Animations
 const softPulse = keyframes`
     from { opacity: 0.8; transform: translateY(0); }
     50%  { opacity: 1; transform: translateY(-2px); }
     to   { opacity: 0.9; transform: translateY(0); }
 `;
 
-// Styled components
+const glowPulse = keyframes`
+    0%   { opacity: 0.55; }
+    50%  { opacity: 0.9;  }
+    100% { opacity: 0.55; }
+`;
+
+const borderFlow = keyframes`
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+`;
+
 const Wrapper = styled.div<{ $risk: "low" | "medium" | "high" }>`
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
+
     padding: 1.8rem 1rem;
     background: ${({ theme }) => theme.colors.card_bg};
     border-radius: ${({ theme }) => theme.radius.lg};
-    animation: ${fadeIn} 0.45s ease-out;
     margin-bottom: 2rem;
+    animation: ${fadeIn} 0.45s ease-out;
     overflow: visible;
 
-    /* Soft ambient glow that reflects the relapse-risk gradient */
     ${({ theme, $risk }) => {
         const gradient =
             $risk === "low"
@@ -85,21 +96,30 @@ const Wrapper = styled.div<{ $risk: "low" | "medium" | "high" }>`
                 : theme.colors.high_risk_gradient;
 
         return css`
+            /* 🟦 STRONG Animated Gradient Border */
+            border: 3px solid transparent;
+            background-image:
+                linear-gradient(${gradient}),
+                linear-gradient(${theme.colors.card_bg}, ${theme.colors.card_bg});
+            background-origin: border-box;
+            background-clip: border-box, padding-box;
+            animation: ${borderFlow} 5s ease infinite;
+
+            /* ⭐ SUBTLE glow hugging the border only */
             &::before {
                 content: "";
                 position: absolute;
-                left: 12%;
-                right: 12%;
-                bottom: -18px;
-                height: 26px;
+                inset: -4px;
+                border-radius: inherit;
                 background: ${gradient};
-                border-radius: 999px;
-                filter: blur(18px);
-                opacity: 0.8;
+                filter: blur(10px);
+                opacity: 0.45;
+                animation: ${glowPulse} 3.6s ease-in-out infinite;
                 z-index: -1;
             }
 
-            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+            /* 🌑 LIGHT shadow (not heavy, not large) */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
         `;
     }}
 `;
@@ -266,6 +286,7 @@ export const DailyProgressCard: React.FC<Props> = ({
     );
 };
 
+// Auto component fetching data
 export const DailyProgressCardAuto = () => {
     const { data, loading } = useSoberStreak();
     if (loading) return <p>Loading streak…</p>;
