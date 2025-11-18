@@ -5,16 +5,14 @@ import { toast } from "react-toastify";
 import { userApi, type UpdateProfileData } from "@/services";
 import { useLogger, useAuth } from "@/hooks";
 
-
 /** Custom hook to manage user profile actions */
 export const useUser = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const { user, refreshUser } = useAuth(); // ✔ FIXED: refreshUser instead of me()
+    const { user, refreshUser } = useAuth(); // now exists in useAuth()
     const { log, error: logError } = useLogger(false);
 
-    /** 👤 Fetch current user profile */
     const getProfile = async () => {
         setLoading(true);
         setError(null);
@@ -33,7 +31,6 @@ export const useUser = () => {
         }
     };
 
-    /** ✏️ Update profile + refresh global user state */
     const updateProfile = async (data: UpdateProfileData) => {
         setLoading(true);
         setError(null);
@@ -41,7 +38,7 @@ export const useUser = () => {
             const updated = await userApi.updateProfile(data);
             await log("User profile updated", { fields: Object.keys(data) });
 
-            // ✔ FIX: Refresh Auth user
+            // Refresh global user object
             await refreshUser();
 
             toast.success("Profile updated successfully!");
@@ -57,7 +54,6 @@ export const useUser = () => {
         }
     };
 
-    /** 🗑️ Delete user account */
     const deleteAccount = async () => {
         setLoading(true);
         setError(null);
