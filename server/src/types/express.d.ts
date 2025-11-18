@@ -2,12 +2,13 @@
 
 import "express";
 
-
-// Extend Express Request to include auth property
-declare module "express" {
-    interface Request {
-        auth?: {
-            userId: string;
-        };
+declare global {
+    namespace Express {
+        interface Request {
+            auth?: {
+                userId: string;
+                token: string;   // <-- ADD THIS
+            };
+        }
     }
 }
