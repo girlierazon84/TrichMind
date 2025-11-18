@@ -85,6 +85,11 @@ const FooterText = styled.p`
     a {
         color: ${({ theme }) => theme.colors.primary};
         font-weight: 600;
+        text-decoration: none;
+
+        &:hover {
+            color: ${({ theme }) => theme.colors.fifthly};
+        }
     }
 `;
 
