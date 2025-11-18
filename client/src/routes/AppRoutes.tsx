@@ -2,7 +2,6 @@
 
 import { Routes, Route, Navigate } from "react-router-dom";
 import { PrivateRoute, PublicRoute } from "@/routes";
-import { AppLayout } from "@/layouts/AppLayout";
 import {
     RegistrationPage,
     LoginPage,
@@ -15,14 +14,41 @@ import {
     TrichBotPage
 } from "@/pages";
 
+import AppLayout from "@/layouts/AppLayout";
 
-// Main application routes component
+
+// -------------------------
+// App Routes
+// -------------------------
 export const AppRoutes = () => {
     return (
         <Routes>
-            {/* App Layout */}
+
+            {/* -------------------------
+                §Public Routes (NO BottomNav)
+            -------------------------- */}
+            <Route
+                path="/login"
+                element={
+                    <PublicRoute>
+                        <LoginPage />
+                    </PublicRoute>
+                }
+            />
+
+            <Route
+                path="/register"
+                element={
+                    <PublicRoute>
+                        <RegistrationPage />
+                    </PublicRoute>
+                }
+            />
+
+            {/* ---------------------------------------------
+                Protected Routes (BottomNav is inside Layout)
+            ---------------------------------------------- */}
             <Route element={<AppLayout />}>
-                {/* Private Routes */}
                 <Route
                     path="/"
                     element={
@@ -31,16 +57,6 @@ export const AppRoutes = () => {
                         </PrivateRoute>
                     }
                 />
-
-                <Route
-                    path="/profile"
-                    element={
-                        <PrivateRoute>
-                            <ProfilePage />
-                        </PrivateRoute>
-                    }
-                />
-
                 <Route
                     path="/health"
                     element={
@@ -49,7 +65,6 @@ export const AppRoutes = () => {
                         </PrivateRoute>
                     }
                 />
-
                 <Route
                     path="/journal"
                     element={
@@ -58,16 +73,14 @@ export const AppRoutes = () => {
                         </PrivateRoute>
                     }
                 />
-
                 <Route
-                    path="/triggers-insights"
+                    path="/triggersinsights"
                     element={
                         <PrivateRoute>
                             <TriggersInsightsPage />
                         </PrivateRoute>
                     }
                 />
-
                 <Route
                     path="/trichgame"
                     element={
@@ -76,7 +89,6 @@ export const AppRoutes = () => {
                         </PrivateRoute>
                     }
                 />
-
                 <Route
                     path="/trichbot"
                     element={
@@ -85,28 +97,18 @@ export const AppRoutes = () => {
                         </PrivateRoute>
                     }
                 />
-
-                {/* Public Routes */}
                 <Route
-                    path="/login"
+                    path="/profile"
                     element={
-                        <PublicRoute>
-                            <LoginPage />
-                        </PublicRoute>
+                        <PrivateRoute>
+                            <ProfilePage />
+                        </PrivateRoute>
                     }
                 />
-
-                <Route
-                    path="/register"
-                    element={
-                        <PublicRoute>
-                            <RegistrationPage />
-                        </PublicRoute>
-                    }
-                />
-
-                <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     );
 };
