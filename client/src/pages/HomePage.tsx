@@ -314,40 +314,48 @@ const WelcomeBody = styled.p`
     Component
 ----------------------------------------------------- */
 export const HomePage: React.FC = () => {
+    // Router
     const navigate = useNavigate();
     const { user, isAuthenticated, logout } = useAuth();
 
+    // State
     const [riskScore, setRiskScore] = useState(0);
     const [confidence, setConfidence] = useState(0);
     const [bucket, setBucket] = useState<RiskLevel>("MEDIUM");
     const [loading, setLoading] = useState(true);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
+    // Avatar
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [avatarShouldPulse, setAvatarShouldPulse] = useState(false);
 
+    // Welcome Modal
     const [showWelcome, setShowWelcome] = useState(false);
 
-    /* Dropdown Menu */
+    // Dropdown Menu
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
 
+    // Dropdown Menu Handlers
     const toggleMenu = (e: React.MouseEvent) => {
         e.stopPropagation();
         setMenuOpen((prev) => !prev);
     };
 
+    // Dropdown Menu Handlers
     useEffect(() => {
         const handler = (e: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
                 setMenuOpen(false);
             }
         };
+
+        // Click outside to close menu
         window.addEventListener("click", handler);
         return () => window.removeEventListener("click", handler);
     }, []);
 
-    /* Responsive listener */
+    // Responsive listener
     useEffect(() => {
         const mq = window.matchMedia("(max-width: 768px)");
         const update = () => setIsMobile(mq.matches);
@@ -355,7 +363,7 @@ export const HomePage: React.FC = () => {
         return () => mq.removeEventListener("change", update);
     }, []);
 
-    /* Show welcome modal once per session */
+    // Show welcome modal once per session
     useEffect(() => {
         if (!isAuthenticated) return;
         const seen = sessionStorage.getItem("tm_welcome_seen");
@@ -365,13 +373,14 @@ export const HomePage: React.FC = () => {
         }
     }, [isAuthenticated]);
 
-    /* Load prediction + avatar */
+    // Load prediction + avatar
     const loadPrediction = useCallback(async () => {
         try {
             const res = await axiosClient.get<MeResponse>("/api/auth/me");
             const u = res.data.user;
             if (!u) throw new Error("Missing user");
 
+            // Update avatar with pulse effect if changed
             if (u.avatarUrl) {
                 setAvatarUrl((prev) => {
                     if (prev !== u.avatarUrl) {
@@ -382,6 +391,7 @@ export const HomePage: React.FC = () => {
                 });
             }
 
+            // Get prediction
             const pred = await axiosClient.post<PredictResponse>("/api/ml/predict", {
                 pulling_severity: u.pulling_severity ?? 5,
                 pulling_frequency_encoded: u.pulling_frequency_encoded ?? 3,
@@ -394,6 +404,7 @@ export const HomePage: React.FC = () => {
                 emotion_intensity_sum: u.emotion_intensity_sum ?? 4.5,
             });
 
+            // Set prediction data
             setRiskScore(pred.data.risk_score);
             setConfidence(pred.data.confidence);
             setBucket(String(pred.data.risk_bucket).toUpperCase() as RiskLevel);
@@ -404,11 +415,12 @@ export const HomePage: React.FC = () => {
         }
     }, [navigate]);
 
+    // Load prediction on authentication
     useEffect(() => {
         if (isAuthenticated) loadPrediction();
     }, [isAuthenticated, loadPrediction]);
 
-    /* Quote */
+    // Quote
     const quote = useMemo(() => {
         switch (bucket) {
             case "LOW":
@@ -420,8 +432,10 @@ export const HomePage: React.FC = () => {
         }
     }, [bucket]);
 
+    // Redirect if not authenticated
     if (!isAuthenticated) return null;
 
+    // Loading state
     if (loading) {
         return (
             <PageWrapper>
@@ -449,6 +463,7 @@ export const HomePage: React.FC = () => {
         );
     }
 
+    // Prediction data object
     const predictionData = {
         risk_score: riskScore,
         risk_bucket: bucket.toLowerCase(),
@@ -457,6 +472,7 @@ export const HomePage: React.FC = () => {
         model_version: "v1.0.0",
     };
 
+    // Header avatar
     const headerAvatar = avatarUrl || UserIcon;
 
     return (
