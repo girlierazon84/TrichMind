@@ -37,34 +37,42 @@ export interface RegisterFormData {
 /* ---------------------------------------------------------
     Helpers
 ----------------------------------------------------------*/
+// Convert string to number with fallback
 const toNum = (v?: string) => {
     const n = Number(v ?? 0);
     return Number.isFinite(n) ? n : 0;
 };
 
+// Calculate age from date of birth
 const calculateAge = (dob?: string): number => {
     if (!dob) return 0;
     const diff = Date.now() - new Date(dob).getTime();
     return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
 };
 
+// Map frequency string to numeric code
 const mapFrequency = (v?: string): number => {
     if (!v) return 0;
     const x = v.toLowerCase();
-    if (x.includes("rare")) return 1;
-    if (x.includes("week")) return 2;
-    if (x.includes("day")) return 3;
+    if (x.includes("rarely")) return 1;
+    if (x.includes("monthly")) return 2;
+    if (x.includes("weekly")) return 3;
+    if (x.includes("several times a week")) return 4;
+    if (x.includes("daily")) return 5;
     return 0;
 };
 
+// Map awareness string to numeric code
 const mapAwareness = (v?: string): number => {
     if (!v) return 0;
     const x = v.toLowerCase();
     if (x.includes("yes")) return 1;
-    if (x.includes("some")) return 0.5;
+    if (x.includes("sometimes")) return 0.5;
+    if (x.includes("no")) return 0.0;
     return 0;
 };
 
+// Map successful stop string to numeric code
 const mapSuccessful = (v?: string): number => {
     if (!v) return 0;
     return v.toLowerCase() === "yes" ? 1 : 0;
