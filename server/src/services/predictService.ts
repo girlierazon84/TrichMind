@@ -22,7 +22,7 @@ Handles interactions with the ML model for user predictions.
 -------------------------------------------------------------**/
 export const predictService = {
     async predict(userId: string, input: PredictDTO) {
-        const endpoint = `${ENV.ML_BASE_URL}/predict`;
+        const endpoint = `${ENV.ML_BASE_URL}/predict_friendly`;
 
         try {
             console.log(`📡 [PredictService] Sending payload to ${endpoint}`);
