@@ -1,0 +1,106 @@
+version: "3.9"
+
+services:
+  # ------------------------------------------------------
+  # 🍃 MongoDB (Dev Mode)
+  # ------------------------------------------------------
+  mongo:
+    image: mongo:7
+    container_name: trichmind-mongo-dev
+    restart: unless-stopped
+    ports:
+      - "27018:27017"       # Host → Container
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ------------------------------------------------------
+  # 🤖 FastAPI ML Model (Dev)
+  # ------------------------------------------------------
+  ml:
+    build:
+      context: ./ml
+      dockerfile: Dockerfile.dev
+    container_name: trichmind-ml-dev
+    restart: unless-stopped
+    working_dir: /app
+    command: uvicorn inference_api:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ml:/app
+      - ./ml/artifacts:/app/artifacts
+    environment:
+      MODEL_PATH: "/app/artifacts/training_outputs/best_models/best_relapse_risk_predictor_model.pkl"
+      ENCODER_PATH: "/app/artifacts/training_outputs/label_encoder/label_encoder.pkl"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ------------------------------------------------------
+  # 🧱 Node Backend (Dev Mode)
+  # ------------------------------------------------------
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    container_name: trichmind-server-dev
+    restart: unless-stopped
+    working_dir: /app
+    command: npm run dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: "development"
+      PORT: "8080"
+      MONGO_URI: "mongodb://mongo:27017/trichmind"
+      ML_BASE_URL: "http://ml:8000"
+      CLIENT_URL: "http://localhost:5173"
+      CORS_ORIGIN: "http://localhost:5173,http://127.0.0.1:5173"
+      JWT_SECRET: "dev-secret"
+      JWT_REFRESH_SECRET: "dev-refresh"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      ml:
+        condition: service_healthy
+
+  # ------------------------------------------------------
+  # 🎨 Vite Frontend (Dev Server w/ HMR)
+  # ------------------------------------------------------
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+    container_name: trichmind-client-dev
+    restart: unless-stopped
+    working_dir: /app
+    command: npm run dev -- --host
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    environment:
+      VITE_API_BASE_URL: "http://localhost:8080"
+      CHOKIDAR_USEPOLLING: "true"    # Fixes file watching on Windows
+    depends_on:
+      - server
+
+# ------------------------------------------------------
+# Volumes
+# ------------------------------------------------------
+volumes:
+  mongo_data:
