@@ -3,11 +3,11 @@
 import { Router } from "express";
 import axios from "axios";
 import { ENV } from "../config";
-import { validate, authentication } from "../middlewares";   // ⬅️ add authentication
+import { validate, authentication } from "../middlewares";
 import { PredictDTO } from "../schemas";
 import { asyncHandler } from "../utils";
-import { predictService } from "../services"; // ⬅️ import service
-import { Predict } from "../models"; //⬅️ used later for /risk-trend
+import { predictService } from "../services";
+import { Predict } from "../models";
 
 
 /* ──────────────────────────────
@@ -63,17 +63,20 @@ router.get(
 );
 
 /* -----------------------------------------------------------
-    🤖 POST /api/ml        — Wrapped Prediction Route
-    🤖 POST /api/ml/predict — Raw Prediction (used by frontend)
+    🤖 Helper: forward *friendly* payload to FastAPI /predict_friendly
 ------------------------------------------------------------ */
-
-async function forwardPredict(reqBody: any) {
-    const { data } = await axios.post(`${ML_URL}/predict`, reqBody, {
+async function forwardPredictFriendly(reqBody: any) {
+    const { data } = await axios.post(`${ML_URL}/predict_friendly`, reqBody, {
         headers: { "Content-Type": "application/json" },
         timeout: 15000,
     });
     return data;
 }
+
+/* -----------------------------------------------------------
+    🤖 POST /api/ml         — Wrapped Prediction Route (friendly)
+    🤖 POST /api/ml/predict — Raw Prediction (friendly)
+------------------------------------------------------------ */
 
 // Wrapped: { ok, prediction }
 router.post(
@@ -82,7 +85,7 @@ router.post(
     asyncHandler(async (req, res) => {
         try {
             console.log("📤 [ML] Predict Request (/):", req.body);
-            const data = await forwardPredict(req.body);
+            const data = await forwardPredictFriendly(req.body);
             console.log("📥 [ML] Predict OK (/):", data);
 
             return res.status(200).json({
@@ -117,13 +120,48 @@ router.post(
     asyncHandler(async (req, res) => {
         try {
             console.log("📤 [ML] Predict Request (/predict):", req.body);
-            const data = await forwardPredict(req.body);
+            const data = await forwardPredictFriendly(req.body);
             console.log("📥 [ML] Predict OK (/predict):", data);
 
             // Frontend expects raw PredictionResponse here
             return res.status(200).json(data);
         } catch (error: any) {
             console.error("❌ [ML] Predict Failed (/predict):", error.message);
+
+            if (error.code === "ECONNREFUSED") {
+                return res.status(502).json({
+                    ok: false,
+                    error: `Cannot connect to ML service at ${ML_URL}`,
+                });
+            }
+
+            return res.status(error.response?.status || 500).json({
+                ok: false,
+                error:
+                    error.response?.data?.detail ||
+                    error.response?.data?.error ||
+                    error.message,
+            });
+        }
+    })
+);
+
+/* -----------------------------------------------------------
+    🧩 NEW: /api/ml/predict_friendly
+    Directly mirrors /predict but explicit route name
+------------------------------------------------------------ */
+router.post(
+    "/predict_friendly",
+    validate(PredictDTO),
+    asyncHandler(async (req, res) => {
+        try {
+            console.log("📤 [ML] Predict Request (/predict_friendly):", req.body);
+            const data = await forwardPredictFriendly(req.body);
+            console.log("📥 [ML] Predict OK (/predict_friendly):", data);
+
+            return res.status(200).json(data);
+        } catch (error: any) {
+            console.error("❌ [ML] Predict Failed (/predict_friendly):", error.message);
 
             if (error.code === "ECONNREFUSED") {
                 return res.status(502).json({
@@ -187,7 +225,7 @@ router.post(
 
 /* -----------------------------------------------------------
     🤝 POST /api/ml/predict-forecast
-        1) Calls FastAPI predict via predictService
+        1) Calls FastAPI predict via predictService (friendly)
         2) Auto-logs prediction (Predict + HealthLog)
         3) Returns a generated N-day forecast trend
 ------------------------------------------------------------ */
@@ -199,15 +237,12 @@ router.post(
         const userId = req.auth!.userId;
         const days = Number(req.query.days ?? 14);
 
-        // 1️⃣ Run prediction via service (includes logging + DB write)
         const doc = await predictService.predict(userId, req.body);
         const baseScore = typeof doc.risk_score === "number" ? doc.risk_score : 0.5;
         const clampedBase = Math.min(1, Math.max(0, baseScore));
 
-        // 2️⃣ Build a smooth synthetic forecast around the base score
         const trend = Array.from({ length: days }, (_v, i) => {
             const day = i + 1;
-            // Gentle, non-scary variation around base score
             const delta = 0.08 * Math.sin(day / 3);
             const predicted_risk = Math.min(1, Math.max(0, clampedBase + delta));
             return { day, predicted_risk };
@@ -228,8 +263,6 @@ router.post(
 
 /* -----------------------------------------------------------
     🔮 GET /api/ml/risk-trend?days=14
-    Uses the latest Predict doc as a baseline and returns a
-    smooth N-day risk forecast.
 ------------------------------------------------------------ */
 router.get(
     "/risk-trend",
@@ -238,7 +271,6 @@ router.get(
         const userId = req.auth!.userId;
         const days = Number(req.query.days ?? 14);
 
-        // Grab latest prediction for this user
         const last = await Predict.findOne({ userId })
             .sort({ createdAt: -1 })
             .lean();
@@ -260,6 +292,7 @@ router.get(
 
 /* -----------------------------------------------------------
     🧪 Test Routes: /api/ml/test/low|medium|high
+    👉 These still talk to FastAPI /predict with *encoded* payloads
 ------------------------------------------------------------ */
 type RiskTestLevel = "low" | "medium" | "high";
 
