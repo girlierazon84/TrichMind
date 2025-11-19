@@ -2,11 +2,18 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Copy dependency manifests first
 COPY package*.json ./
-RUN npm install
 
+# Install dependencies
+RUN npm ci
+
+# Copy the rest of the Vite app
 COPY . .
 
 EXPOSE 5173
+
+# Needed so Vite dev server is reachable from outside container
+ENV CHOKIDAR_USEPOLLING=true
 
 CMD ["npm", "run", "dev", "--", "--host"]
