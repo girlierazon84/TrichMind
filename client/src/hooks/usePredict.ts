@@ -51,7 +51,6 @@ export const usePredict = () => {
   async function predict(payload: PredictPayload): Promise<PredictionResponse> {
     setLoading(true);
     setError(null);
-
     try {
       const wire = (await predictApi.predict(payload)) as WirePrediction;
       const normalized = normalize(wire);
