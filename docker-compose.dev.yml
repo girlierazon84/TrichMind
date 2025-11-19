@@ -22,13 +22,13 @@ services:
   # 🤖 FastAPI ML Service
   # ------------------------------------------------------
   ml:
-    image: trichmind-ml-dev-image            # ← FIXED
+    image: trichmind-ml-dev-image
     container_name: trichmind-ml-dev
     build:
-      context: ./ml                          # ← FIXED (must exist!!)
-      dockerfile: Dockerfile.dev             # ← FIXED
+      context: ./ml
+      dockerfile: Dockerfile.dev
     working_dir: /app
-    command: uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn api.api:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
     volumes:
@@ -37,6 +37,11 @@ services:
     environment:
       MODEL_PATH: "/app/artifacts/training_outputs/best_models/best_relapse_risk_predictor_model.pkl"
       ENCODER_PATH: "/app/artifacts/training_outputs/label_encoder/label_encoder.pkl"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
       mongo:
         condition: service_healthy
@@ -45,7 +50,7 @@ services:
   # 🧱 Node Backend (Dev)
   # ------------------------------------------------------
   server:
-    image: trichmind-server-dev-image         # ← FIXED
+    image: trichmind-server-dev-image
     container_name: trichmind-server-dev
     build:
       context: ./server
@@ -76,7 +81,7 @@ services:
   # 🎨 Vite Frontend (Dev)
   # ------------------------------------------------------
   client:
-    image: trichmind-client-dev-image          # ← FIXED
+    image: trichmind-client-dev-image
     container_name: trichmind-client-dev
     build:
       context: ./client
