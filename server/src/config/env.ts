@@ -1,99 +1,94 @@
-// server/src/config/env.ts - Environment configuration for TrichMind Backend
+// server/src/config/env.ts
 
 import dotenv from "dotenv";
 dotenv.config();
 
-/**-------------------------------------------------------
-Helper: Require critical environment variables
-Throws descriptive errors if required values are missing.
-----------------------------------------------------------**/
+
+/* -------------------------------------------------------
+    Helper: Required environment variable with fallback
+---------------------------------------------------------- */
 const required = (key: string, fallback?: string): string => {
     const value = process.env[key] ?? fallback;
     if (!value) throw new Error(`❌ Missing required environment variable: ${key}`);
     return value;
 };
 
-/**----------------------------------------------------------------
-✅ Centralized environment configuration for the TrichMind backend
-Automatically switches hosts between local and Docker environments
--------------------------------------------------------------------**/
-
-// Detect if running locally vs. Docker
+/* ------------------------------------------------------------------
+    🌍 ENV Mode Detection
+    - Local dev  → Node runs outside Docker
+    - Docker     → Node & Mongo run inside docker-compose
+--------------------------------------------------------------------- */
 const isLocal =
     process.env.NODE_ENV === "development" ||
     process.env.NODE_ENV === "local" ||
-    process.env.NODE_ENV === undefined;
+    !process.env.NODE_ENV;
 
-// Default host switching
-const DEFAULT_MONGO_HOST = isLocal ? "localhost" : "mongo";
-const DEFAULT_ML_HOST = isLocal ? "localhost" : "ml";
-const DEFAULT_SERVER_HOST = isLocal ? "localhost" : "server";
+/* ------------------------------------------------------------------
+    Dynamic Host Switching
+--------------------------------------------------------------------- */
+const DEFAULT_MONGO_HOST = isLocal ? "localhost:27018" : "mongo:27017";
+const DEFAULT_ML_HOST    = isLocal ? "localhost:8000" : "ml:8000";
+const DEFAULT_SERVER_HOST = isLocal ? "localhost:8080" : "server:8080";
 
+/* ------------------------------------------------------------------
+    ENV Export
+--------------------------------------------------------------------- */
 export const ENV = {
-    // -----------------------
-    // Environment Variables
-    // -----------------------
     NODE_ENV: process.env.NODE_ENV || "development",
     PORT: Number(process.env.PORT) || 8080,
 
-    // --------------------
-    // MongoDB Connection
-    // --------------------
+    /* ---------------------------------------------------
+        🍃 MongoDB — Auto-switch between local ↔ docker
+    ------------------------------------------------------ */
     MONGO_URI: required(
         "MONGO_URI",
-        `mongodb://${DEFAULT_MONGO_HOST}:27017/trichmind`
+        `mongodb://${DEFAULT_MONGO_HOST}/trichmind`
     ),
 
-    // ----------------------
-    // JWT & Authentication
-    // ----------------------
+    /* ---------------------------------------------------
+        🔐 Auth / JWT
+    ------------------------------------------------------ */
     JWT_SECRET: required("JWT_SECRET", "super-secret-change-me"),
     JWT_REFRESH_SECRET: required("JWT_REFRESH_SECRET", "refresh-secret-change-me"),
 
-    // --------------------
-    // FastAPI ML backend
-    // --------------------
-    ML_BASE_URL:
-        process.env.ML_BASE_URL || `http://${DEFAULT_ML_HOST}:8000`,
+    /* ---------------------------------------------------
+        🤖 FastAPI ML Backend (auto-switch)
+    ------------------------------------------------------ */
+    ML_BASE_URL: process.env.ML_BASE_URL || `http://${DEFAULT_ML_HOST}`,
 
-    // ------------------------------------------
-    // Backend (self-reference) + Frontend URLs
-    // ------------------------------------------
-    SERVER_URL:
-        process.env.SERVER_URL || `http://${DEFAULT_SERVER_HOST}:8080`,
+    /* ---------------------------------------------------
+        🌐 Server & CORS
+    ------------------------------------------------------ */
+    SERVER_URL: process.env.SERVER_URL || `http://${DEFAULT_SERVER_HOST}`,
 
-    // -----------------
-    // Frontend / CORS
-    // -----------------
-    CLIENT_URL: process.env.CLIENT_URL || "http://localhost:5000",
+    CLIENT_URL: process.env.CLIENT_URL || "http://localhost:5173",
+
     CORS_ORIGIN:
         process.env.CORS_ORIGIN ||
-        "http://localhost:5000,http://client:5000",
+        "http://localhost:5173,http://127.0.0.1:5173",
 
-    // -----------------------------
-    // SMTP (Email configuration)
-    // -----------------------------
+    /* ---------------------------------------------------
+        📧 SMTP
+    ------------------------------------------------------ */
     SMTP_HOST: process.env.SMTP_HOST || "smtp.gmail.com",
     SMTP_PORT: Number(process.env.SMTP_PORT) || 587,
     SMTP_USER: process.env.SMTP_USER || "",
     SMTP_PASS: process.env.SMTP_PASS || "",
 
-    // -----------------------------
-    // Logging / Model directories
-    // -----------------------------
+    /* ---------------------------------------------------
+        📊 Logging & Model Artifacts
+    ------------------------------------------------------ */
     LOG_DIR: process.env.LOG_DIR || "./logs",
+
     MODEL_ARTIFACT_PATH:
         process.env.MODEL_ARTIFACT_PATH ||
         "C:\\Users\\girli\\OneDrive\\Desktop\\Portfolio-Projects\\TrichMind\\ml\\artifacts\\training_outputs\\best_models",
 
-    // ------------------------------
-    // Behavioral Risk & Thresholds
-    // ------------------------------
+    /* ---------------------------------------------------
+        🔥 Risk Threshold
+    ------------------------------------------------------ */
     RELAPSE_ALERT_THRESHOLD: Number(process.env.RELAPSE_ALERT_THRESHOLD) || 0.7,
 } as const;
 
-/**------------------------------------------
-🔒 Type definitions for ENV keys and values
----------------------------------------------**/
 export type EnvKeys = keyof typeof ENV;
 export type EnvValues = (typeof ENV)[EnvKeys];
