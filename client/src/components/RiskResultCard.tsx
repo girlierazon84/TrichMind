@@ -1,15 +1,16 @@
 // client/src/components/RiskResultCard.tsx
-import React, { useEffect, useState } from "react";
+
+import React, { useEffect, useState, useRef } from "react";
 import styled, { keyframes, css } from "styled-components";
 
+
 /* ---------------------------------------------------------
-    🧠 Local PredictResponse type
-    (independent from DailyProgressCard)
+    🧠 PredictResponse Type
 --------------------------------------------------------- */
 export interface PredictResponse {
-    risk_score: number;        // 0..1
+    risk_score: number; // 0..1
     risk_bucket: "low" | "medium" | "high";
-    confidence: number;        // 0..1
+    confidence: number; // 0..1
     model_version?: string;
 }
 
@@ -17,20 +18,31 @@ export interface PredictResponse {
     🌀 Animations
 --------------------------------------------------------- */
 const fadeIn = keyframes`
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(12px) scale(.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 `;
 
-const auraPulse = keyframes`
-    0%   { opacity: 0.45; transform: scale(0.96); }
-    50%  { opacity: 0.85; transform: scale(1.02); }
-    100% { opacity: 0.45; transform: scale(0.96); }
+const floatUp = keyframes`
+    0%   { transform: translateY(0px); }
+    50%  { transform: translateY(-8px); }
+    100% { transform: translateY(0px); }
 `;
 
-const borderGlow = keyframes`
-    0%   { background-position: 0% 50%; }
-    50%  { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+const shimmer = keyframes`
+    0% { opacity:.5; }
+    50% { opacity:1; }
+    100% { opacity:.5; }
+`;
+
+const pulseAura = keyframes`
+    0%   { opacity:0.25; transform: scale(.92); }
+    50%  { opacity:0.65; transform: scale(1.03); }
+    100% { opacity:0.25; transform: scale(.92); }
+`;
+
+const shineSweep = keyframes`
+    0% { left:-120%; }
+    100% { left:120%; }
 `;
 
 /* ---------------------------------------------------------
@@ -38,106 +50,140 @@ const borderGlow = keyframes`
 --------------------------------------------------------- */
 type RiskLevel = "low" | "medium" | "high";
 
+/* Tilt Wrapper */
+const TiltWrapper = styled.div`
+    perspective: 900px;
+    width: 100%;
+`;
+
+/* Main Card */
 const Card = styled.div<{ $risk: RiskLevel; $compact?: boolean }>`
     position: relative;
-    padding: ${({ $compact }) => ($compact ? "1.3rem" : "2rem")};
+    padding: ${({ $compact }) => ($compact ? "1.2rem" : "2rem")};
     border-radius: ${({ theme }) => theme.radius.lg};
     text-align: center;
-    animation: ${fadeIn} 0.45s ease-out;
 
-    background: ${({ theme }) => theme.colors.card_bg};
-    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+    animation: ${fadeIn} 0.6s ease-out, ${floatUp} 6s ease-in-out infinite;
+
+    transform-style: preserve-3d;
+    transition: transform 0.15s ease-out;
 
     ${({ theme, $risk }) => {
-        const gradient =
+        const bg =
             $risk === "low"
                 ? theme.colors.low_risk_gradient
                 : $risk === "medium"
                 ? theme.colors.medium_risk_gradient
                 : theme.colors.high_risk_gradient;
 
-        return css`
-            border: 2px solid transparent;
-            background-image:
-                linear-gradient(${gradient}),
-                linear-gradient(${theme.colors.card_bg});
-            background-origin: border-box;
-            background-clip: padding-box, border-box;
-            animation: ${borderGlow} 4.5s ease infinite;
+        const border =
+            $risk === "low"
+                ? theme.colors.low_risk
+                : $risk === "medium"
+                ? theme.colors.medium_risk
+                : theme.colors.high_risk;
 
+        return css`
+            background: ${bg};
+            border: 3px solid ${border};
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(5px);
+
+            /* Aura Halo */
             &::before {
                 content: "";
                 position: absolute;
-                z-index: -1;
-                inset: -18px;
+                inset: -26px;
                 border-radius: inherit;
-                background: ${gradient};
-                filter: blur(32px);
-                opacity: 0.55;
-                animation: ${auraPulse} 4s infinite ease-in-out;
+                z-index: -1;
+                background: ${border};
+                filter: blur(45px);
+                opacity: 0.45;
+                animation: ${pulseAura} 4s infinite ease-in-out;
             }
 
+            /* Soft Glass Layer */
             &::after {
                 content: "";
                 position: absolute;
-                inset: -28px;
-                z-index: -2;
+                inset: 0;
                 border-radius: inherit;
-                background: ${gradient};
-                filter: blur(48px);
-                opacity: 0.25;
+                background: linear-gradient(
+                    145deg,
+                    rgba(255, 255, 255, 0.22) 0%,
+                    rgba(255, 255, 255, 0) 50%
+                );
+                pointer-events: none;
             }
         `;
     }}
 `;
 
-const Title = styled.h3<{ $compact?: boolean }>`
-    font-size: ${({ $compact }) => ($compact ? "1rem" : "1.35rem")};
-    font-weight: 700;
-    margin-bottom: 0.5rem;
+/* Shine Effect */
+const Shine = styled.div`
+    position: absolute;
+    top: 0;
+    left: -120%;
+    width: 60%;
+    height: 100%;
+
+    background: linear-gradient(
+        120deg,
+        rgba(255, 255, 255, 0.45) 0%,
+        rgba(255, 255, 255, 0.1) 60%,
+        rgba(255, 255, 255, 0) 100%
+    );
+
+    filter: blur(6px);
+    animation: ${shineSweep} 4s ease-in-out infinite;
+    pointer-events: none;
 `;
 
-const RiskLabel = styled.div<{ $compact?: boolean; $risk: RiskLevel }>`
-    font-size: ${({ $compact }) => ($compact ? "1.4rem" : "2rem")};
-    font-weight: 800;
-    margin-bottom: 0.5rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+/* Text */
+const Title = styled.h3<{ $compact?: boolean }>`
+    font-size: ${({ $compact }) => ($compact ? "1rem" : "1.4rem")};
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+    color: white;
+`;
 
-    ${({ $risk }) =>
-        $risk === "low"
-            ? "color:#066e3c;"
-            : $risk === "medium"
-            ? "color:#8a4b14;"
-            : "color:#a51010;"}
+const RiskLabel = styled.div<{ $compact?: boolean }>`
+    font-size: ${({ $compact }) => ($compact ? "1.4rem" : "2.1rem")};
+    font-weight: 900;
+    margin-bottom: 0.4rem;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    animation: ${shimmer} 2.3s ease-in-out infinite;
 `;
 
 const ScoreLine = styled.div<{ $compact?: boolean }>`
-    font-size: ${({ $compact }) => ($compact ? "0.9rem" : "1rem")};
-    margin-bottom: 0.8rem;
+    font-size: ${({ $compact }) => ($compact ? ".85rem" : "1rem")};
+    margin-bottom: 0.6rem;
+    color: white;
 
     b {
-        font-size: ${({ $compact }) => ($compact ? "1rem" : "1.15rem")};
+        font-size: ${({ $compact }) => ($compact ? "1rem" : "1.2rem")};
     }
 `;
 
 const ConfidenceWrapper = styled.div`
     width: 100%;
     max-width: 260px;
-    margin: 0.5rem auto 0;
+    margin: 0.5rem auto;
 `;
 
 const ConfidenceHeader = styled.div`
     display: flex;
     justify-content: space-between;
     font-size: 0.8rem;
-    margin-bottom: 0.3rem;
-    opacity: 0.85;
+    color: white;
+    opacity: 0.9;
 `;
 
 const ConfidenceTrack = styled.div`
     height: 8px;
-    background: rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.25);
     border-radius: 9999px;
 `;
 
@@ -147,25 +193,27 @@ const ConfidenceBar = styled.div<{ w: number; $risk: RiskLevel }>`
     width: ${({ w }) => w}%;
     transition: width 0.7s ease-out;
 
-    ${({ $risk }) =>
+    ${({ theme, $risk }) =>
         $risk === "low"
-            ? "background:#0bb95d;"
+            ? `background: ${theme.colors.low_risk};`
             : $risk === "medium"
-            ? "background:#ff9c35;"
-            : "background:#ff3438;"}
+            ? `background: ${theme.colors.medium_risk};`
+            : `background: ${theme.colors.high_risk};`}
 `;
 
 const Quote = styled.p<{ $compact?: boolean }>`
     margin-top: 1rem;
+    opacity: 0.9;
     font-style: italic;
-    opacity: 0.85;
-    font-size: ${({ $compact }) => ($compact ? "0.78rem" : "0.9rem")};
+    color: white;
+    font-size: ${({ $compact }) => ($compact ? ".8rem" : "0.95rem")};
 `;
 
 const ModelInfo = styled.div`
-    margin-top: 0.8rem;
-    font-size: 0.7rem;
-    opacity: 0.65;
+    margin-top: 1rem;
+    font-size: 0.72rem;
+    opacity: 0.8;
+    color: white;
 `;
 
 /* ---------------------------------------------------------
@@ -177,12 +225,35 @@ export const RiskResultCard: React.FC<{
     quote?: string;
 }> = ({ data, compact = false, quote }) => {
     const { risk_bucket, risk_score, confidence, model_version } = data;
-
-    const band: RiskLevel = risk_bucket.toLowerCase() as RiskLevel;
+    const band = risk_bucket.toLowerCase() as RiskLevel;
 
     const [score, setScore] = useState(0);
     const [conf, setConf] = useState(0);
 
+    const cardRef = useRef<HTMLDivElement>(null);
+
+    /* --- Tilt --- */
+    const handleMove = (e: React.MouseEvent) => {
+        const card = cardRef.current;
+        if (!card) return;
+
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left - rect.width / 2;
+        const y = e.clientY - rect.top - rect.height / 2;
+
+        const rotateX = (y / rect.height) * -12;
+        const rotateY = (x / rect.width) * 12;
+
+        card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.01)`;
+    };
+
+    const resetTilt = () => {
+        const card = cardRef.current;
+        if (!card) return;
+        card.style.transform = `rotateX(0deg) rotateY(0deg) scale(1)`;
+    };
+
+    /* --- Animated Score + Confidence --- */
     useEffect(() => {
         const duration = 900;
         const start = performance.now();
@@ -190,21 +261,16 @@ export const RiskResultCard: React.FC<{
         const targetScore = risk_score * 100;
         const targetConf = confidence * 100;
 
-        let frame: number;
-
-        const animate = (time: number) => {
+        const frame = requestAnimationFrame(function animate(time) {
             const t = Math.min(1, (time - start) / duration);
             const eased = 1 - Math.pow(1 - t, 3);
 
             setScore(targetScore * eased);
             setConf(targetConf * eased);
 
-            if (t < 1) {
-                frame = requestAnimationFrame(animate);
-            }
-        };
+            if (t < 1) requestAnimationFrame(animate);
+        });
 
-        frame = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(frame);
     }, [risk_score, confidence]);
 
@@ -215,32 +281,41 @@ export const RiskResultCard: React.FC<{
     };
 
     return (
-        <Card $risk={band} $compact={compact}>
-            <Title $compact={compact}>Relapse Risk Summary</Title>
+        <TiltWrapper>
+            <Card
+                ref={cardRef}
+                $risk={band}
+                $compact={compact}
+                onMouseMove={handleMove}
+                onMouseLeave={resetTilt}
+            >
+                <Shine />
 
-            <RiskLabel $risk={band} $compact={compact}>
-                {band.toUpperCase()}
-            </RiskLabel>
+                <Title $compact={compact}>Relapse Risk Summary</Title>
 
-            <ScoreLine $compact={compact}>
-                Score: <b>{score.toFixed(1)}%</b>
-            </ScoreLine>
+                <RiskLabel $compact={compact}>
+                    {band.toUpperCase()}
+                </RiskLabel>
 
-            <ConfidenceWrapper>
-                <ConfidenceHeader>
-                    <span>Confidence</span>
-                    <span>{conf.toFixed(1)}%</span>
-                </ConfidenceHeader>
+                <ScoreLine $compact={compact}>
+                    Score: <b>{score.toFixed(1)}%</b>
+                </ScoreLine>
 
-                <ConfidenceTrack>
-                    <ConfidenceBar w={conf} $risk={band} />
-                </ConfidenceTrack>
-            </ConfidenceWrapper>
+                <ConfidenceWrapper>
+                    <ConfidenceHeader>
+                        <span>Confidence</span>
+                        <span>{conf.toFixed(1)}%</span>
+                    </ConfidenceHeader>
 
-            <Quote $compact={compact}>“{quote || fallback[band]}”</Quote>
+                    <ConfidenceTrack>
+                        <ConfidenceBar w={conf} $risk={band} />
+                    </ConfidenceTrack>
+                </ConfidenceWrapper>
 
-            <ModelInfo>Model: {model_version || "v1.0.0"}</ModelInfo>
-        </Card>
+                <Quote $compact={compact}>“{quote || fallback[band]}”</Quote>
+                <ModelInfo>Model: {model_version || "v1.0.0"}</ModelInfo>
+            </Card>
+        </TiltWrapper>
     );
 };
 
