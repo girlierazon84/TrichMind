@@ -2,23 +2,36 @@
 
 import { Schema, model, Document, Types } from "mongoose";
 
+
 /**------------------------------------------------------
 🧠 Predict Model
 Stores each relapse risk prediction request and result.
+Now aligned with the *friendly* DTO shape.
 ---------------------------------------------------------**/
 export interface IPredict extends Document {
     userId: Types.ObjectId;
 
-    // Input features sent to FastAPI
+    // Friendly input features sent from client
     age: number;
     age_of_onset: number;
     years_since_onset: number;
+
     pulling_severity: number;
-    pulling_frequency_encoded: number;
-    awareness_level_encoded: number;
-    successfully_stopped_encoded: number;
-    how_long_stopped_days_est: number;
+
+    // Friendly fields (strings / boolean-like)
+    pulling_frequency: string;
+    pulling_awareness: string;
+    successfully_stopped: string | boolean;
+    how_long_stopped_days: number;
+
     emotion: string;
+
+    // (Optional) encoded fields if you ever want to store them
+    pulling_frequency_encoded?: number;
+    awareness_level_encoded?: number;
+    successfully_stopped_encoded?: number;
+    how_long_stopped_days_est?: number;
+    emotion_intensity_sum?: number;
 
     // ML prediction outputs
     risk_score?: number; // 0–1
@@ -27,15 +40,13 @@ export interface IPredict extends Document {
 
     // Metadata
     model_version?: string;
-    served_by?: string; // e.g., "FastAPI", "v2.2.0"
+    served_by?: string; // e.g., "FastAPI", "v6.3.0"
     createdAt: Date;
     updatedAt: Date;
 }
 
-// This schema captures relapse risk predictions
 const PredictSchema = new Schema<IPredict>(
     {
-        // Reference to the user for whom the prediction was made
         userId: {
             type: Schema.Types.ObjectId,
             ref: "User",
@@ -43,16 +54,26 @@ const PredictSchema = new Schema<IPredict>(
             required: true,
         },
 
-        // Input features
+        // Friendly input fields
         age: { type: Number, min: 0, max: 120, required: true },
         age_of_onset: { type: Number, min: 0, max: 120, required: true },
         years_since_onset: { type: Number, min: 0, required: true },
+
         pulling_severity: { type: Number, min: 0, max: 10, required: true },
-        pulling_frequency_encoded: { type: Number, min: 0, max: 5, required: true },
-        awareness_level_encoded: { type: Number, min: 0, max: 1, required: true },
-        successfully_stopped_encoded: { type: Number, min: 0, max: 1, default: 0 },
-        how_long_stopped_days_est: { type: Number, min: 0, default: 0 },
+
+        pulling_frequency: { type: String, required: true, trim: true },
+        pulling_awareness: { type: String, required: true, trim: true },
+        successfully_stopped: { type: Schema.Types.Mixed, required: true },
+        how_long_stopped_days: { type: Number, min: 0, required: true },
+
         emotion: { type: String, default: "unknown", trim: true },
+
+        // Optional encoded fields (not required)
+        pulling_frequency_encoded: { type: Number, min: 0, max: 5, default: undefined },
+        awareness_level_encoded: { type: Number, min: 0, max: 1, default: undefined },
+        successfully_stopped_encoded: { type: Number, min: 0, max: 1, default: undefined },
+        how_long_stopped_days_est: { type: Number, min: 0, default: undefined },
+        emotion_intensity_sum: { type: Number, min: 0, default: undefined },
 
         // Prediction outputs
         risk_score: { type: Number, min: 0, max: 1, default: null },
@@ -61,19 +82,15 @@ const PredictSchema = new Schema<IPredict>(
             enum: ["low", "medium", "high"],
             default: null,
         },
-        // Confidence of the prediction
         confidence: { type: Number, min: 0, max: 1, default: null },
 
         // Metadata
         model_version: { type: String, default: "unknown" },
         served_by: { type: String, default: "FastAPI" },
     },
-    // Enable timestamps for createdAt and updatedAt fields
     { timestamps: true }
 );
 
-// ⚡ Optimize queries by user and creation time
 PredictSchema.index({ userId: 1, createdAt: -1 });
 
-// ✅ Named export — no default export
 export const Predict = model<IPredict>("Predict", PredictSchema);
