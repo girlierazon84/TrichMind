@@ -6,6 +6,7 @@ import { PredictDTO } from "../schemas";
 import { ENV } from "../config";
 import { loggerService } from "./loggerService";
 
+
 /**------------------------------------------------
 Response shape expected from the FastAPI ML model
 ---------------------------------------------------**/
@@ -22,6 +23,7 @@ Handles interactions with the ML model for user predictions.
 -------------------------------------------------------------**/
 export const predictService = {
     async predict(userId: string, input: PredictDTO) {
+        // 🔁 Use the FRIENDLY endpoint on FastAPI
         const endpoint = `${ENV.ML_BASE_URL}/predict_friendly`;
 
         try {
@@ -50,7 +52,6 @@ export const predictService = {
             // 2️⃣ Auto-log into HealthLog as a relapseRisk snapshot
             await HealthLog.create({
                 userId,
-                // You can tweak these defaults or later pipe real values from the client
                 sleepHours: 7,
                 stressLevel: 5,
                 exerciseMinutes: 0,
