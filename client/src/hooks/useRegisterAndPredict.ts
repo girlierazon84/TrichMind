@@ -37,13 +37,12 @@ export interface RegisterFormData {
 /* ---------------------------------------------------------
     Helpers
 ----------------------------------------------------------*/
-// Convert string to number with fallback
+
 const toNum = (v?: string) => {
     const n = Number(v ?? 0);
     return Number.isFinite(n) ? n : 0;
 };
 
-// Calculate age from date of birth
 const calculateAge = (dob?: string): number => {
     if (!dob) return 0;
     const diff = Date.now() - new Date(dob).getTime();
@@ -88,33 +87,26 @@ export const useRegisterAndPredict = () => {
                 await log("Authenticated user detected", { userId: user?.id });
             }
 
-            // 2) Build *friendly* ML payload (FastAPI /predict_friendly will encode it)
-            const age = calculateAge(form.date_of_birth);
-            const age_of_onset = toNum(form.age_of_onset);
-            const years_since_onset =
-                form.years_since_onset && form.years_since_onset.trim() !== ""
-                    ? toNum(form.years_since_onset)
-                    : undefined; // let backend infer if missing
-
+            /* ---------------------------------------------------------
+                2) Build ML payload — RAW VALUES ONLY
+                Must match FastAPI EXACTLY
+            ----------------------------------------------------------*/
             const payload: PredictPayload = {
-                age,
-                age_of_onset,
-                years_since_onset,
+                age: calculateAge(form.date_of_birth),
+                age_of_onset: toNum(form.age_of_onset),
+                years_since_onset: toNum(form.years_since_onset),
 
                 pulling_severity: toNum(form.pulling_severity),
+                pulling_frequency: form.pulling_frequency || "unknown",
+                pulling_awareness: form.pulling_awareness || "unknown",
 
-                // Send raw strings (FastAPI PredictFriendly will map them)
-                pulling_frequency: form.pulling_frequency?.trim().toLowerCase() || "",
-                pulling_awareness: form.pulling_awareness?.trim().toLowerCase() || "",
-                successfully_stopped:
-                    form.successfully_stopped?.trim().toLowerCase() || "no",
-
+                successfully_stopped: form.successfully_stopped || "no",
                 how_long_stopped_days: toNum(form.how_long_stopped_days),
 
                 emotion: form.emotion?.trim() || "neutral",
             };
 
-            // 3) Execute ML prediction (frontend -> /api/ml/predict_friendly -> FastAPI /predict_friendly)
+            // 3) Execute ML prediction
             const result = await predict(payload);
             setPrediction(result);
 
