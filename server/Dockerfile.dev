@@ -2,9 +2,16 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install
+# Install build tools for any native deps
+RUN apk add --no-cache python3 make g++
 
+# Copy package manifests first for caching
+COPY package*.json ./
+
+# Use npm ci for repeatable installs (assuming package-lock.json exists)
+RUN npm ci
+
+# Copy the full server source
 COPY . .
 
 EXPOSE 8080
