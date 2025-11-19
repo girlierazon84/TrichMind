@@ -1,3 +1,5 @@
+// server/src/schemas/predictSchema.ts
+
 import { z } from "zod";
 
 
