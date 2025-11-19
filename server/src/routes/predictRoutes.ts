@@ -4,7 +4,7 @@ import { Router } from "express";
 import axios from "axios";
 import { ENV } from "../config";
 import { validate, authentication } from "../middlewares";
-import { PredictDTO } from "../schemas";
+import { PredictDTO, PredictEncodedDTO } from "../schemas";
 import { asyncHandler } from "../utils";
 import { predictService } from "../services";
 import { Predict } from "../models";
@@ -75,10 +75,10 @@ async function forwardPredictFriendly(reqBody: any) {
 
 /* -----------------------------------------------------------
     🤖 POST /api/ml         — Wrapped Prediction Route (friendly)
-    🤖 POST /api/ml/predict — Raw Prediction (friendly)
+    🤖 POST /api/ml/predict_friendly — Raw Prediction (friendly)
 ------------------------------------------------------------ */
 
-// Wrapped: { ok, prediction }
+// Wrapped: { ok, prediction } — uses FRIENDLY DTO
 router.post(
     "/",
     validate(PredictDTO),
@@ -113,20 +113,22 @@ router.post(
     })
 );
 
-// Raw: direct ML response (PredictionResponse)
+/* -----------------------------------------------------------
+    🧩 /api/ml/predict_friendly  → FRIENDLY → FastAPI /predict_friendly
+------------------------------------------------------------ */
 router.post(
-    "/predict",
+    "/predict_friendly",
     validate(PredictDTO),
     asyncHandler(async (req, res) => {
         try {
-            console.log("📤 [ML] Predict Request (/predict):", req.body);
+            console.log("📤 [ML] Predict Request (/predict_friendly):", req.body);
             const data = await forwardPredictFriendly(req.body);
-            console.log("📥 [ML] Predict OK (/predict):", data);
+            console.log("📥 [ML] Predict OK (/predict_friendly):", data);
 
             // Frontend expects raw PredictionResponse here
             return res.status(200).json(data);
         } catch (error: any) {
-            console.error("❌ [ML] Predict Failed (/predict):", error.message);
+            console.error("❌ [ML] Predict Failed (/predict_friendly):", error.message);
 
             if (error.code === "ECONNREFUSED") {
                 return res.status(502).json({
@@ -147,21 +149,27 @@ router.post(
 );
 
 /* -----------------------------------------------------------
-    🧩 NEW: /api/ml/predict_friendly
-    Directly mirrors /predict but explicit route name
+    🧩 /api/ml/predict  → ENCODED → FastAPI /predict
+    (for legacy / test tools sending encoded features)
 ------------------------------------------------------------ */
 router.post(
-    "/predict_friendly",
-    validate(PredictDTO),
+    "/predict",
+    validate(PredictEncodedDTO),
     asyncHandler(async (req, res) => {
         try {
-            console.log("📤 [ML] Predict Request (/predict_friendly):", req.body);
-            const data = await forwardPredictFriendly(req.body);
-            console.log("📥 [ML] Predict OK (/predict_friendly):", data);
+            console.log("📤 [ML] Predict Request (/predict, encoded):", req.body);
 
+            const { data } = await axios.post(`${ML_URL}/predict`, req.body, {
+                headers: { "Content-Type": "application/json" },
+                timeout: 15000,
+            });
+
+            console.log("📥 [ML] Predict OK (/predict, encoded):", data);
+
+            // Frontend / tools expect raw PredictionResponse here
             return res.status(200).json(data);
         } catch (error: any) {
-            console.error("❌ [ML] Predict Failed (/predict_friendly):", error.message);
+            console.error("❌ [ML] Predict Failed (/predict, encoded):", error.message);
 
             if (error.code === "ECONNREFUSED") {
                 return res.status(502).json({
