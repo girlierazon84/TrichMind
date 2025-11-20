@@ -5,7 +5,7 @@ import cors from "cors";
 import { connectMongo } from "./config";
 import { notFound, errorHandler } from "./middlewares";
 import { logger, startWeeklySummaryScheduler } from "./utils";
-import { ENV } from "./config";
+import { ENV_AUTO } from "./config";
 
 
 // -----------------
@@ -69,7 +69,7 @@ startWeeklySummaryScheduler();
 // 🚀 Start Server
 // -----------------------------
 connectMongo().then(() => {
-    app.listen(ENV.PORT, () => {
-        logger.info(`🚀 TrichMind Server running on port ${ENV.PORT}`);
+    app.listen(ENV_AUTO.PORT, () => {
+        logger.info(`🚀 TrichMind Server running on port ${ENV_AUTO.PORT}`);
     });
 });
