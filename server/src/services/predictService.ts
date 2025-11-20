@@ -3,7 +3,7 @@
 import axios from "axios";
 import { Predict, HealthLog } from "../models";
 import { PredictDTO } from "../schemas";
-import { ENV } from "../config";
+import { ENV_AUTO } from "../config";
 import { loggerService } from "./loggerService";
 
 
@@ -24,7 +24,7 @@ Handles interactions with the ML model for user predictions.
 export const predictService = {
     async predict(userId: string, input: PredictDTO) {
         // 🔁 Use the FRIENDLY endpoint on FastAPI
-        const endpoint = `${ENV.ML_BASE_URL}/predict_friendly`;
+        const endpoint = `${ENV_AUTO.ML_BASE_URL}/predict_friendly`;
 
         try {
             console.log(`📡 [PredictService] Sending payload to ${endpoint}`);
