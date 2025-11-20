@@ -2,7 +2,7 @@
 
 import { Router } from "express";
 import axios from "axios";
-import { ENV } from "../config";
+import { ENV_AUTO } from "../config";
 import { validate, authentication } from "../middlewares";
 import { PredictDTO, PredictEncodedDTO } from "../schemas";
 import { asyncHandler } from "../utils";
@@ -16,7 +16,7 @@ import { Predict } from "../models";
 const router = Router();
 
 // Base FastAPI ML URL
-const ML_URL = ENV.ML_BASE_URL || "http://localhost:8000";
+const ML_URL = ENV_AUTO.ML_BASE_URL || "http://localhost:8000";
 
 /* -----------------------------------------------------------
     🔐  POST /api/ml/auth/register → Proxy to FastAPI
