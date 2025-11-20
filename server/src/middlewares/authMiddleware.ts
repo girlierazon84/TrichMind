@@ -2,7 +2,7 @@
 
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { ENV } from "../config";
+import { ENV_AUTO } from "../config";
 
 
 // Extend Express Request
@@ -53,7 +53,7 @@ export function authentication(
         }
 
         try {
-            const decoded = jwt.verify(token, ENV.JWT_SECRET) as JwtPayload;
+            const decoded = jwt.verify(token, ENV_AUTO.JWT_SECRET) as JwtPayload;
             const userId = decoded.sub;
 
             if (!userId) {
