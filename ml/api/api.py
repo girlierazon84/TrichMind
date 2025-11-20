@@ -12,13 +12,6 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException, UploadFile, File, Body
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, validator
-
-# ── Path setup
-HERE = Path(__file__).resolve()
-ML_ROOT = HERE.parents[0]
-if str(ML_ROOT) not in sys.path:
-    sys.path.insert(0, str(ML_ROOT))
-
 from common.config import (
     MODEL_PATH, LABEL_ENCODER, FEATURES_JSON,
     INFER_LOG_CSV, INFER_LOG_DIR, SCALER_PATH
@@ -27,15 +20,25 @@ from common.transformers import ColumnSelector
 from common.risk import risk_from_score
 
 
-# ------------------------------------------
+# ──────────────────────────────
+# 🛠️ Setup module path
+# ──────────────────────────────
+HERE = Path(__file__).resolve()
+ML_ROOT = HERE.parents[0]
+if str(ML_ROOT) not in sys.path:
+    sys.path.insert(0, str(ML_ROOT))
+
+# ──────────────────────────────
 # 🧠 TrichMind ML (API)
-# ------------------------------------------
+# ──────────────────────────────
 ALLOWED_ORIGINS = [
     "http://localhost:5050",
     "http://localhost:5173"
 ]
 
-# ── Globals
+# ──────────────────────────────
+# Globals
+# ──────────────────────────────
 model = None
 label_encoder = None
 feature_names: List[str] = []
@@ -45,7 +48,9 @@ MODEL_VERSION = "unknown"
 # Blend weight for the rules-vs-model score
 ALPHA = 0.5  # 0 = pure model, 1 = pure rules
 
-# ── Schema
+# ──────────────────────────────
+# 🧩 Input schema for model
+# ──────────────────────────────
 class PredictIn(BaseModel):
     pulling_severity: float = Field(..., ge=0, le=10)
     pulling_frequency_encoded: int = Field(..., ge=0, le=5)
@@ -73,7 +78,7 @@ class PredictFriendly(BaseModel):
     pulling_awareness: str
     successfully_stopped: Union[bool, str]
     how_long_stopped_days: int = Field(..., ge=0)
-    emotion: str = "neutral"
+    emotion: str
 
     @validator("pulling_frequency", "pulling_awareness", "emotion", pre=True)
     def _norm_lower(cls, v):
@@ -90,24 +95,28 @@ class PredictFriendly(BaseModel):
             return False
         return False
 
-
-# Mappings consistent with your training pipeline
+# ──────────────────────────────────────
+# 🧩 Maps for categorical encodings
+# ──────────────────────────────────────
+# Pulling frequency mapping
 _FREQ_MAP = {
     "daily": 5,
-    "several times a week": 4,
-    "several-times-a-week": 4,
     "several_times_a_week": 4,
     "weekly": 3,
     "monthly": 2,
     "rarely": 1,
 }
+
+# Pulling awareness mapping
 _AWARE_MAP = {
     "yes": 1.0,
     "sometimes": 0.5,
     "no": 0.0,
 }
 
-
+# ────────────────────────────────────────────────────
+# 🧩 Encoding function from friendly to model-ready
+# ────────────────────────────────────────────────────
 def _encode_friendly_to_encoded(p: PredictFriendly) -> PredictIn:
     """Convert user-friendly inputs to model-ready encoded payload."""
     freq_enc = _FREQ_MAP.get(p.pulling_frequency, 0)
@@ -133,7 +142,9 @@ def _encode_friendly_to_encoded(p: PredictFriendly) -> PredictIn:
     )
 
 
-# ── Lifespan
+# ────────────────────────────────────────
+# 🧬 Lifespan: Load model & artifacts
+# ────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global model, label_encoder, feature_names, MODEL_VERSION, scaler
@@ -149,7 +160,9 @@ async def lifespan(app: FastAPI):
     yield
 
 
-# ── App
+# ──────────────────────────────
+# 🛠️ FastAPI app & middleware
+# ──────────────────────────────
 app = FastAPI(title="TrichMind Relapse Risk API", version="6.3.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
@@ -159,7 +172,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Helpers
+# ─────────────────────────────────────────
+# 🛠️ Helpers - feature frame conversion
+# ─────────────────────────────────────────
 def to_feature_frame(items: List[PredictIn] | PredictIn) -> pd.DataFrame:
     if isinstance(items, PredictIn):
         items = [items]
@@ -169,7 +184,9 @@ def to_feature_frame(items: List[PredictIn] | PredictIn) -> pd.DataFrame:
     X[feature_names] = scaler.transform(X[feature_names])
     return X
 
-
+# ───────────────────────────────────────────────────────
+# 🛠️ Scoring functions - get model inner and classes
+# ───────────────────────────────────────────────────────
 def get_model_inner_and_classes():
     inner = getattr(model, "named_steps", {}).get("clf", model)
     classes = getattr(inner, "classes_", None)
@@ -177,7 +194,9 @@ def get_model_inner_and_classes():
         classes = np.array([0, 1, 2], dtype=int)
     return inner, np.array(classes, dtype=int)
 
-
+# ────────────────────────────────────────────────
+# 🛠️ Scoring functions - model classes weights
+# ────────────────────────────────────────────────
 def build_weights_vector_from_model_classes(model_classes: np.ndarray) -> np.ndarray:
     uniq = np.unique(model_classes.astype(int))
     ranks = {c: i for i, c in enumerate(np.sort(uniq))}
@@ -185,7 +204,9 @@ def build_weights_vector_from_model_classes(model_classes: np.ndarray) -> np.nda
     lookup = {c: float(base[ranks[c]]) for c in uniq}
     return np.array([lookup[int(c)] for c in model_classes], dtype=float)
 
-
+# ─────────────────────────────────────────────
+# 🛠️ Scoring functions - model weighted score
+# ─────────────────────────────────────────────
 def model_weighted_score(X: pd.DataFrame) -> np.ndarray:
     inner, model_classes = get_model_inner_and_classes()
     if hasattr(inner, "predict_proba"):
@@ -199,7 +220,9 @@ def model_weighted_score(X: pd.DataFrame) -> np.ndarray:
     lookup = {c: float(base[ranks[c]]) for c in uniq}
     return np.array([lookup[int(c)] for c in preds], dtype=float)
 
-
+# ─────────────────────────────────────────────────────
+# 🛠️ Scoring functions - rule-based score & blending
+# ─────────────────────────────────────────────────────
 def rule_based_score(p: PredictIn) -> float:
     sev = np.clip(p.pulling_severity / 10.0, 0.0, 1.0)
     freq = np.clip(p.pulling_frequency_encoded / 5.0, 0.0, 1.0)
@@ -207,15 +230,21 @@ def rule_based_score(p: PredictIn) -> float:
     score = 0.6 * sev + 0.3 * freq + 0.1 * inv_aw
     return float(np.clip(score, 0.0, 1.0))
 
-
+# ────────────────────────────────────────────────────────
+# 🛠️ Scoring functions - final blending & confidence
+# ────────────────────────────────────────────────────────
 def final_score_from_blend(model_score: float, rule_score: float) -> float:
     return float(np.clip((1.0 - ALPHA) * model_score + ALPHA * rule_score, 0.0, 1.0))
 
-
+# ───────────────────────────────────────────────
+# 🛠️ Logging inference - confidence calculation
+# ───────────────────────────────────────────────
 def confidence_from_score(s: float) -> float:
     return float(min(1.0, abs(s - 0.5) * 2))
 
-
+# ───────────────────────────────────────────────
+# 🛠️ Logging inference - append to CSV log
+# ───────────────────────────────────────────────
 def log_inference(row: dict) -> None:
     hdr = [
         "timestamp", "request_type", "n_records",
@@ -231,7 +260,10 @@ def log_inference(row: dict) -> None:
         w.writerow({k: row.get(k) for k in hdr})
 
 
-# ── Endpoints
+# ──────────────────────────────
+# 🚀 API Endpoints
+# ──────────────────────────────
+# Get live status
 @app.get("/live")
 def live():
     return {
@@ -240,13 +272,13 @@ def live():
         "scoring": f"blend(model={1 - ALPHA:.2f}, rule={ALPHA:.2f})"
     }
 
-
+# Health check
 @app.get("/healthz")
 def healthz():
     ok = all([model is not None, label_encoder is not None, feature_names])
     return {"ok": bool(ok), "n_features": len(feature_names), "model_version": MODEL_VERSION}
 
-
+# Predict endpoint
 @app.post("/predict")
 def predict(p: PredictIn):
     t0 = time.time()
@@ -279,15 +311,14 @@ def predict(p: PredictIn):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# 🧩 NEW — Friendly endpoint
+# Predict endpoint with friendly inputs
 @app.post("/predict_friendly")
 def predict_friendly(p: PredictFriendly):
     """Accepts readable frontend inputs and encodes them internally."""
     encoded = _encode_friendly_to_encoded(p)
     return predict(encoded)
 
-
+# Debug vector endpoint
 @app.post("/debug_vector")
 def debug_vector(p: PredictIn = Body(...)):
     """Peek at the transformed & scaled vector. Shows top non-zero/abs-valued features."""
