@@ -29,16 +29,16 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./ml:/app                # live reload
-      - ./ml/artifacts:/app/artifacts
+      - ./ml:/ml               # live reload for ML code
+      - ./ml/artifacts:/ml/artifacts
     env_file:
       - ./ml/.env
-    command: uvicorn api.api:app --host 0.0.0.0 --port 8000 --reload
     environment:
-      MODEL_PATH: "/app/artifacts/training_outputs/best_models/best_relapse_risk_predictor_model.pkl"
-      ENCODER_PATH: "/app/artifacts/training_outputs/label_encoder/label_encoder.pkl"
-      FEATURES_JSON: "/app/artifacts/training_outputs/features.json"
-      SCALER_PATH: "/app/artifacts/training_outputs/scaler.pkl"
+      MODEL_PATH: "/ml/artifacts/training_outputs/best_models/best_relapse_risk_predictor_model.pkl"
+      ENCODER_PATH: "/ml/artifacts/training_outputs/label_encoder/label_encoder.pkl"
+      FEATURES_JSON: "/ml/artifacts/training_outputs/features.json"
+      SCALER_PATH: "/ml/artifacts/training_outputs/scaler.pkl"
+    command: uvicorn api.api:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
       mongo:
         condition: service_healthy
@@ -55,13 +55,12 @@ services:
   server:
     build:
       context: ./server
-      dockerfile: Dockerfile.dev
     container_name: trichmind-server-dev
     ports:
       - "8080:8080"
     volumes:
-      - ./server:/app            # hot reload for backend
-      - /app/node_modules
+      - ./server:/server
+      - /server/node_modules
     env_file:
       - ./server/.env
     environment:
@@ -81,18 +80,17 @@ services:
     restart: unless-stopped
 
   # ------------------------------------------------------
-  # 🎨 Frontend (Next.js Dev Mode)
+  # 🎨 Next.js Frontend (Dev)
   # ------------------------------------------------------
   client:
     build:
       context: ./client
-      dockerfile: Dockerfile.dev
     container_name: trichmind-client-dev
     ports:
-      - "5050:5000"       # next dev port mapping
+      - "5050:5000"
     volumes:
-      - ./client:/app
-      - /app/node_modules
+      - ./client:/client
+      - /client/node_modules
     environment:
       NODE_ENV: development
       NEXT_PUBLIC_API_URL: "http://localhost:8080"
