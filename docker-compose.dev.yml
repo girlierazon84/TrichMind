@@ -62,11 +62,11 @@ services:
       - ./server:/server
       - /server/node_modules
     env_file:
-      - ./server/.env
+      - ./server/.env.docker
     environment:
       NODE_ENV: development
       ML_BASE_URL: http://ml:8000
-      MONGO_URI: mongodb://mongo:27017/trichmind
+      MONGO_URI: mongodb://mongo:27018/trichmind
     depends_on:
       mongo:
         condition: service_healthy
