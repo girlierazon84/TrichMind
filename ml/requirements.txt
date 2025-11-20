@@ -41,3 +41,12 @@ scikeras==0.13.0
 # To freeze environment versions:
 #   pip freeze > requirements.lock
 # --------------------------------------------
+# --------------------------------------------
+# Start Docker Dev Environment
+# --------------------------------------------
+# docker compose -f docker-compose.dev.yml up --build
+
+# -------------------------------------------------------------------
+# Start Local Dev (server only) - Mongo must be started manually:
+# -------------------------------------------------------------------
+# docker run -d -p 27018:27017 --name mongo-dev mongo:7
