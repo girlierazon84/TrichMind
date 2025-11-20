@@ -1,38 +1,42 @@
 // server/src/config/env.ts
 
 import dotenv from "dotenv";
+
+
+// --------------------------------------------
+// Load .env file contents into process.env
+// --------------------------------------------
 dotenv.config();
 
-
-/* -------------------------------------------------------
-    Helper: Required environment variable with fallback
----------------------------------------------------------- */
+// -------------------------------------------------------
+// Helper: Required environment variable with fallback
+// -------------------------------------------------------
 const required = (key: string, fallback?: string): string => {
     const value = process.env[key] ?? fallback;
     if (!value) throw new Error(`❌ Missing required environment variable: ${key}`);
     return value;
 };
 
-/* ------------------------------------------------------------------
-    🌍 ENV Mode Detection
-    - Local dev  → Node runs outside Docker
-    - Docker     → Node & Mongo run inside docker-compose
---------------------------------------------------------------------- */
+//----------------------------------------------------------
+// 🌍 ENV Mode Detection
+// - Local dev  → Node runs outside Docker
+// - Docker     → Node & Mongo run inside docker-compose
+//----------------------------------------------------------
 const isLocal =
     process.env.NODE_ENV === "development" ||
     process.env.NODE_ENV === "local" ||
     !process.env.NODE_ENV;
 
-/* ------------------------------------------------------------------
-    Dynamic Host Switching
---------------------------------------------------------------------- */
+// -------------------------
+// Dynamic Host Switching
+//--------------------------
 const DEFAULT_MONGO_HOST = isLocal ? "localhost:27018" : "mongo:27017";
 const DEFAULT_ML_HOST    = isLocal ? "localhost:8000" : "ml:8000";
 const DEFAULT_SERVER_HOST = isLocal ? "localhost:8080" : "server:8080";
 
-/* ------------------------------------------------------------------
-    ENV Export
---------------------------------------------------------------------- */
+// -------------------
+//    ENV Export
+// -------------------
 export const ENV = {
     NODE_ENV: process.env.NODE_ENV || "development",
     PORT: Number(process.env.PORT) || 8080,
