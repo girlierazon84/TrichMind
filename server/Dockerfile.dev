@@ -7,6 +7,7 @@ RUN apk add --no-cache python3 make g++
 
 # Copy package manifests first for caching
 COPY package*.json ./
+RUN npm install
 
 # Use npm ci for repeatable installs (assuming package-lock.json exists)
 RUN npm ci
