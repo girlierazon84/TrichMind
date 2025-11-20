@@ -2,105 +2,113 @@ version: "3.9"
 
 services:
   # ------------------------------------------------------
-  # 🍃 MongoDB (Dev Mode)
+  # 🍃 MongoDB (Dev)
   # ------------------------------------------------------
   mongo:
     image: mongo:7
     container_name: trichmind-mongo-dev
-    restart: unless-stopped
     ports:
       - "27018:27017"
     volumes:
-      - mongo_data:/data/db
+      - mongo-data-dev:/data/db
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   # ------------------------------------------------------
-  # 🤖 FastAPI ML Service
+  # 🤖 FastAPI ML Service (Dev)
   # ------------------------------------------------------
   ml:
-    image: trichmind-ml-dev-image
-    container_name: trichmind-ml-dev
     build:
       context: ./ml
       dockerfile: Dockerfile.dev
-    working_dir: /app
-    command: uvicorn api.api:app --host 0.0.0.0 --port 8000 --reload
+    container_name: trichmind-ml-dev
     ports:
       - "8000:8000"
     volumes:
-      - ./ml:/app
+      - ./ml:/app                # live reload
       - ./ml/artifacts:/app/artifacts
+    env_file:
+      - ./ml/.env
+    command: uvicorn api.api:app --host 0.0.0.0 --port 8000 --reload
     environment:
       MODEL_PATH: "/app/artifacts/training_outputs/best_models/best_relapse_risk_predictor_model.pkl"
       ENCODER_PATH: "/app/artifacts/training_outputs/label_encoder/label_encoder.pkl"
+      FEATURES_JSON: "/app/artifacts/training_outputs/features.json"
+      SCALER_PATH: "/app/artifacts/training_outputs/scaler.pkl"
+    depends_on:
+      mongo:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/live"]
       interval: 10s
       timeout: 5s
       retries: 5
-    depends_on:
-      mongo:
-        condition: service_healthy
+    restart: unless-stopped
 
   # ------------------------------------------------------
-  # 🧱 Node Backend (Dev)
+  # 🧱 Node.js Backend (Dev)
   # ------------------------------------------------------
   server:
-    image: trichmind-server-dev-image
-    container_name: trichmind-server-dev
     build:
       context: ./server
       dockerfile: Dockerfile.dev
-    working_dir: /app
+    container_name: trichmind-server-dev
     ports:
       - "8080:8080"
-    command: npm run dev
     volumes:
-      - ./server:/app
+      - ./server:/app            # hot reload for backend
       - /app/node_modules
+    env_file:
+      - ./server/.env
     environment:
       NODE_ENV: development
-      PORT: 8080
-      MONGO_URI: mongodb://mongo:27017/trichmind
       ML_BASE_URL: http://ml:8000
-      CLIENT_URL: http://localhost:5173
-      CORS_ORIGIN: http://localhost:5173
-      JWT_SECRET: dev-secret
-      JWT_REFRESH_SECRET: dev-refresh
+      MONGO_URI: mongodb://mongo:27017/trichmind
     depends_on:
       mongo:
         condition: service_healthy
       ml:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
 
   # ------------------------------------------------------
-  # 🎨 Vite Frontend (Dev)
+  # 🎨 Frontend (Next.js Dev Mode)
   # ------------------------------------------------------
   client:
-    image: trichmind-client-dev-image
-    container_name: trichmind-client-dev
     build:
       context: ./client
       dockerfile: Dockerfile.dev
-    working_dir: /app
-    command: npm run dev -- --host
+    container_name: trichmind-client-dev
     ports:
-      - "5173:5173"
+      - "5050:5000"       # next dev port mapping
     volumes:
       - ./client:/app
       - /app/node_modules
     environment:
-      VITE_API_BASE_URL: http://localhost:8080
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: "http://localhost:8080"
       CHOKIDAR_USEPOLLING: "true"
     depends_on:
-      - server
+      server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
 
 # ------------------------------------------------------
-# VOLUMES
+# 📦 Volumes
 # ------------------------------------------------------
 volumes:
-  mongo_data:
+  mongo-data-dev:
