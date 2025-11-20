@@ -36,8 +36,8 @@ services:
     environment:
       MODEL_PATH: "/ml/artifacts/training_outputs/best_models/best_relapse_risk_predictor_model.pkl"
       ENCODER_PATH: "/ml/artifacts/training_outputs/label_encoder/label_encoder.pkl"
-      FEATURES_JSON: "/ml/artifacts/training_outputs/features.json"
-      SCALER_PATH: "/ml/artifacts/training_outputs/scaler.pkl"
+      FEATURES_JSON: "/ml/artifacts/preprocessed_outputs/metadata/features.json"
+      SCALER_PATH: "/ml/artifacts/preprocessed_outputs/scaler_model/scaler.pkl"
     command: uvicorn api.api:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
       mongo:
