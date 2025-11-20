@@ -26,7 +26,14 @@ from common.config import (
 from common.transformers import ColumnSelector
 from common.risk import risk_from_score
 
-ALLOWED_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
+# ------------------------------------------
+# 🧠 TrichMind ML (API)
+# ------------------------------------------
+ALLOWED_ORIGINS = [
+    "http://localhost:5050",
+    "http://localhost:5173"
+]
 
 # ── Globals
 model = None
