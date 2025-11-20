@@ -10,14 +10,18 @@ import type {
 } from "@/types/ml";
 
 
-/** Wire shape (allows uppercase buckets) */
+// -----------------------------------------
+// Wire shape (allows uppercase buckets)
+// -----------------------------------------
 type WirePrediction =
   | PredictionResponse
   | (Omit<PredictionResponse, "risk_bucket"> & {
       risk_bucket: "LOW" | "MEDIUM" | "HIGH";
     });
 
+// ------------------------------------------------------------
 // Normalize API response to consistent risk_bucket format
+// ------------------------------------------------------------
 const normalize = (resp: WirePrediction): PredictionResponse => {
   const bucket = String(resp.risk_bucket || "medium").toLowerCase() as
     | "low"
@@ -26,10 +30,14 @@ const normalize = (resp: WirePrediction): PredictionResponse => {
   return { ...resp, risk_bucket: bucket };
 };
 
+// -----------------------------------------
 // Threshold to trigger relapse alerts
+// -----------------------------------------
 const RELAPSE_ALERT_THRESHOLD = 0.7;
 
+// ------------------------------------------------------------
 // Retrieve user email from localStorage (if available)
+// ------------------------------------------------------------
 function getLocalUserEmail(): string | undefined {
   try {
     const raw = localStorage.getItem("user");
@@ -41,13 +49,16 @@ function getLocalUserEmail(): string | undefined {
   }
 }
 
+// -------------------------------------
 // React hook for making predictions
+// -------------------------------------
 export const usePredict = () => {
   const [result, setResult] = useState<PredictionResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { log, error: logError, warn } = useLogger(false);
 
+  // Make prediction API call
   async function predict(payload: PredictPayload): Promise<PredictionResponse> {
     setLoading(true);
     setError(null);
@@ -56,16 +67,19 @@ export const usePredict = () => {
       const normalized = normalize(wire);
       setResult(normalized);
 
+      // Logging
       await log("Prediction completed", {
         risk_score: normalized.risk_score,
         risk_bucket: normalized.risk_bucket,
         confidence: normalized.confidence,
       });
 
+      // Check if alert should be triggered
       const shouldTriggerAlert =
         normalized.risk_bucket === "high" ||
         normalized.risk_score >= RELAPSE_ALERT_THRESHOLD;
 
+      // Trigger alert if necessary
       if (shouldTriggerAlert) {
         const email = getLocalUserEmail();
 
@@ -78,6 +92,7 @@ export const usePredict = () => {
             email,
           });
 
+          // Log alert creation
           await warn("Relapse risk alert created", {
             score: normalized.risk_score,
             risk_bucket: normalized.risk_bucket,
@@ -90,6 +105,7 @@ export const usePredict = () => {
               ? alertErr.message
               : String(alertErr);
 
+          // Log alert creation failure
           await logError("Failed to create relapse alert", {
             error: msg,
             score: normalized.risk_score,
@@ -107,6 +123,7 @@ export const usePredict = () => {
         e instanceof Error ? e.message : "Prediction request failed";
       setError(msg);
 
+      // Log prediction error
       await logError("Prediction error", {
         message: msg,
         payloadSummary: {
@@ -125,7 +142,9 @@ export const usePredict = () => {
   return { predict, result, loading, error };
 };
 
+// ------------------------------------------------------------
 // Show supportive toast based on prediction result
+// ------------------------------------------------------------
 function showSupportiveToast(result: PredictionResponse) {
   const msg =
     result.risk_bucket === "high"
@@ -138,6 +157,7 @@ function showSupportiveToast(result: PredictionResponse) {
         )}%). You’re doing great — consider journaling or using your grounding strategies. ✨`
       : null;
 
+  // Show toast if there's a message
   if (msg) {
     toast.warn(msg, {
       position: "bottom-center",
