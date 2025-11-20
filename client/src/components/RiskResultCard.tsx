@@ -85,7 +85,7 @@ const Card = styled.div<{ $risk: RiskLevel; $compact?: boolean }>`
 
         return css`
             background: ${bg};
-            border: 3px solid ${border};
+            border: 1px solid ${border};
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
             backdrop-filter: blur(5px);
 
