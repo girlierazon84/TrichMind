@@ -4,14 +4,15 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-WORKDIR /app
+# ML service root directory
+WORKDIR /ml
 
 # System deps for scientific Python (numpy/pandas/sklearn)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies first (better layer caching)
+# Install Python dependencies first (better caching)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -20,5 +21,5 @@ COPY . .
 
 EXPOSE 8000
 
-# IMPORTANT FIX → api.api:app
+# Correct FastAPI entry → api/api.py
 CMD ["uvicorn", "api.api:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
