@@ -20,7 +20,6 @@ import { useAuth } from "@/hooks";
 import { AppLogo } from "@/assets/images";
 import { UserIcon } from "@/assets/icons";
 
-
 /* -----------------------------------------------------
     Types
 ----------------------------------------------------- */
@@ -44,14 +43,10 @@ export interface MeResponse {
     };
 }
 
-interface LastPredictionResponse {
-    ok: boolean;
-    prediction: {
-        risk_score: number;
-        risk_bucket: string;
-        confidence: number;
-        model_version?: string;
-    };
+export interface PredictResponse {
+    risk_score: number;
+    risk_bucket: RiskLevel | string;
+    confidence: number;
 }
 
 /* -----------------------------------------------------
@@ -334,7 +329,6 @@ export const HomePage: React.FC = () => {
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
 
-    // Dropdown Menu Handlers
     const toggleMenu = (e: React.MouseEvent) => {
         e.stopPropagation();
         setMenuOpen((prev) => !prev);
@@ -370,7 +364,7 @@ export const HomePage: React.FC = () => {
         }
     }, [isAuthenticated]);
 
-    // Load avatar + last prediction
+    // Load avatar + prediction
     useEffect(() => {
         if (!isAuthenticated) {
             setLoading(false);
@@ -379,7 +373,7 @@ export const HomePage: React.FC = () => {
 
         const loadDashboard = async () => {
             try {
-                // 1) Fetch user for avatar
+                // 1) Fetch user for avatar + features
                 const me = await axiosClient.get<MeResponse>("/api/auth/me");
                 const u = me.data.user;
                 if (!u) throw new Error("Missing user");
@@ -394,17 +388,36 @@ export const HomePage: React.FC = () => {
                     });
                 }
 
-                // 2) Fetch last prediction from server
-                const last = await axiosClient.get<LastPredictionResponse>("/api/ml/last");
-                const p = last.data.prediction;
+                // 2) Call ML prediction directly
+                try {
+                    const pred = await axiosClient.post<PredictResponse>(
+                        "/api/ml/predict",
+                        {
+                            pulling_severity: u.pulling_severity ?? 5,
+                            pulling_frequency_encoded: u.pulling_frequency_encoded ?? 3,
+                            awareness_level_encoded: u.awareness_level_encoded ?? 0.5,
+                            how_long_stopped_days_est: u.how_long_stopped_days_est ?? 14,
+                            successfully_stopped_encoded: u.successfully_stopped_encoded ?? 0,
+                            years_since_onset: u.years_since_onset ?? 8,
+                            age: u.age ?? 30,
+                            age_of_onset: u.age_of_onset ?? 18,
+                            emotion_intensity_sum: u.emotion_intensity_sum ?? 4.5,
+                        }
+                    );
 
-                setRiskScore(p.risk_score);
-                setConfidence(p.confidence);
-                setBucket(
-                    String(p.risk_bucket || "MEDIUM").toUpperCase() as RiskLevel
-                );
+                    setRiskScore(pred.data.risk_score);
+                    setConfidence(pred.data.confidence);
+                    setBucket(
+                        String(pred.data.risk_bucket || "MEDIUM").toUpperCase() as RiskLevel
+                    );
+                } catch (err) {
+                    // If ML fails, keep defaults and just log – no redirect
+                    console.error("ML prediction failed:", err);
+                }
             } catch {
+                // Auth / /me failure => go to login
                 navigate("/login");
+                return;
             } finally {
                 setLoading(false);
             }
@@ -467,7 +480,6 @@ export const HomePage: React.FC = () => {
         model_version: "v1.0.0",
     };
 
-    // Header avatar
     const headerAvatar = avatarUrl || UserIcon;
 
     return (
