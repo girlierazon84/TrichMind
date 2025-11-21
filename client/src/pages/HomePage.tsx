@@ -46,7 +46,9 @@ export interface MeResponse {
 export interface PredictResponse {
     risk_score: number;
     risk_bucket: RiskLevel | string;
+    risk_code: number;
     confidence: number;
+    model_version?: string;
 }
 
 /* -----------------------------------------------------
@@ -315,6 +317,8 @@ export const HomePage: React.FC = () => {
     const [riskScore, setRiskScore] = useState(0);
     const [confidence, setConfidence] = useState(0);
     const [bucket, setBucket] = useState<RiskLevel>("MEDIUM");
+    const [riskCode, setRiskCode] = useState<number>(1);
+    const [modelVersion, setModelVersion] = useState<string | undefined>(undefined);
     const [loading, setLoading] = useState(true);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -388,20 +392,20 @@ export const HomePage: React.FC = () => {
                     });
                 }
 
-                // 2) Call ML prediction directly
+                // 2) Call ML prediction using real user values (no demo defaults)
                 try {
                     const pred = await axiosClient.post<PredictResponse>(
                         "/api/ml/predict",
                         {
-                            pulling_severity: u.pulling_severity ?? 5,
-                            pulling_frequency_encoded: u.pulling_frequency_encoded ?? 3,
-                            awareness_level_encoded: u.awareness_level_encoded ?? 0.5,
-                            how_long_stopped_days_est: u.how_long_stopped_days_est ?? 14,
-                            successfully_stopped_encoded: u.successfully_stopped_encoded ?? 0,
-                            years_since_onset: u.years_since_onset ?? 8,
-                            age: u.age ?? 30,
-                            age_of_onset: u.age_of_onset ?? 18,
-                            emotion_intensity_sum: u.emotion_intensity_sum ?? 4.5,
+                            pulling_severity: u.pulling_severity,
+                            pulling_frequency_encoded: u.pulling_frequency_encoded,
+                            awareness_level_encoded: u.awareness_level_encoded,
+                            how_long_stopped_days_est: u.how_long_stopped_days_est,
+                            successfully_stopped_encoded: u.successfully_stopped_encoded,
+                            years_since_onset: u.years_since_onset,
+                            age: u.age,
+                            age_of_onset: u.age_of_onset,
+                            emotion_intensity_sum: u.emotion_intensity_sum,
                         }
                     );
 
@@ -410,8 +414,16 @@ export const HomePage: React.FC = () => {
                     setBucket(
                         String(pred.data.risk_bucket || "MEDIUM").toUpperCase() as RiskLevel
                     );
+
+                    if (typeof pred.data.risk_code === "number") {
+                        setRiskCode(pred.data.risk_code);
+                    }
+
+                    if (pred.data.model_version) {
+                        setModelVersion(pred.data.model_version);
+                    }
                 } catch (err) {
-                    // If ML fails, keep defaults and just log – no redirect
+                    // If ML fails, keep current state and log
                     console.error("ML prediction failed:", err);
                 }
             } catch {
@@ -475,9 +487,9 @@ export const HomePage: React.FC = () => {
     const predictionData = {
         risk_score: riskScore,
         risk_bucket: riskBucketLower,
-        risk_code: bucket === "HIGH" ? 2 : bucket === "MEDIUM" ? 1 : 0,
+        risk_code: riskCode,
         confidence,
-        model_version: "v1.0.0",
+        model_version: modelVersion ?? "live",
     };
 
     const headerAvatar = avatarUrl || UserIcon;
