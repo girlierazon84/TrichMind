@@ -4,7 +4,6 @@ import {
     useEffect,
     useState,
     useMemo,
-    useCallback,
     useRef,
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -45,10 +44,14 @@ export interface MeResponse {
     };
 }
 
-export interface PredictResponse {
-    risk_score: number;
-    risk_bucket: RiskLevel | string;
-    confidence: number;
+interface LastPredictionResponse {
+    ok: boolean;
+    prediction: {
+        risk_score: number;
+        risk_bucket: string;
+        confidence: number;
+        model_version?: string;
+    };
 }
 
 /* -----------------------------------------------------
@@ -145,7 +148,7 @@ const AvatarImage = styled.img<{ $pulse?: boolean }>`
     border: 2px solid rgba(255, 255, 255, 0.75);
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
     transition: transform 0.25s ease, box-shadow 0.25s ease;
-        ${({ $pulse }) => ($pulse ? `animation: ${avatarPulse} 1.3s ease-out;` : "")};
+    ${({ $pulse }) => ($pulse ? `animation: ${avatarPulse} 1.3s ease-out;` : "")};
 
     ${AvatarButton}:hover & {
         transform: scale(1.06);
@@ -310,11 +313,10 @@ const WelcomeBody = styled.p`
     Component
 ----------------------------------------------------- */
 export const HomePage: React.FC = () => {
-    // Router
     const navigate = useNavigate();
     const { user, isAuthenticated, logout } = useAuth();
 
-    // State
+    // Risk state
     const [riskScore, setRiskScore] = useState(0);
     const [confidence, setConfidence] = useState(0);
     const [bucket, setBucket] = useState<RiskLevel>("MEDIUM");
@@ -338,7 +340,6 @@ export const HomePage: React.FC = () => {
         setMenuOpen((prev) => !prev);
     };
 
-    // Dropdown Menu Handlers
     useEffect(() => {
         const handler = (e: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -346,7 +347,6 @@ export const HomePage: React.FC = () => {
             }
         };
 
-        // Click outside to close menu
         window.addEventListener("click", handler);
         return () => window.removeEventListener("click", handler);
     }, []);
@@ -355,6 +355,7 @@ export const HomePage: React.FC = () => {
     useEffect(() => {
         const mq = window.matchMedia("(max-width: 768px)");
         const update = () => setIsMobile(mq.matches);
+
         mq.addEventListener("change", update);
         return () => mq.removeEventListener("change", update);
     }, []);
@@ -369,54 +370,51 @@ export const HomePage: React.FC = () => {
         }
     }, [isAuthenticated]);
 
-    // Load prediction + avatar
-    const loadPrediction = useCallback(async () => {
-        try {
-            const res = await axiosClient.get<MeResponse>("/api/auth/me");
-            const u = res.data.user;
-            if (!u) throw new Error("Missing user");
-
-            // Update avatar with pulse effect if changed
-            if (u.avatarUrl) {
-                setAvatarUrl((prev) => {
-                    if (prev !== u.avatarUrl) {
-                        setAvatarShouldPulse(true);
-                        setTimeout(() => setAvatarShouldPulse(false), 1300);
-                    }
-                    return u.avatarUrl as string;
-                });
-            }
-
-            // Get prediction
-            const pred = await axiosClient.post<PredictResponse>("/api/ml/predict", {
-                pulling_severity: u.pulling_severity ?? 5,
-                pulling_frequency_encoded: u.pulling_frequency_encoded ?? 3,
-                awareness_level_encoded: u.awareness_level_encoded ?? 0.5,
-                how_long_stopped_days_est: u.how_long_stopped_days_est ?? 14,
-                successfully_stopped_encoded: u.successfully_stopped_encoded ?? 0,
-                years_since_onset: u.years_since_onset ?? 8,
-                age: u.age ?? 30,
-                age_of_onset: u.age_of_onset ?? 18,
-                emotion_intensity_sum: u.emotion_intensity_sum ?? 4.5,
-            });
-
-            // Set prediction data
-            setRiskScore(pred.data.risk_score);
-            setConfidence(pred.data.confidence);
-            setBucket(String(pred.data.risk_bucket).toUpperCase() as RiskLevel);
-        } catch {
-            navigate("/login");
-        } finally {
-            setLoading(false);
-        }
-    }, [navigate]);
-
-    // Load prediction on authentication
+    // Load avatar + last prediction
     useEffect(() => {
-        if (isAuthenticated) loadPrediction();
-    }, [isAuthenticated, loadPrediction]);
+        if (!isAuthenticated) {
+            setLoading(false);
+            return;
+        }
 
-    // Quote
+        const loadDashboard = async () => {
+            try {
+                // 1) Fetch user for avatar
+                const me = await axiosClient.get<MeResponse>("/api/auth/me");
+                const u = me.data.user;
+                if (!u) throw new Error("Missing user");
+
+                if (u.avatarUrl) {
+                    setAvatarUrl((prev) => {
+                        if (prev !== u.avatarUrl) {
+                            setAvatarShouldPulse(true);
+                            setTimeout(() => setAvatarShouldPulse(false), 1300);
+                        }
+                        return u.avatarUrl as string;
+                    });
+                }
+
+                // 2) Fetch last prediction from server
+                const last = await axiosClient.get<LastPredictionResponse>("/api/ml/last");
+                const p = last.data.prediction;
+
+                setRiskScore(p.risk_score);
+                setConfidence(p.confidence);
+                setBucket(
+                    String(p.risk_bucket || "MEDIUM").toUpperCase() as RiskLevel
+                );
+            } catch {
+                navigate("/login");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        setLoading(true);
+        void loadDashboard();
+    }, [isAuthenticated, navigate]);
+
+    // Quote based on bucket
     const quote = useMemo(() => {
         switch (bucket) {
             case "LOW":
@@ -459,8 +457,8 @@ export const HomePage: React.FC = () => {
         );
     }
 
-    // Prediction data object
-    const riskBucketLower = bucket.toLowerCase() as 'low' | 'medium' | 'high';
+    // Prediction data object for RiskResultCard
+    const riskBucketLower = bucket.toLowerCase() as "low" | "medium" | "high";
     const predictionData = {
         risk_score: riskScore,
         risk_bucket: riskBucketLower,
@@ -490,7 +488,9 @@ export const HomePage: React.FC = () => {
                         </AvatarButton>
 
                         <DropdownMenu open={menuOpen}>
-                            <MenuItem onClick={() => navigate("/profile")}>Profile</MenuItem>
+                            <MenuItem onClick={() => navigate("/profile")}>
+                                Profile
+                            </MenuItem>
 
                             <MenuItem
                                 onClick={() => {
@@ -509,7 +509,11 @@ export const HomePage: React.FC = () => {
                         Welcome back, {user?.displayName || user?.email || "Friend"} 👋
                     </WelcomeText>
 
-                    <RiskResultCard data={predictionData} quote={quote} compact={isMobile} />
+                    <RiskResultCard
+                        data={predictionData}
+                        quote={quote}
+                        compact={isMobile}
+                    />
                 </Section>
 
                 <Section $delay={300}>
@@ -525,7 +529,6 @@ export const HomePage: React.FC = () => {
                 </DashboardSection>
             </PageWrapper>
 
-            {/* Welcome Modal */}
             {showWelcome && (
                 <WelcomeOverlay>
                     <WelcomeCard>
@@ -533,9 +536,10 @@ export const HomePage: React.FC = () => {
                             Welcome back, {user?.displayName || "TrichMind friend"} 💜
                         </WelcomeTitle>
                         <WelcomeBody>
-                            Your dashboard has been refreshed with your latest relapse risk
-                            prediction and progress data. Take a slow breath, notice how you
-                            feel, and move through the tools at your own pace.
+                            Your dashboard has been refreshed with your latest relapse
+                            risk prediction and progress data. Take a slow breath,
+                            notice how you feel, and move through the tools at your own
+                            pace.
                         </WelcomeBody>
                         <ThemeButton onClick={() => setShowWelcome(false)}>
                             Let&apos;s begin
