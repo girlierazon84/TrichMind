@@ -298,6 +298,32 @@ router.get(
     })
 );
 
+router.get(
+    "/last",
+    authentication({ required: true }),
+    asyncHandler(async (req, res) => {
+        const userId = req.auth!.userId;
+
+        const last = await Predict.findOne({ userId })
+            .sort({ createdAt: -1 })
+            .lean();
+
+        if (!last) {
+            return res.status(404).json({ ok: false, error: "No predictions found" });
+        }
+
+        return res.json({
+            ok: true,
+            prediction: {
+                risk_score: last.risk_score,
+                risk_bucket: last.risk_bucket,
+                confidence: last.confidence,
+                model_version: last.model_version,
+            },
+        });
+    })
+);
+
 /* -----------------------------------------------------------
     🧪 Test Routes: /api/ml/test/low|medium|high
     👉 These still talk to FastAPI /predict with *encoded* payloads
