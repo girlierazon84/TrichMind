@@ -1,23 +1,32 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+
+import csv
 import json
+import sys
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import List, Optional, Dict, Union
-import time, io, sys, csv
 from pathlib import Path
+from typing import List, Optional, Union
+
 import joblib
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException, UploadFile, File, Body
+from fastapi import Body, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, validator
+
 from common.config import (
-    MODEL_PATH, LABEL_ENCODER, FEATURES_JSON,
-    INFER_LOG_CSV, INFER_LOG_DIR, SCALER_PATH
+    FEATURES_JSON,
+    INFER_LOG_CSV,
+    INFER_LOG_DIR,
+    LABEL_ENCODER,
+    MODEL_PATH,
+    SCALER_PATH,
 )
-from common.transformers import ColumnSelector
 from common.risk import risk_from_score
+from common.transformers import ColumnSelector
 
 
 # ──────────────────────────────
@@ -33,7 +42,7 @@ if str(ML_ROOT) not in sys.path:
 # ──────────────────────────────
 ALLOWED_ORIGINS = [
     "http://localhost:5050",
-    "http://localhost:5173"
+    "http://localhost:5173",
 ]
 
 # ──────────────────────────────
@@ -46,7 +55,9 @@ scaler = None
 MODEL_VERSION = "unknown"
 
 # Blend weight for the rules-vs-model score
-ALPHA = 0.5  # 0 = pure model, 1 = pure rules
+# 0 = pure model, 1 = pure rules
+ALPHA = 0.5
+
 
 # ──────────────────────────────
 # 🧩 Input schema for model
@@ -66,13 +77,15 @@ class PredictIn(BaseModel):
     coping_strategies_effective: Optional[int] = Field(default=0, ge=0, le=1)
     sleep_quality_score: Optional[float] = Field(default=5, ge=0, le=10)
 
+
 # ──────────────────────────────
-# 🧩 NEW: Friendly input schema
+# 🧩 Friendly input schema
 # ──────────────────────────────
 class PredictFriendly(BaseModel):
     age: int = Field(..., ge=0, le=120)
     age_of_onset: int = Field(..., ge=0, le=120)
     years_since_onset: Optional[int] = Field(None, ge=0, le=120)
+
     pulling_severity: int = Field(..., ge=0, le=10)
     pulling_frequency: str
     pulling_awareness: str
@@ -95,10 +108,11 @@ class PredictFriendly(BaseModel):
             return False
         return False
 
+
 # ──────────────────────────────────────
 # 🧩 Maps for categorical encodings
 # ──────────────────────────────────────
-# Pulling frequency mapping
+# Pulling frequency mapping – canonical keys
 _FREQ_MAP = {
     "daily": 5,
     "several times a week": 4,
@@ -114,17 +128,64 @@ _AWARE_MAP = {
     "no": 0.0,
 }
 
+
+# ──────────────────────────────────────
+# 🧩 Simple normalization helpers
+# ──────────────────────────────────────
+def _norm_simple(v: str | None) -> str:
+    """Lowercase, strip, and collapse whitespace."""
+    if v is None:
+        return ""
+    return " ".join(str(v).strip().lower().split())
+
+
+def _normalize_frequency(raw: str | None) -> str:
+    """
+    Normalize free-text frequency answers into canonical keys
+    used by _FREQ_MAP.
+    """
+    v = _norm_simple(raw)
+    if not v:
+        return ""
+
+    # Handle common variations
+    if "several" in v and "week" in v:
+        return "several times a week"
+    if "every" in v and "day" in v:
+        return "daily"
+    if "day" in v:
+        return "daily"
+    if "week" in v:
+        return "weekly"
+    if "month" in v:
+        return "monthly"
+    if "rare" in v:
+        return "rarely"
+
+    # Fallback: use normalized text as-is
+    return v
+
+
 # ────────────────────────────────────────────────────
 # 🧩 Encoding function from friendly to model-ready
 # ────────────────────────────────────────────────────
 def _encode_friendly_to_encoded(p: PredictFriendly) -> PredictIn:
     """Convert user-friendly inputs to model-ready encoded payload."""
-    freq_enc = _FREQ_MAP.get(p.pulling_frequency, 0)
-    aware_enc = _AWARE_MAP.get(p.pulling_awareness, 0.0)
+    # Frequency & awareness
+    freq_key = _normalize_frequency(p.pulling_frequency)
+    freq_enc = _FREQ_MAP.get(freq_key, 0)
+
+    aware_key = _norm_simple(p.pulling_awareness)
+    aware_enc = _AWARE_MAP.get(aware_key, 0.0)
+
+    # Stopped flag
     stopped_enc = 1 if bool(p.successfully_stopped) else 0
+
+    # Years since onset
     yso = p.years_since_onset
     if yso is None:
         yso = max(0, int(p.age) - int(p.age_of_onset))
+
     return PredictIn(
         pulling_severity=float(p.pulling_severity),
         pulling_frequency_encoded=int(freq_enc),
@@ -148,29 +209,39 @@ def _encode_friendly_to_encoded(p: PredictFriendly) -> PredictIn:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global model, label_encoder, feature_names, MODEL_VERSION, scaler
+
     for pth in [MODEL_PATH, LABEL_ENCODER, FEATURES_JSON, SCALER_PATH]:
         if not Path(pth).exists():
             raise RuntimeError(f"Missing artifact: {pth}")
+
     model = joblib.load(MODEL_PATH)
     label_encoder = joblib.load(LABEL_ENCODER)
     feature_names = json.load(open(FEATURES_JSON, "r", encoding="utf-8"))
     scaler = joblib.load(SCALER_PATH)
     MODEL_VERSION = MODEL_PATH.name
+
     INFER_LOG_DIR.mkdir(parents=True, exist_ok=True)
+
     yield
 
 
 # ──────────────────────────────
 # 🛠️ FastAPI app & middleware
 # ──────────────────────────────
-app = FastAPI(title="TrichMind Relapse Risk API", version="6.3.0", lifespan=lifespan)
+app = FastAPI(
+    title="TrichMind Relapse Risk API",
+    version="6.3.0",
+    lifespan=lifespan,
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite frontend
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ─────────────────────────────────────────
 # 🛠️ Helpers - feature frame conversion
@@ -178,11 +249,15 @@ app.add_middleware(
 def to_feature_frame(items: List[PredictIn] | PredictIn) -> pd.DataFrame:
     if isinstance(items, PredictIn):
         items = [items]
+
     df_in = pd.DataFrame([i.model_dump() for i in items])
     X = ColumnSelector(feature_names).transform(df_in)
     X = X.apply(pd.to_numeric, errors="coerce").fillna(0.0)
+
+    # Apply the same scaler as used in training
     X[feature_names] = scaler.transform(X[feature_names])
     return X
+
 
 # ───────────────────────────────────────────────────────
 # 🛠️ Scoring functions - get model inner and classes
@@ -194,31 +269,38 @@ def get_model_inner_and_classes():
         classes = np.array([0, 1, 2], dtype=int)
     return inner, np.array(classes, dtype=int)
 
+
 # ────────────────────────────────────────────────
 # 🛠️ Scoring functions - model classes weights
 # ────────────────────────────────────────────────
-def build_weights_vector_from_model_classes(model_classes: np.ndarray) -> np.ndarray:
+def build_weights_vector_from_model_classes(
+    model_classes: np.ndarray,
+) -> np.ndarray:
     uniq = np.unique(model_classes.astype(int))
     ranks = {c: i for i, c in enumerate(np.sort(uniq))}
     base = [1.0] if len(uniq) == 1 else np.linspace(0.0, 1.0, num=len(uniq))
     lookup = {c: float(base[ranks[c]]) for c in uniq}
     return np.array([lookup[int(c)] for c in model_classes], dtype=float)
 
+
 # ─────────────────────────────────────────────
 # 🛠️ Scoring functions - model weighted score
 # ─────────────────────────────────────────────
 def model_weighted_score(X: pd.DataFrame) -> np.ndarray:
     inner, model_classes = get_model_inner_and_classes()
+
     if hasattr(inner, "predict_proba"):
         proba = inner.predict_proba(X)
         weights = build_weights_vector_from_model_classes(model_classes)
         return proba @ weights
+
     preds = inner.predict(X).astype(int)
     uniq = np.unique(preds)
     ranks = {c: i for i, c in enumerate(np.sort(uniq))}
     base = [1.0] if len(uniq) == 1 else np.linspace(0.0, 1.0, num=len(uniq))
     lookup = {c: float(base[ranks[c]]) for c in uniq}
     return np.array([lookup[int(c)] for c in preds], dtype=float)
+
 
 # ─────────────────────────────────────────────────────
 # 🛠️ Scoring functions - rule-based score & blending
@@ -227,32 +309,44 @@ def rule_based_score(p: PredictIn) -> float:
     sev = np.clip(p.pulling_severity / 10.0, 0.0, 1.0)
     freq = np.clip(p.pulling_frequency_encoded / 5.0, 0.0, 1.0)
     inv_aw = np.clip(1.0 - p.awareness_level_encoded, 0.0, 1.0)
+
     score = 0.6 * sev + 0.3 * freq + 0.1 * inv_aw
     return float(np.clip(score, 0.0, 1.0))
+
 
 # ────────────────────────────────────────────────────────
 # 🛠️ Scoring functions - final blending & confidence
 # ────────────────────────────────────────────────────────
 def final_score_from_blend(model_score: float, rule_score: float) -> float:
-    return float(np.clip((1.0 - ALPHA) * model_score + ALPHA * rule_score, 0.0, 1.0))
+    return float(
+        np.clip((1.0 - ALPHA) * model_score + ALPHA * rule_score, 0.0, 1.0)
+    )
 
-# ───────────────────────────────────────────────
-# 🛠️ Logging inference - confidence calculation
-# ───────────────────────────────────────────────
+
 def confidence_from_score(s: float) -> float:
+    """Simple confidence: distance from 0.5."""
     return float(min(1.0, abs(s - 0.5) * 2))
+
 
 # ───────────────────────────────────────────────
 # 🛠️ Logging inference - append to CSV log
 # ───────────────────────────────────────────────
 def log_inference(row: dict) -> None:
     hdr = [
-        "timestamp", "request_type", "n_records",
-        "risk_score", "risk_bucket", "risk_code", "confidence",
-        "n_features_used", "model_version", "runtime_sec"
+        "timestamp",
+        "request_type",
+        "n_records",
+        "risk_score",
+        "risk_bucket",
+        "risk_code",
+        "confidence",
+        "n_features_used",
+        "model_version",
+        "runtime_sec",
     ]
     INFER_LOG_CSV.parent.mkdir(parents=True, exist_ok=True)
     write_header = not INFER_LOG_CSV.exists()
+
     with open(INFER_LOG_CSV, "a", encoding="utf-8", newline="") as f:
         w = csv.DictWriter(f, fieldnames=hdr, extrasaction="ignore")
         if write_header:
@@ -263,22 +357,25 @@ def log_inference(row: dict) -> None:
 # ──────────────────────────────
 # 🚀 API Endpoints
 # ──────────────────────────────
-# Get live status
 @app.get("/live")
 def live():
     return {
         "status": "alive",
         "version": MODEL_VERSION,
-        "scoring": f"blend(model={1 - ALPHA:.2f}, rule={ALPHA:.2f})"
+        "scoring": f"blend(model={1 - ALPHA:.2f}, rule={ALPHA:.2f})",
     }
 
-# Health check
+
 @app.get("/healthz")
 def healthz():
     ok = all([model is not None, label_encoder is not None, feature_names])
-    return {"ok": bool(ok), "n_features": len(feature_names), "model_version": MODEL_VERSION}
+    return {
+        "ok": bool(ok),
+        "n_features": len(feature_names),
+        "model_version": MODEL_VERSION,
+    }
 
-# Predict endpoint
+
 @app.post("/predict")
 def predict(p: PredictIn):
     t0 = time.time()
@@ -299,33 +396,45 @@ def predict(p: PredictIn):
             "n_features_used": len(feature_names),
             "model_version": MODEL_VERSION,
             "runtime_sec": runtime,
-            "debug": {"model_score": round(m_score, 3), "rule_score": round(r_score, 3), "alpha": ALPHA}
+            "debug": {
+                "model_score": round(m_score, 3),
+                "rule_score": round(r_score, 3),
+                "alpha": ALPHA,
+            },
         }
-        log_inference({
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "request_type": "single",
-            "n_records": 1,
-            **out
-        })
+
+        log_inference(
+            {
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "request_type": "single",
+                "n_records": 1,
+                **out,
+            }
+        )
         return out
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Predict endpoint with friendly inputs
+
 @app.post("/predict_friendly")
 def predict_friendly(p: PredictFriendly):
     """Accepts readable frontend inputs and encodes them internally."""
     encoded = _encode_friendly_to_encoded(p)
     return predict(encoded)
 
-# Debug vector endpoint
+
 @app.post("/debug_vector")
 def debug_vector(p: PredictIn = Body(...)):
-    """Peek at the transformed & scaled vector. Shows top non-zero/abs-valued features."""
+    """
+    Peek at the transformed & scaled vector.
+    Shows top features by absolute value.
+    """
     X = to_feature_frame(p)
     s = X.iloc[0]
     top = s.abs().sort_values(ascending=False).head(25)
     return {
         "n_features": len(s),
-        "top_abs_features": [{ "name": k, "value": float(s[k]) } for k in top.index]
+        "top_abs_features": [
+            {"name": k, "value": float(s[k])} for k in top.index
+        ],
     }
