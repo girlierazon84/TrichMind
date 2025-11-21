@@ -101,7 +101,7 @@ class PredictFriendly(BaseModel):
 # Pulling frequency mapping
 _FREQ_MAP = {
     "daily": 5,
-    "several_times_a_week": 4,
+    "several times a week": 4,
     "weekly": 3,
     "monthly": 2,
     "rarely": 1,
