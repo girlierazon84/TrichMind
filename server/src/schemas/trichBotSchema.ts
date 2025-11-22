@@ -2,16 +2,15 @@
 
 import { z } from "zod";
 
-/**--------------------------------------------
-🤖 TrichBot AI schema
-Stores chat interactions, tips, and feedback.
------------------------------------------------**/
-export const TrichBotCreateDTO = z.object({
-    userId: z.string().min(1),
+/**-------------------------------------------------
+    🤖 TrichBot AI schema
+    Stores chat interactions, tips, and feedback.
+----------------------------------------------------**/
+export const TrichBotCreateSchema = z.object({
     prompt: z.string().min(1),
     response: z.string().min(1),
     tips: z.array(z.string()).optional(),
-    riskScore: z.number().min(0).max(1).optional(),
+    riskScore: z.coerce.number().min(0).max(1).optional(),
     intent: z.string().optional(),
     model: z
         .object({
@@ -22,20 +21,22 @@ export const TrichBotCreateDTO = z.object({
     feedback: z
         .object({
             helpful: z.boolean().optional(),
-            rating: z.number().int().min(1).max(5).optional(),
+            rating: z.coerce.number().int().min(1).max(5).optional(),
             comment: z.string().optional(),
         })
         .optional(),
 });
-export type TrichBotCreateDTO = z.infer<typeof TrichBotCreateDTO>;
+export type TrichBotCreate = z.infer<typeof TrichBotCreateSchema>;
+export type TrichBotCreateDTO = TrichBotCreate;
 
-export const TrichBotUpdateDTO = TrichBotCreateDTO.partial();
-export type TrichBotUpdateDTO = z.infer<typeof TrichBotUpdateDTO>;
+export const TrichBotUpdateSchema = TrichBotCreateSchema.partial();
+export type TrichBotUpdate = z.infer<typeof TrichBotUpdateSchema>;
+export type TrichBotUpdateDTO = TrichBotUpdate;
 
-export const TrichBotListQuery = z.object({
-    userId: z.string().optional(),
+export const TrichBotListQuerySchema = z.object({
+    userId: z.string().optional(), // reserved for admin / support tooling
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(20),
     sort: z.string().default("-createdAt"),
 });
-export type TrichBotListQuery = z.infer<typeof TrichBotListQuery>;
+export type TrichBotListQuery = z.infer<typeof TrichBotListQuerySchema>;
