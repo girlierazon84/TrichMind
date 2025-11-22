@@ -47,3 +47,5 @@ export const alertService = {
         return { sent: true, message: "Alert email sent" };
     },
 };
+
+export default alertService;
