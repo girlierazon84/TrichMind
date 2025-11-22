@@ -2,10 +2,6 @@
 
 import dotenv from "dotenv";
 
-
-// --------------------------------------------
-// Load .env file contents into process.env
-// --------------------------------------------
 dotenv.config();
 
 // -------------------------------------------------------
@@ -19,8 +15,6 @@ const required = (key: string, fallback?: string): string => {
 
 //----------------------------------------------------------
 // 🌍 ENV Mode Detection
-// - Local dev  → Node runs outside Docker
-// - Docker     → Node & Mongo run inside docker-compose
 //----------------------------------------------------------
 const isLocal =
     process.env.NODE_ENV === "development" ||
@@ -69,7 +63,8 @@ export const ENV = {
 
     CORS_ORIGIN:
         process.env.CORS_ORIGIN ||
-        "http://localhost:5050,http://127.0.0.1:5050",
+        "http://localhost:5050,http://127.0.0.1:5050,http://localhost:5173",
+
     /* ---------------------------------------------------
         📧 SMTP
     ------------------------------------------------------ */
