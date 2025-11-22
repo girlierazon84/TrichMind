@@ -8,18 +8,32 @@ import {
     updateJournal,
 } from "../controllers";
 import {
-    JournalCreateDTO,
-    JournalUpdateDTO,
-    JournalListQuery,
+    JournalCreateSchema,
+    JournalUpdateSchema,
+    JournalListQuerySchema,
 } from "../schemas";
-
 
 // Initialize Router
 const router = Router();
 
 // Journal Routes
-router.post("/", authentication(), validate(JournalCreateDTO), createJournal);
-router.get("/", authentication(), validate(JournalListQuery, "query"), listJournals);
-router.put("/:id", authentication(), validate(JournalUpdateDTO), updateJournal);
+router.post(
+    "/",
+    authentication(),
+    validate(JournalCreateSchema),
+    createJournal
+);
+router.get(
+    "/",
+    authentication(),
+    validate(JournalListQuerySchema, "query"),
+    listJournals
+);
+router.put(
+    "/:id",
+    authentication(),
+    validate(JournalUpdateSchema),
+    updateJournal
+);
 
 export default router;
