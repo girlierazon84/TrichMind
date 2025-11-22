@@ -1,7 +1,7 @@
 // server/src/utils/asyncHandler.ts
 
-// Simple async wrapper to avoid try/catch in every handler
 import type { RequestHandler } from "express";
+
 
 /**---------------------------------------------------------------
 🧠 asyncHandler — Elegant async wrapper for Express routes.
@@ -23,6 +23,10 @@ export const asyncHandler = (fn: RequestHandler): RequestHandler => {
             // Print detailed error stack for debugging
             console.error("🧩 Error Message:", err.message);
             if (err.stack) console.error(err.stack);
+
+            if (res.headersSent) {
+                return next(err);
+            }
 
             // Send clean JSON response
             res.status(err.status || 500).json({
