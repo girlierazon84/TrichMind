@@ -4,11 +4,10 @@ import { User, IUser } from "../models";
 import { RegisterDTO, LoginDTO } from "../schemas";
 import { loggerService } from "./loggerService";
 
-
-/**------------------------------------------------------------------
-💡 User Service
-Handles user registration, login, profile management, and deletion.
----------------------------------------------------------------------**/
+/**-----------------------------------------------------------------------
+    💡 User Service
+    Handles user registration, login, profile management, and deletion.
+--------------------------------------------------------------------------**/
 export const userService = {
     // 🆕 Register a new user
     async register(data: RegisterDTO): Promise<IUser> {
@@ -103,3 +102,5 @@ export const userService = {
         return deleted;
     },
 };
+
+export default userService;
