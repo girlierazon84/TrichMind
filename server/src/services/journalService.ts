@@ -7,11 +7,10 @@ import {
     JournalListQuery
 } from "../schemas";
 
-
-/**------------------------------------------------------------
-Journal Service
-Handles creation, retrieval, and updating of journal entries.
----------------------------------------------------------------**/
+/**--------------------------------------------------------------
+    Journal Service
+    Handles creation, retrieval, and updating of journal entries.
+-----------------------------------------------------------------**/
 export const journalService = {
     // Create a new journal entry
     async create(userId: string, data: JournalCreateDTO) {
@@ -30,3 +29,5 @@ export const journalService = {
         return await JournalEntry.findByIdAndUpdate(id, data, { new: true });
     },
 };
+
+export default journalService;
