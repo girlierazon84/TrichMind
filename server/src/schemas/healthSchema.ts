@@ -2,10 +2,10 @@
 
 import { z } from "zod";
 
-/**--------------------------------------------------
-🩺 Health log schema
-Used for tracking lifestyle/mental well-being stats.
------------------------------------------------------**/
+/**--------------------------------------------------------
+    🩺 Health log schema
+    Used for tracking lifestyle/mental well-being stats.
+-----------------------------------------------------------**/
 export const HealthCreateSchema = z.object({
     sleepHours: z.coerce.number().min(0).max(24).default(7),
     stressLevel: z.coerce.number().min(0).max(10).default(5),
