@@ -6,10 +6,10 @@ import { PredictDTO } from "../schemas";
 import { ENV_AUTO } from "../config";
 import { loggerService } from "./loggerService";
 
-/**------------------------------------------------
+/**--------------------------------------------------
  * Response shape expected from the FastAPI ML model
  * (FastAPI /predict_friendly → /predict)
- ---------------------------------------------------**/
+-----------------------------------------------------**/
 interface PredictResponse {
     risk_score: number;
     risk_bucket: string;
@@ -32,10 +32,8 @@ export const predictService = {
             console.log("📦 [PredictService] Payload:", input);
 
             const { data } = await axios.post<PredictResponse>(endpoint, input, {
-                timeout: 15000,
+                timeout: 15_000,
                 headers: { "Content-Type": "application/json" },
-                // withCredentials is not needed here because this is
-                // server → server, not browser → server
             });
 
             console.log("✅ [PredictService] ML Response:", data);
@@ -87,7 +85,9 @@ export const predictService = {
                 console.error("   Status:", err.response.status);
                 console.error("   Response data:", err.response.data);
             } else if (err.request) {
-                console.error("   No response received from FastAPI service.");
+                console.error(
+                    "   No response received from FastAPI service."
+                );
             } else {
                 console.error("   Unknown error:", err);
             }
@@ -101,8 +101,8 @@ export const predictService = {
 
             throw new Error(
                 err.response?.data?.detail ||
-                err.message ||
-                "Prediction service unavailable"
+                    err.message ||
+                    "Prediction service unavailable"
             );
         }
     },
