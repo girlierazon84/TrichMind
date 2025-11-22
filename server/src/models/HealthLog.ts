@@ -2,11 +2,10 @@
 
 import { Schema, model, Document, Types } from "mongoose";
 
-
-/**----------------------------------------------------------
-🚨 HealthLog Model
-Tracks user health metrics and potential relapse indicators.
--------------------------------------------------------------**/
+/**----------------------------------------------------------------
+    🩺 HealthLog Model
+    Tracks user health metrics and potential relapse indicators.
+-------------------------------------------------------------------**/
 export interface IHealthLog extends Document {
     userId: Types.ObjectId;
     sleepHours: number;        // 0–24
@@ -22,18 +21,15 @@ export interface IHealthLog extends Document {
     updatedAt: Date;
 }
 
-
 // ⚙️ Define HealthLog schema
 const HealthLogSchema = new Schema<IHealthLog>(
     {
-        // Reference to the user who created the log
         userId: {
             type: Schema.Types.ObjectId,
             ref: "User",
             index: true,
             required: true,
         },
-        // Hours of sleep logged for the day
         sleepHours: { type: Number, min: 0, max: 24, default: 7 },
         stressLevel: { type: Number, min: 0, max: 10, default: 5 },
         exerciseMinutes: { type: Number, min: 0, max: 1440, default: 0 },
