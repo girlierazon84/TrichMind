@@ -6,10 +6,9 @@ import {
     TrichBotListQuery
 } from "../schemas";
 
-
-/**----------------------------------------
-🤖 TrichBot message management service
--------------------------------------------**/
+/**-----------------------------------------
+    🤖 TrichBot message management service
+--------------------------------------------**/
 export const botService = {
     // Create a new TrichBot message
     async createMessage(userId: string, data: TrichBotCreateDTO) {
@@ -23,3 +22,5 @@ export const botService = {
         return await TrichBotMessage.find({ userId }).sort(query.sort).skip(skip).limit(query.limit);
     },
 };
+
+export default botService;
