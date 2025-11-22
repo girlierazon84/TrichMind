@@ -65,12 +65,11 @@ export const ENV = {
     ------------------------------------------------------ */
     SERVER_URL: process.env.SERVER_URL || `http://${DEFAULT_SERVER_HOST}`,
 
-    CLIENT_URL: process.env.CLIENT_URL || "http://localhost:5173",
+    CLIENT_URL: process.env.CLIENT_URL || "http://localhost:5050",
 
     CORS_ORIGIN:
         process.env.CORS_ORIGIN ||
-        "http://localhost:5173,http://127.0.0.1:5173",
-
+        "http://localhost:5050,http://127.0.0.1:5050",
     /* ---------------------------------------------------
         📧 SMTP
     ------------------------------------------------------ */
