@@ -7,7 +7,7 @@ declare global {
         interface Request {
             auth?: {
                 userId: string;
-                token: string;   // <-- ADD THIS
+                token: string;
             };
         }
     }
