@@ -8,11 +8,10 @@ import {
 } from "../schemas";
 import { loggerService } from "./loggerService";
 
-
-/**--------------------------------------------------
-🎮 TrichGame Service
-Handles game session creation, listing, and updates.
------------------------------------------------------**/
+/**--------------------------------------------------------
+    🎮 TrichGame Service
+    Handles game session creation, listing, and updates.
+-----------------------------------------------------------**/
 export const gameService = {
     // ➕ Create a new game session
     async createSession(userId: string, data: GameSessionCreateDTO) {
@@ -100,3 +99,5 @@ export const gameService = {
         }
     },
 };
+
+export default gameService;
