@@ -7,7 +7,6 @@ import { notFound, errorHandler } from "./middlewares";
 import { logger, startWeeklySummaryScheduler } from "./utils";
 import { ENV_AUTO } from "./config";
 
-
 // -----------------
 // Route Imports
 // -----------------
@@ -23,19 +22,32 @@ import trichBotRoutes from "./routes/trichBotRoutes";
 import trichGameRoutes from "./routes/trichGameRoutes";
 import loggerRoutes from "./routes/loggerRoutes";
 
-
 // -------------------------
 // Initialize Express App
 // -------------------------
 const app = express();
 
 // -----------------------------
-// ✅ Middleware
+// ✅ CORS Middleware (multi-origin)
 // -----------------------------
-app.use(cors({
-    origin: "http://localhost:5050",
-    credentials: true
-}));
+const allowedOrigins = ENV_AUTO.CORS_ORIGINS || [ENV_AUTO.CLIENT_URL];
+
+app.use(
+    cors({
+        origin(origin, callback) {
+            // Allow non-browser tools (Postman, curl, etc.)
+            if (!origin) return callback(null, true);
+
+            if (allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            }
+
+            logger.warn(`[CORS] Blocked origin: ${origin}`);
+            return callback(new Error("Not allowed by CORS"));
+        },
+        credentials: true,
+    })
+);
 
 app.use(express.json());
 
@@ -71,5 +83,6 @@ startWeeklySummaryScheduler();
 connectMongo().then(() => {
     app.listen(ENV_AUTO.PORT, () => {
         logger.info(`🚀 TrichMind Server running on port ${ENV_AUTO.PORT}`);
+        logger.info(`✅ Allowed CORS origins: ${allowedOrigins.join(", ")}`);
     });
 });
