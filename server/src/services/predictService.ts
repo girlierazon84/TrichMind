@@ -6,32 +6,36 @@ import { PredictDTO } from "../schemas";
 import { ENV_AUTO } from "../config";
 import { loggerService } from "./loggerService";
 
-
 /**------------------------------------------------
-Response shape expected from the FastAPI ML model
----------------------------------------------------**/
+ * Response shape expected from the FastAPI ML model
+ * (FastAPI /predict_friendly → /predict)
+ ---------------------------------------------------**/
 interface PredictResponse {
     risk_score: number;
     risk_bucket: string;
     confidence: number;
     model_version?: string;
+    risk_code?: string;
+    runtime_sec?: number;
 }
 
-/**----------------------------------------------------------
-Prediction Service
-Handles interactions with the ML model for user predictions.
--------------------------------------------------------------**/
+/**------------------------------------------------------------
+ * Prediction Service
+ * Handles interactions with the ML model for user predictions.
+---------------------------------------------------------------**/
 export const predictService = {
     async predict(userId: string, input: PredictDTO) {
-        // 🔁 Use the FRIENDLY endpoint on FastAPI
         const endpoint = `${ENV_AUTO.ML_BASE_URL}/predict_friendly`;
 
         try {
             console.log(`📡 [PredictService] Sending payload to ${endpoint}`);
+            console.log("📦 [PredictService] Payload:", input);
 
             const { data } = await axios.post<PredictResponse>(endpoint, input, {
                 timeout: 15000,
                 headers: { "Content-Type": "application/json" },
+                // withCredentials is not needed here because this is
+                // server → server, not browser → server
             });
 
             console.log("✅ [PredictService] ML Response:", data);
@@ -52,9 +56,10 @@ export const predictService = {
             // 2️⃣ Auto-log into HealthLog as a relapseRisk snapshot
             await HealthLog.create({
                 userId,
-                sleepHours: 7,
-                stressLevel: 5,
-                exerciseMinutes: 0,
+                // These fields depend on your PredictDTO shape – using safe fallbacks
+                sleepHours: (input as any).sleepHours ?? 0,
+                stressLevel: (input as any).stressLevel ?? 0,
+                exerciseMinutes: (input as any).exerciseMinutes ?? 0,
                 date: new Date(),
                 relapseRisk: {
                     score: risk_score,
@@ -63,27 +68,35 @@ export const predictService = {
                 },
             });
 
-            await loggerService.logInfo("Prediction created & HealthLog recorded", {
-                userId,
-                risk_score,
-            });
+            await loggerService.logInfo(
+                "Prediction created & HealthLog recorded",
+                {
+                    userId,
+                    risk_score,
+                    risk_bucket,
+                    confidence,
+                }
+            );
 
             return prediction;
         } catch (err: any) {
-            console.error("❌ [PredictService] ML request failed:");
+            console.error("❌ [PredictService] ML request failed");
             console.error("   Message:", err.message);
 
             if (err.response) {
-                console.error("   Response data:", err.response.data);
                 console.error("   Status:", err.response.status);
+                console.error("   Response data:", err.response.data);
             } else if (err.request) {
                 console.error("   No response received from FastAPI service.");
+            } else {
+                console.error("   Unknown error:", err);
             }
 
             await loggerService.logError("Prediction failed", {
                 userId,
-                error: err.message,
                 endpoint,
+                error: err.message,
+                status: err.response?.status,
             });
 
             throw new Error(
