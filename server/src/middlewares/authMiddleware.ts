@@ -2,8 +2,7 @@
 
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { ENV_AUTO } from "../config";
-
+import { ENV } from "../config";
 
 // Extend Express Request
 declare global {
@@ -53,7 +52,7 @@ export function authentication(
         }
 
         try {
-            const decoded = jwt.verify(token, ENV_AUTO.JWT_SECRET) as JwtPayload;
+            const decoded = jwt.verify(token, ENV.JWT_SECRET) as JwtPayload;
             const userId = decoded.sub;
 
             if (!userId) {
@@ -71,7 +70,6 @@ export function authentication(
     };
 }
 
-// Extended Request Type
 export type AuthRequest = Request & {
     auth: { userId: string; token?: string };
 };
