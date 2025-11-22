@@ -68,8 +68,8 @@ export const ENV = {
 
     // Client URL
     CLIENT_URL: isLocal()
-        ? "http://localhost:5173"
-        : "http://client:5000",
+        ? "http://localhost:5050"
+        : "http://client:5050",
 };
 
 // -------------------------------------
