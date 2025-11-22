@@ -73,3 +73,5 @@ export const loggerService = {
         return this.log(message, "info", "auth", context, userId);
     },
 };
+
+export default loggerService;
