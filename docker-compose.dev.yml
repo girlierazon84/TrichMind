@@ -58,7 +58,7 @@ services:
       - ./server:/app
       - /app/node_modules
     env_file:
-      - ./server/.env
+      - ./server/.env.docker      # ⬅️ Docker env (MONGO_URI=mongodb://mongo:27017/…, ML_BASE_URL=http://ml:8000)
     environment:
       DOCKERIZED: "true"
     depends_on:
@@ -82,11 +82,12 @@ services:
       dockerfile: Dockerfile.dev
     container_name: trichmind-client-dev
     ports:
-      - "5050:5050"
+      - "5050:5173"
     volumes:
       - ./client:/app
       - /app/node_modules
     environment:
+      # Browser → backend on host
       NEXT_PUBLIC_API_URL: "http://localhost:8080"
     depends_on:
       server:
