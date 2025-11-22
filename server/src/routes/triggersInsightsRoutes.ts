@@ -8,18 +8,32 @@ import {
     updateTriggersInsights,
 } from "../controllers";
 import {
-    TriggersInsightsCreateDTO,
-    TriggersInsightsUpdateDTO,
-    TriggersInsightsListQuery,
+    TriggersInsightsCreateSchema,
+    TriggersInsightsUpdateSchema,
+    TriggersInsightsListQuerySchema,
 } from "../schemas";
-
 
 // Initialize router
 const router = Router();
 
 // 🟢 TriggersInsights Routes
-router.post("/", authentication(), validate(TriggersInsightsCreateDTO), createTriggersInsights);
-router.get("/", authentication(), validate(TriggersInsightsListQuery, "query"), listTriggersInsights);
-router.put("/:id", authentication(), validate(TriggersInsightsUpdateDTO), updateTriggersInsights);
+router.post(
+    "/",
+    authentication(),
+    validate(TriggersInsightsCreateSchema),
+    createTriggersInsights
+);
+router.get(
+    "/",
+    authentication(),
+    validate(TriggersInsightsListQuerySchema, "query"),
+    listTriggersInsights
+);
+router.put(
+    "/:id",
+    authentication(),
+    validate(TriggersInsightsUpdateSchema),
+    updateTriggersInsights
+);
 
 export default router;
