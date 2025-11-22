@@ -4,11 +4,10 @@ import { HealthLog } from "../models";
 import { HealthListQuery } from "../schemas";
 import { loggerService } from "./loggerService";
 
-
-/**--------------------------------------------------------
-Health Service
-Handles creation, retrieval, and updating of health logs.
------------------------------------------------------------**/
+/**----------------------------------------------------------
+    Health Service
+    Handles creation, retrieval, and updating of health logs.
+-------------------------------------------------------------**/
 export const healthService = {
     // Create a new health log
     async createHealthLog(userId: string, data: any) {
@@ -61,3 +60,5 @@ export const healthService = {
         }
     },
 };
+
+export default healthService;
