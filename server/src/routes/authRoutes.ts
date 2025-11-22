@@ -9,9 +9,8 @@ import {
     forgotPassword,
     resetPassword,
 } from "../controllers";
-import { RegisterDTO, LoginDTO } from "../schemas";
+import { RegisterSchema, LoginSchema } from "../schemas";
 import { User } from "../models";
-
 
 /* ──────────────────────────────
     🔹 Auth Routes
@@ -21,12 +20,12 @@ const router = Router();
 /* ──────────────────────────────
     🔹 POST /api/auth/register
 ──────────────────────────────── */
-router.post("/register", validate(RegisterDTO), register);
+router.post("/register", validate(RegisterSchema), register);
 
 /* ──────────────────────────────
     🔹 POST /api/auth/login
 ──────────────────────────────── */
-router.post("/login", validate(LoginDTO), login);
+router.post("/login", validate(LoginSchema), login);
 
 /* ──────────────────────────────
     🔹 POST /api/auth/refresh
@@ -55,7 +54,9 @@ router.post(
             const userId = req.auth?.userId;
 
             if (!oldPassword || !newPassword) {
-                return res.status(400).json({ error: "Missing old or new password" });
+                return res
+                    .status(400)
+                    .json({ error: "Missing old or new password" });
             }
 
             const user = await User.findById(userId).select("+password");
@@ -64,7 +65,9 @@ router.post(
             // assuming User model has comparePassword()
             const match = await (user as any).comparePassword(oldPassword);
             if (!match) {
-                return res.status(400).json({ error: "Incorrect old password" });
+                return res
+                    .status(400)
+                    .json({ error: "Incorrect old password" });
             }
 
             user.password = newPassword;
@@ -73,7 +76,9 @@ router.post(
             return res.json({ ok: true, message: "Password updated!" });
         } catch (err) {
             console.error("❌ /change-password error:", err);
-            return res.status(500).json({ error: "Failed to change password" });
+            return res
+                .status(500)
+                .json({ error: "Failed to change password" });
         }
     }
 );
@@ -84,7 +89,9 @@ router.post(
 router.get("/me", authentication(), async (req, res) => {
     try {
         const userId = req.auth?.userId;
-        const user = await User.findById(userId).select("-password").lean();
+        const user = await User.findById(userId)
+            .select("-password")
+            .lean();
         if (!user) return res.status(404).json({ error: "User not found" });
         res.json({ ok: true, user });
     } catch (err) {
