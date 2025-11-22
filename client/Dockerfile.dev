@@ -1,20 +1,23 @@
+# client/Dockerfile.dev
+
 FROM node:20-alpine
 
 WORKDIR /app
 
 # Copy dependency manifests first
 COPY package*.json ./
-RUN npm install
 
-# Install dependencies
+# Install dependencies using lockfile
 RUN npm ci
 
 # Copy the rest of the Vite app
 COPY . .
 
-EXPOSE 5050
+# Vite default dev port inside container
+EXPOSE 5173
 
-# Needed so Vite dev server is reachable from outside container
+# Needed so Vite dev server is reachable & file watching works in Docker
 ENV CHOKIDAR_USEPOLLING=true
 
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5050"]
+# Run Vite dev server on 0.0.0.0:5173
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
