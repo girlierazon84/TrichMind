@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import sys
 import time
 from contextlib import asynccontextmanager
@@ -38,13 +39,25 @@ if str(ML_ROOT) not in sys.path:
     sys.path.insert(0, str(ML_ROOT))
 
 # ──────────────────────────────
-# 🧠 TrichMind ML (API)
+# 🧠 TrichMind ML (API) – CORS
 # ──────────────────────────────
-ALLOWED_ORIGINS = [
-    "http://localhost:5050",
-    "http://192.168.1.208:5050",
-    "http://172.19.192.1:5050"
+# You can override this via env:
+# FASTAPI_CORS_ORIGINS="http://172.19.192.1:5050,http://localhost:5050"
+_default_cors = (
+    "http://localhost:5050,"
+    "http://127.0.0.1:5050,"
+    "http://localhost:5173,"
+    "http://172.19.192.1:5050,"
+    "http://192.168.1.208:5050"
+)
+
+ALLOWED_ORIGINS: list[str] = [
+    origin.strip()
+    for origin in os.getenv("FASTAPI_CORS_ORIGINS", _default_cors).split(",")
+    if origin.strip()
 ]
+
+print("🔐 [FastAPI CORS] Allowed origins:", ALLOWED_ORIGINS)
 
 # ──────────────────────────────
 # Globals
