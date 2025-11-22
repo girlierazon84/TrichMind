@@ -12,9 +12,9 @@ RUN npm ci
 # Copy the rest of the Vite app
 COPY . .
 
-EXPOSE 5173
+EXPOSE 5050
 
 # Needed so Vite dev server is reachable from outside container
 ENV CHOKIDAR_USEPOLLING=true
 
-CMD ["npm", "run", "dev", "--", "--host"]
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5050"]
