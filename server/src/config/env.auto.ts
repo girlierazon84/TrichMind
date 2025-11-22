@@ -3,10 +3,6 @@
 import dotenv from "dotenv";
 import fs from "fs";
 
-
-// ---------------------------------------------
-// CONFIG: AUTO ENV
-// ---------------------------------------------
 dotenv.config();
 
 // -------------------------------------
@@ -19,9 +15,6 @@ const isDocker = () => {
     return fs.existsSync("/.dockerenv");
 };
 
-// -------------------------------------
-// ENV VARS
-// -------------------------------------
 const isLocal = () => !isDocker();
 
 // -------------------------------------
@@ -36,16 +29,37 @@ const required = (key: string, fallback?: string) => {
 // -------------------------------------
 // AUTO-SWITCH HOSTS - MONGO
 // -------------------------------------
-const mongoHost = isLocal()
-    ? "localhost:27018"
-    : "mongo:27017";
+const mongoHost = isLocal() ? "localhost:27018" : "mongo:27017";
 
 // -------------------------------------
 // AUTO-SWITCH HOSTS - ML
 // -------------------------------------
-const mlHost = isLocal()
-    ? "localhost:8000"
-    : "ml:8000";
+const mlHost = isLocal() ? "localhost:8000" : "ml:8000";
+
+// -------------------------------------
+// Client & CORS
+// -------------------------------------
+const resolvedClientUrl =
+    process.env.CLIENT_URL ||
+    (isLocal()
+        ? "http://localhost:5050"
+        : "http://localhost:5050"); // browser always sees localhost
+
+const rawCors = process.env.CORS_ORIGIN;
+const defaultCorsOrigins = isLocal()
+    ?   [
+            "http://localhost:5050",
+            "http://127.0.0.1:5050",
+            "http://localhost:5173",
+        ]
+    :   [resolvedClientUrl];
+
+const corsOrigins = rawCors
+    ?   rawCors
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+    :   defaultCorsOrigins;
 
 // -------------------------------------
 // EXPORT ENV
@@ -58,18 +72,26 @@ export const ENV = {
     // Application Port
     PORT: Number(process.env.PORT) || 8080,
 
-    // Database URIs
-    MONGO_URI: `mongodb://${mongoHost}/trichmind`,
-    ML_BASE_URL: `http://${mlHost}`,
+    // Database URI (env override → auto host)
+    MONGO_URI: process.env.MONGO_URI || `mongodb://${mongoHost}/trichmind`,
+
+    // ML Service Base URL (env override → auto host)
+    ML_BASE_URL: process.env.ML_BASE_URL || `http://${mlHost}`,
 
     // JWT Secrets
     JWT_SECRET: required("JWT_SECRET", "local-secret"),
     JWT_REFRESH_SECRET: required("JWT_REFRESH_SECRET", "local-refresh"),
 
-    // Client URL
-    CLIENT_URL: isLocal()
-        ? "http://localhost:5050"
-        : "http://client:5050",
+    // Client URL (single “main” URL)
+    CLIENT_URL: resolvedClientUrl,
+
+    // CORS allowed origins (array)
+    CORS_ORIGINS: corsOrigins,
+
+    // Optional extras (for consistency with .env / .env.docker)
+    SERVER_URL: process.env.SERVER_URL || "http://localhost:8080",
+    LOG_DIR: process.env.LOG_DIR || "./logs",
+    RELAPSE_ALERT_THRESHOLD: Number(process.env.RELAPSE_ALERT_THRESHOLD) || 0.7,
 };
 
 // -------------------------------------
@@ -81,4 +103,6 @@ console.log("🌍 ENV AUTO SWITCH:", {
     IS_DOCKER: ENV.IS_DOCKER,
     MONGO_URI: ENV.MONGO_URI,
     ML_BASE_URL: ENV.ML_BASE_URL,
+    CLIENT_URL: ENV.CLIENT_URL,
+    CORS_ORIGINS: ENV.CORS_ORIGINS,
 });
