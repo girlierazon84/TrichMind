@@ -42,7 +42,8 @@ if str(ML_ROOT) not in sys.path:
 # ──────────────────────────────
 ALLOWED_ORIGINS = [
     "http://localhost:5050",
-    "http://localhost:5173",
+    "http://192.168.1.208:5050",
+    "http://172.19.192.1:5050"
 ]
 
 # ──────────────────────────────
