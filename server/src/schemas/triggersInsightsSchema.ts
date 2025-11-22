@@ -2,25 +2,29 @@
 
 import { z } from "zod";
 
-/**--------------------------------------------------------
-⚡ Trigger schema
-Used for identifying behavioral or environmental triggers.
------------------------------------------------------------**/
-export const TriggersInsightsCreateDTO = z.object({
-    userId: z.string().min(1),
+/**--------------------------------------------------------------
+    ⚡ Trigger schema
+    Used for identifying behavioral or environmental triggers.
+-----------------------------------------------------------------**/
+export const TriggersInsightsCreateSchema = z.object({
     name: z.string().min(1).trim(),
-    frequency: z.number().min(0).default(0),
+    frequency: z.coerce.number().min(0).default(0),
 });
-export type TriggersInsightsCreateDTO = z.infer<typeof TriggersInsightsCreateDTO>;
+export type TriggersInsightsCreate = z.infer<typeof TriggersInsightsCreateSchema>;
+export type TriggersInsightsCreateDTO = TriggersInsightsCreate;
 
-export const TriggersInsightsUpdateDTO = TriggersInsightsCreateDTO.partial();
-export type TriggersInsightsUpdateDTO = z.infer<typeof TriggersInsightsUpdateDTO>;
+export const TriggersInsightsUpdateSchema =
+    TriggersInsightsCreateSchema.partial();
+export type TriggersInsightsUpdate = z.infer<typeof TriggersInsightsUpdateSchema>;
+export type TriggersInsightsUpdateDTO = TriggersInsightsUpdate;
 
-export const TriggersInsightsListQuery = z.object({
-    userId: z.string().optional(),
+export const TriggersInsightsListQuerySchema = z.object({
+    userId: z.string().optional(), // reserved for admin tooling
     search: z.string().optional(),
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(200).default(50),
     sort: z.string().default("-frequency"),
 });
-export type TriggersInsightsListQuery = z.infer<typeof TriggersInsightsListQuery>;
+export type TriggersInsightsListQuery = z.infer<
+    typeof TriggersInsightsListQuerySchema
+>;
