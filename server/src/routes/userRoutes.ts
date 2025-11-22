@@ -5,7 +5,6 @@ import { authentication } from "../middlewares";
 import { User, HealthLog } from "../models";
 import { asyncHandler } from "../utils";
 
-
 /* ──────────────────────────────
     🔹 User Routes
 ──────────────────────────────── */
@@ -21,7 +20,9 @@ router.get(
             .lean();
 
         if (!user) {
-            return res.status(404).json({ ok: false, error: "User not found" });
+            return res
+                .status(404)
+                .json({ ok: false, error: "User not found" });
         }
 
         res.json({ ok: true, user });
@@ -62,7 +63,9 @@ router.patch(
         }).select("-password");
 
         if (!user) {
-            return res.status(404).json({ ok: false, error: "User not found" });
+            return res
+                .status(404)
+                .json({ ok: false, error: "User not found" });
         }
 
         res.json({ ok: true, user });
