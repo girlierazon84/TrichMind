@@ -22,9 +22,11 @@ const LOG_FILE = path.join(LOG_DIR, `trichmind-${date}.log`);
  */
 function write(level: "info" | "warn" | "error", message: unknown): void {
     const timestamp = new Date().toISOString();
-    const env = ENV.NODE_ENV.toUpperCase();
+    const env = (ENV.NODE_ENV || "development").toUpperCase();
     const formattedMessage =
-        typeof message === "string" ? message : util.inspect(message, { depth: 3 });
+        typeof message === "string"
+            ? message
+            : util.inspect(message, { depth: 3 });
     const formatted = `[${timestamp}] [${env}] [${level.toUpperCase()}] ${formattedMessage}\n`;
 
     // --- Console output (with colors) ---
@@ -35,15 +37,20 @@ function write(level: "info" | "warn" | "error", message: unknown): void {
         reset: "\x1b[0m",
     };
 
-    if (level === "error") console.error(colors.error + formatted.trim() + colors.reset);
-    else if (level === "warn") console.warn(colors.warn + formatted.trim() + colors.reset);
+    if (level === "error")
+        console.error(colors.error + formatted.trim() + colors.reset);
+    else if (level === "warn")
+        console.warn(colors.warn + formatted.trim() + colors.reset);
     else console.log(colors.info + formatted.trim() + colors.reset);
 
     // --- File logging ---
     try {
         fs.appendFileSync(LOG_FILE, formatted, "utf8");
     } catch (err) {
-        console.error("❌ Failed to write log file:", (err as Error).message);
+        console.error(
+            "❌ Failed to write log file:",
+            (err as Error).message
+        );
     }
 }
 
