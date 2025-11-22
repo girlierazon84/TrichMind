@@ -8,11 +8,10 @@ import {
 } from "../schemas";
 import { loggerService } from "./loggerService";
 
-
-/**-------------------------------------------------------
-💡 Triggers Insights Service
-Handles trigger insight creation, listing, and updating.
-----------------------------------------------------------**/
+/**-----------------------------------------------------------
+    💡 Triggers Insights Service
+    Handles trigger insight creation, listing, and updating.
+--------------------------------------------------------------**/
 export const triggersInsightsService = {
     // ➕ Create a new trigger insight
     async create(userId: string, data: TriggersInsightsCreateDTO) {
@@ -108,3 +107,5 @@ export const triggersInsightsService = {
         }
     },
 };
+
+export default triggersInsightsService;
