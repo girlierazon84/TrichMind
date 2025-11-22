@@ -5,11 +5,10 @@ import { sendMail } from "../utils";
 import { buildWeeklySummaryEmail } from "../templates";
 import { loggerService } from "./loggerService";
 
-
-/**----------------------------------------
-📬 Send weekly summaries to all users
-Returns summary statistics for reporting.
--------------------------------------------**/
+/**------------------------------------------
+    📬 Send weekly summaries to all users
+    Returns summary statistics for reporting.
+---------------------------------------------**/
 export const summaryService = {
     // Send weekly summaries to all users
     async sendWeeklySummaries() {
@@ -81,3 +80,5 @@ export const summaryService = {
         };
     },
 };
+
+export default summaryService;
