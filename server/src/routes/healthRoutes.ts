@@ -6,7 +6,7 @@ import {
     createHealthLog,
     listHealthLogs,
     updateHealthLog,
-    getRiskTrend
+    getRiskTrend,
 } from "../controllers";
 import {
     HealthCreateSchema,
@@ -14,14 +14,28 @@ import {
     HealthListQuerySchema,
 } from "../schemas";
 
-
 // Initialize router
 const router = Router();
 
 // ✅ Auth required for all routes
-router.post("/", authentication(), validate(HealthCreateSchema), createHealthLog);
-router.get("/", authentication(), validate(HealthListQuerySchema, "query"), listHealthLogs);
+router.post(
+    "/",
+    authentication(),
+    validate(HealthCreateSchema),
+    createHealthLog
+);
+router.get(
+    "/",
+    authentication(),
+    validate(HealthListQuerySchema, "query"),
+    listHealthLogs
+);
 router.get("/risk-trend", authentication(), getRiskTrend);
-router.put("/:id", authentication(), validate(HealthUpdateSchema), updateHealthLog);
+router.put(
+    "/:id",
+    authentication(),
+    validate(HealthUpdateSchema),
+    updateHealthLog
+);
 
 export default router;
