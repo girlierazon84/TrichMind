@@ -83,3 +83,5 @@ export const errorHandler = (
 
     res.status(status).json(payload);
 };
+
+export default { notFound, errorHandler };
