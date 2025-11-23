@@ -14,15 +14,16 @@ import {
     DailyProgressCardAuto,
     CopingStrategiesCard,
     RiskTrendChart,
-    ThemeButton
+    ThemeButton,
 } from "@/components";
 import { useAuth } from "@/hooks";
 import { AppLogo } from "@/assets/images";
 import { UserIcon } from "@/assets/icons";
+import type { PredictionResponse } from "@/types/ml";
 
-/* -----------------------------------------------------
+/**----------
     Types
------------------------------------------------------ */
+-------------*/
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 
 export interface MeResponse {
@@ -43,17 +44,16 @@ export interface MeResponse {
     };
 }
 
-export interface PredictResponse {
-    risk_score: number;
-    risk_bucket: RiskLevel | string;
-    risk_code: number;
-    confidence: number;
+// ML response (dashboard) extends core PredictionResponse
+export interface DashboardPrediction extends PredictionResponse {
+    // Align with PredictionResponse's risk_code type (likely string)
+    risk_code?: string;
     model_version?: string;
 }
 
-/* -----------------------------------------------------
+/**---------------
     Animations
------------------------------------------------------ */
+------------------*/
 const fadeIn = keyframes`
     from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -90,9 +90,9 @@ const modalFade = keyframes`
     to   { opacity: 1; transform: translateY(0) scale(1); }
 `;
 
-/* -----------------------------------------------------
+/**-------------------------------
     Styled Components – Layout
------------------------------------------------------ */
+----------------------------------*/
 const PageWrapper = styled.div`
     width: 100%;
     min-height: calc(100vh - 70px);
@@ -123,9 +123,7 @@ const Header = styled.header`
     }
 `;
 
-/* -----------------------------------------------------
-    User Menu / Avatar
------------------------------------------------------ */
+// User Menu / Avatar Styles
 const UserMenuWrapper = styled.div`
     position: relative;
 `;
@@ -187,9 +185,6 @@ const MenuItem = styled.button`
     }
 `;
 
-/* -----------------------------------------------------
-    Sections & Dashboard
------------------------------------------------------ */
 const Section = styled.section<{ $delay?: number; $pop?: boolean }>`
     width: 100%;
     max-width: 960px;
@@ -224,9 +219,7 @@ const WelcomeText = styled.h2`
     color: ${({ theme }) => theme.colors.text_primary};
 `;
 
-/* -----------------------------------------------------
-    Skeleton Loader
------------------------------------------------------ */
+// Skeleton + Welcome modal styled components
 const SkeletonCircle = styled.div`
     width: 40px;
     height: 40px;
@@ -269,9 +262,6 @@ const SkeletonSpacer = styled.div<{ $height?: string }>`
     height: ${({ $height }) => $height || "16px"};
 `;
 
-/* -----------------------------------------------------
-    Welcome Modal
------------------------------------------------------ */
 const WelcomeOverlay = styled.div`
     position: fixed;
     inset: 0;
@@ -306,30 +296,24 @@ const WelcomeBody = styled.p`
     line-height: 1.5;
 `;
 
-/* -----------------------------------------------------
+/**--------------
     Component
------------------------------------------------------ */
+-----------------*/
 export const HomePage: React.FC = () => {
     const navigate = useNavigate();
     const { user, isAuthenticated, logout } = useAuth();
 
-    // Risk state
     const [riskScore, setRiskScore] = useState(0);
     const [confidence, setConfidence] = useState(0);
     const [bucket, setBucket] = useState<RiskLevel>("MEDIUM");
     const [riskCode, setRiskCode] = useState<number>(1);
-    const [modelVersion, setModelVersion] = useState<string | undefined>(undefined);
+    const [modelVersion, setModelVersion] = useState<string | undefined>();
     const [loading, setLoading] = useState(true);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-    // Avatar
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [avatarShouldPulse, setAvatarShouldPulse] = useState(false);
-
-    // Welcome Modal
     const [showWelcome, setShowWelcome] = useState(false);
-
-    // Dropdown Menu
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -349,7 +333,6 @@ export const HomePage: React.FC = () => {
         return () => window.removeEventListener("click", handler);
     }, []);
 
-    // Responsive listener
     useEffect(() => {
         const mq = window.matchMedia("(max-width: 768px)");
         const update = () => setIsMobile(mq.matches);
@@ -358,7 +341,6 @@ export const HomePage: React.FC = () => {
         return () => mq.removeEventListener("change", update);
     }, []);
 
-    // Show welcome modal once per session
     useEffect(() => {
         if (!isAuthenticated) return;
         const seen = sessionStorage.getItem("tm_welcome_seen");
@@ -368,7 +350,6 @@ export const HomePage: React.FC = () => {
         }
     }, [isAuthenticated]);
 
-    // Load avatar + prediction
     useEffect(() => {
         if (!isAuthenticated) {
             setLoading(false);
@@ -377,7 +358,6 @@ export const HomePage: React.FC = () => {
 
         const loadDashboard = async () => {
             try {
-                // 1) Fetch user for avatar + features
                 const me = await axiosClient.get<MeResponse>("/api/auth/me");
                 const u = me.data.user;
                 if (!u) throw new Error("Missing user");
@@ -392,9 +372,8 @@ export const HomePage: React.FC = () => {
                     });
                 }
 
-                // 2) Call ML prediction using real user values (no demo defaults)
                 try {
-                    const pred = await axiosClient.post<PredictResponse>(
+                    const pred = await axiosClient.post<DashboardPrediction>(
                         "/api/ml/predict",
                         {
                             pulling_severity: u.pulling_severity,
@@ -409,25 +388,28 @@ export const HomePage: React.FC = () => {
                         }
                     );
 
-                    setRiskScore(pred.data.risk_score);
-                    setConfidence(pred.data.confidence);
+                    const data = pred.data;
+
+                    setRiskScore(data.risk_score);
+                    setConfidence(data.confidence);
                     setBucket(
-                        String(pred.data.risk_bucket || "MEDIUM").toUpperCase() as RiskLevel
+                        String(data.risk_bucket || "medium").toUpperCase() as RiskLevel
                     );
 
-                    if (typeof pred.data.risk_code === "number") {
-                        setRiskCode(pred.data.risk_code);
+                    if (typeof data.risk_code === "string") {
+                        const parsed = Number(data.risk_code);
+                        if (!Number.isNaN(parsed)) {
+                            setRiskCode(parsed);
+                        }
                     }
 
-                    if (pred.data.model_version) {
-                        setModelVersion(pred.data.model_version);
+                    if (data.model_version) {
+                        setModelVersion(data.model_version);
                     }
                 } catch (err) {
-                    // If ML fails, keep current state and log
                     console.error("ML prediction failed:", err);
                 }
             } catch {
-                // Auth / /me failure => go to login
                 navigate("/login");
                 return;
             } finally {
@@ -439,7 +421,6 @@ export const HomePage: React.FC = () => {
         void loadDashboard();
     }, [isAuthenticated, navigate]);
 
-    // Quote based on bucket
     const quote = useMemo(() => {
         switch (bucket) {
             case "LOW":
@@ -451,10 +432,8 @@ export const HomePage: React.FC = () => {
         }
     }, [bucket]);
 
-    // Redirect if not authenticated
     if (!isAuthenticated) return null;
 
-    // Loading state
     if (loading) {
         return (
             <PageWrapper>
@@ -482,14 +461,14 @@ export const HomePage: React.FC = () => {
         );
     }
 
-    // Prediction data object for RiskResultCard
     const riskBucketLower = bucket.toLowerCase() as "low" | "medium" | "high";
     const predictionData = {
         risk_score: riskScore,
         risk_bucket: riskBucketLower,
-        risk_code: riskCode,
         confidence,
         model_version: modelVersion ?? "live",
+        // RiskResultCard expects risk_code as string → stringify
+        risk_code: String(riskCode),
     };
 
     const headerAvatar = avatarUrl || UserIcon;
