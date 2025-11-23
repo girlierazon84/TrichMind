@@ -51,6 +51,7 @@ const TrichBotSchema = new Schema<ITrichBotMessage>(
 // ⚡ Optimize queries by user and recency
 TrichBotSchema.index({ userId: 1, createdAt: -1 });
 
+// Export the Mongoose model
 export const TrichBotMessage = model<ITrichBotMessage>(
     "TrichBotMessage",
     TrichBotSchema
