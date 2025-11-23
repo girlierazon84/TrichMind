@@ -2,21 +2,18 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import styled, { keyframes, css } from "styled-components";
+import type { PredictionResponse } from "@/types/ml";
 
-
-/* ---------------------------------------------------------
-    🧠 PredictResponse Type
---------------------------------------------------------- */
-export interface PredictResponse {
-    risk_score: number; // 0..1
-    risk_bucket: "low" | "medium" | "high";
-    confidence: number; // 0..1
+/**------------------------------------------------
+    🧠 Risk Result Data Type (extends ML type)
+---------------------------------------------------*/
+export interface RiskResultData extends PredictionResponse {
     model_version?: string;
 }
 
-/* ---------------------------------------------------------
+/**------------------
     🌀 Animations
---------------------------------------------------------- */
+---------------------*/
 const fadeIn = keyframes`
     from { opacity: 0; transform: translateY(12px) scale(.97); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -45,18 +42,16 @@ const shineSweep = keyframes`
     100% { left:120%; }
 `;
 
-/* ---------------------------------------------------------
+/**--------------------------
     🎨 Styled Components
---------------------------------------------------------- */
+-----------------------------*/
 type RiskLevel = "low" | "medium" | "high";
 
-/* Tilt Wrapper */
 const TiltWrapper = styled.div`
     perspective: 900px;
     width: 100%;
 `;
 
-/* Main Card */
 const Card = styled.div<{ $risk: RiskLevel; $compact?: boolean }>`
     position: relative;
     padding: ${({ $compact }) => ($compact ? "1.2rem" : "2rem")};
@@ -64,7 +59,6 @@ const Card = styled.div<{ $risk: RiskLevel; $compact?: boolean }>`
     text-align: center;
 
     animation: ${fadeIn} 0.6s ease-out, ${floatUp} 6s ease-in-out infinite;
-
     transform-style: preserve-3d;
     transition: transform 0.15s ease-out;
 
@@ -89,7 +83,6 @@ const Card = styled.div<{ $risk: RiskLevel; $compact?: boolean }>`
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
             backdrop-filter: blur(5px);
 
-            /* Aura Halo */
             &::before {
                 content: "";
                 position: absolute;
@@ -102,7 +95,6 @@ const Card = styled.div<{ $risk: RiskLevel; $compact?: boolean }>`
                 animation: ${pulseAura} 4s infinite ease-in-out;
             }
 
-            /* Soft Glass Layer */
             &::after {
                 content: "";
                 position: absolute;
@@ -119,7 +111,6 @@ const Card = styled.div<{ $risk: RiskLevel; $compact?: boolean }>`
     }}
 `;
 
-/* Shine Effect */
 const Shine = styled.div`
     position: absolute;
     top: 0;
@@ -139,7 +130,6 @@ const Shine = styled.div`
     pointer-events: none;
 `;
 
-/* Text */
 const Title = styled.h3<{ $compact?: boolean }>`
     font-size: ${({ $compact }) => ($compact ? "1rem" : "1.4rem")};
     font-weight: 700;
@@ -216,11 +206,11 @@ const ModelInfo = styled.div`
     color: white;
 `;
 
-/* ---------------------------------------------------------
+/**------------------
     🧠 Component
---------------------------------------------------------- */
+---------------------*/
 export const RiskResultCard: React.FC<{
-    data: PredictResponse;
+    data: RiskResultData;
     compact?: boolean;
     quote?: string;
 }> = ({ data, compact = false, quote }) => {
@@ -232,7 +222,6 @@ export const RiskResultCard: React.FC<{
 
     const cardRef = useRef<HTMLDivElement>(null);
 
-    /* --- Tilt --- */
     const handleMove = (e: React.MouseEvent) => {
         const card = cardRef.current;
         if (!card) return;
@@ -253,7 +242,6 @@ export const RiskResultCard: React.FC<{
         card.style.transform = `rotateX(0deg) rotateY(0deg) scale(1)`;
     };
 
-    /* --- Animated Score + Confidence --- */
     useEffect(() => {
         const duration = 900;
         const start = performance.now();
@@ -278,7 +266,7 @@ export const RiskResultCard: React.FC<{
         low: "Your calm foundation is strong — keep nurturing it 🌿",
         medium: "Small mindful choices today shape your tomorrow ✨",
         high: "Pause. Breathe. You are in control, even now ❤️",
-    };
+    } as const;
 
     return (
         <TiltWrapper>
