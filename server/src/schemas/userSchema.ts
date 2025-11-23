@@ -33,6 +33,7 @@ export const RegisterSchema = z.object({
     how_long_stopped_days_est: z.coerce.number().min(0).optional(),
     emotion: z.string().trim().optional(),
 });
+// DTO type for user registration
 export type RegisterDTO = z.infer<typeof RegisterSchema>;
 
 /**--------------
@@ -42,4 +43,10 @@ export const LoginSchema = z.object({
     email: z.string().email(),
     password: z.string().min(1, "Password is required"),
 });
+// DTO type for user login
 export type LoginDTO = z.infer<typeof LoginSchema>;
+
+export default {
+    RegisterSchema,
+    LoginSchema,
+};
