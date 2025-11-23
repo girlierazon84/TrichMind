@@ -6,28 +6,43 @@ import { predictApi, alertApi } from "@/services";
 import { useLogger } from "@/hooks";
 import type {
   PredictPayload,
-  PredictionResponse
+  PredictionResponse,
+  RiskBucket,
 } from "@/types/ml";
 
-
 // -----------------------------------------
-// Wire shape (allows uppercase buckets)
+// Wire shape (allows uppercase buckets & numeric risk_code)
 // -----------------------------------------
 type WirePrediction =
   | PredictionResponse
-  | (Omit<PredictionResponse, "risk_bucket"> & {
-      risk_bucket: "LOW" | "MEDIUM" | "HIGH";
+  | (Omit<PredictionResponse, "risk_bucket" | "risk_code"> & {
+      risk_bucket: "LOW" | "MEDIUM" | "HIGH" | RiskBucket | string;
+      risk_code?: string | number;
     });
 
+type RiskCodeCarrier = {
+  risk_code?: string | number;
+};
+
 // ------------------------------------------------------------
-// Normalize API response to consistent risk_bucket format
+// Normalize API response to consistent risk_bucket & risk_code
 // ------------------------------------------------------------
 const normalize = (resp: WirePrediction): PredictionResponse => {
-  const bucket = String(resp.risk_bucket || "medium").toLowerCase() as
-    | "low"
-    | "medium"
-    | "high";
-  return { ...resp, risk_bucket: bucket };
+  const bucketRaw = resp.risk_bucket ?? "medium";
+  const bucket = String(bucketRaw).toLowerCase() as RiskBucket;
+
+  const { risk_code: rawRiskCode } = resp as RiskCodeCarrier;
+
+  const risk_code =
+    rawRiskCode !== undefined && rawRiskCode !== null
+      ? String(rawRiskCode)
+      : undefined;
+
+  return {
+    ...(resp as PredictionResponse),
+    risk_bucket: bucket,
+    risk_code,
+  };
 };
 
 // -----------------------------------------
@@ -65,7 +80,15 @@ export const usePredict = () => {
     try {
       const wire = (await predictApi.predict(payload)) as WirePrediction;
       const normalized = normalize(wire);
+
       setResult(normalized);
+
+      // 🔹 Persist last prediction for dashboard
+      try {
+        localStorage.setItem("tm_last_prediction", JSON.stringify(normalized));
+      } catch {
+        // ignore storage failures
+      }
 
       // Logging
       await log("Prediction completed", {
@@ -157,7 +180,6 @@ function showSupportiveToast(result: PredictionResponse) {
         )}%). You’re doing great — consider journaling or using your grounding strategies. ✨`
       : null;
 
-  // Show toast if there's a message
   if (msg) {
     toast.warn(msg, {
       position: "bottom-center",
