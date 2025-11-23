@@ -47,3 +47,5 @@ export const JournalEntry = model<IJournalEntry>(
     "JournalEntry",
     JournalEntrySchema
 );
+
+export default JournalEntry;
