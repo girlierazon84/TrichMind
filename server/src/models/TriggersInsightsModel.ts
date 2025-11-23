@@ -14,6 +14,7 @@ export interface ITrigger extends Document {
     updatedAt: Date;
 }
 
+// Mongoose Schema for Trigger Insights
 const TriggerSchema = new Schema<ITrigger>(
     {
         userId: {
@@ -33,3 +34,5 @@ TriggerSchema.index({ userId: 1, frequency: -1 });
 TriggerSchema.index({ userId: 1, name: 1 }, { unique: false });
 
 export const Trigger = model<ITrigger>("Trigger", TriggerSchema);
+
+export default Trigger;
