@@ -12,10 +12,9 @@ import triggersIcon from "../assets/icons/triggers.png";
 import trichGameIcon from "../assets/icons/trichgame.png";
 import trichBotIcon from "../assets/icons/trichbot.png";
 
-
-// -----------------------------------------------------
-//    Bottom Navigation Bar Component
-// -----------------------------------------------------
+/**------------------------------------
+    Bottom Navigation Bar Component
+---------------------------------------*/
 type BottomNavBarProps = { visible: boolean };
 
 // Styled Components
@@ -38,10 +37,9 @@ const BottomNavBar = styled.nav<BottomNavBarProps>`
     transform: ${({ visible }) => (visible ? "translateY(0)" : "translateY(100%)")};
     pointer-events: ${({ visible }) => (visible ? "auto" : "none")};
 
+    /* Hide bottom nav on desktop, show only on mobile/tablet */
     @media (min-width: 1025px) {
-        nav {
-            display: none;
-        }
+        display: none;
     }
 `;
 
@@ -150,6 +148,6 @@ export const BottomNav = () => {
             ))}
         </BottomNavBar>
     );
-}
+};
 
 export default BottomNav;
