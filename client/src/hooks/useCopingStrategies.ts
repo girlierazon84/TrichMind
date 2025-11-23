@@ -45,9 +45,14 @@ export const useCopingStrategies = (): UseCopingStrategiesResult => {
     // Initial hydrate from localStorage
     useEffect(() => {
         try {
-            // Load from localStorage
-            const w = safeParseArray(localStorage.getItem(STORAGE_WORKED), ["Fidget toy"]);
-            const n = safeParseArray(localStorage.getItem(STORAGE_NOT_WORKED), ["Journaling"]);
+            const w = safeParseArray(
+                localStorage.getItem(STORAGE_WORKED),
+                ["Fidget toy"]
+            );
+            const n = safeParseArray(
+                localStorage.getItem(STORAGE_NOT_WORKED),
+                ["Journaling"]
+            );
             setWorked(w);
             setNotWorked(n);
         } catch {
@@ -56,60 +61,79 @@ export const useCopingStrategies = (): UseCopingStrategiesResult => {
         }
     }, []);
 
-    // Persist to localStorage helper
-    const persist = (nextWorked: string[], nextNotWorked: string[]) => {
+    // Persist to localStorage helper (stable)
+    const persist = useCallback((nextWorked: string[], nextNotWorked: string[]) => {
         try {
             localStorage.setItem(STORAGE_WORKED, JSON.stringify(nextWorked));
             localStorage.setItem(STORAGE_NOT_WORKED, JSON.stringify(nextNotWorked));
         } catch {
             // ignore storage errors
         }
-    };
+    }, []);
 
-    // Update from backend data
+    // ⬇️ STABLE: Update from backend data (no deps on worked/notWorked)
     const setFromBackend = useCallback(
         (backendWorked?: string[] | null, backendNotWorked?: string[] | null) => {
-            const w = Array.isArray(backendWorked)
-                ? backendWorked.map(String).filter(Boolean)
-                : worked;
-            const n = Array.isArray(backendNotWorked)
-                ? backendNotWorked.map(String).filter(Boolean)
-                : notWorked;
+            setWorked((prevWorked) => {
+                const w = Array.isArray(backendWorked)
+                    ? backendWorked.map(String).filter(Boolean)
+                    : prevWorked;
 
-            setWorked(w);
-            setNotWorked(n);
-            persist(w, n);
+                setNotWorked((prevNotWorked) => {
+                    const n = Array.isArray(backendNotWorked)
+                        ? backendNotWorked.map(String).filter(Boolean)
+                        : prevNotWorked;
+
+                    // Persist both together
+                    persist(w, n);
+                    return n;
+                });
+
+                return w;
+            });
         },
-        [worked, notWorked]
+        [persist]
     );
 
-    // Toggle strategy in a bucket
+    // ⬇️ STABLE: Toggle strategy in a bucket, using functional state updates
     const toggleStrategy = useCallback(
         (name: string, bucket: CopingBucket) => {
             const trimmed = name.trim();
             if (!trimmed) return;
 
             if (bucket === "worked") {
-                setWorked((prev) => {
-                    const exists = prev.includes(trimmed);
-                    const next = exists
-                        ? prev.filter((n) => n !== trimmed)
-                        : [...prev, trimmed];
-                    persist(next, notWorked);
-                    return next;
+                setWorked((prevWorked) => {
+                    const exists = prevWorked.includes(trimmed);
+                    const nextWorked = exists
+                        ? prevWorked.filter((n) => n !== trimmed)
+                        : [...prevWorked, trimmed];
+
+                    // Use latest notWorked when persisting
+                    setNotWorked((prevNotWorked) => {
+                        persist(nextWorked, prevNotWorked);
+                        return prevNotWorked;
+                    });
+
+                    return nextWorked;
                 });
             } else {
-                setNotWorked((prev) => {
-                    const exists = prev.includes(trimmed);
-                    const next = exists
-                        ? prev.filter((n) => n !== trimmed)
-                        : [...prev, trimmed];
-                    persist(worked, next);
-                    return next;
+                setNotWorked((prevNotWorked) => {
+                    const exists = prevNotWorked.includes(trimmed);
+                    const nextNotWorked = exists
+                        ? prevNotWorked.filter((n) => n !== trimmed)
+                        : [...prevNotWorked, trimmed];
+
+                    // Use latest worked when persisting
+                    setWorked((prevWorked) => {
+                        persist(prevWorked, nextNotWorked);
+                        return prevWorked;
+                    });
+
+                    return nextNotWorked;
                 });
             }
         },
-        [worked, notWorked]
+        [persist]
     );
 
     // Reset to default strategies
@@ -119,7 +143,7 @@ export const useCopingStrategies = (): UseCopingStrategiesResult => {
         setWorked(w);
         setNotWorked(n);
         persist(w, n);
-    }, []);
+    }, [persist]);
 
     return { worked, notWorked, setFromBackend, toggleStrategy, reset };
 };
