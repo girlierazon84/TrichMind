@@ -60,12 +60,6 @@ const softPulse = keyframes`
     to   { opacity: 0.9; transform: translateY(0); }
 `;
 
-const glowPulse = keyframes`
-    0%   { opacity: 0.55; }
-    50%  { opacity: 0.9;  }
-    100% { opacity: 0.55; }
-`;
-
 const borderFlow = keyframes`
     0%   { background-position: 0% 50%; }
     50%  { background-position: 100% 50%; }
@@ -104,19 +98,8 @@ const Wrapper = styled.div<{ $risk: "low" | "medium" | "high" }>`
             background-clip: border-box, padding-box;
             animation: ${borderFlow} 5s ease infinite;
 
-            &::before {
-                content: "";
-                position: absolute;
-                inset: -4px;
-                border-radius: inherit;
-                background: ${gradient};
-                filter: blur(10px);
-                opacity: 0.45;
-                animation: ${glowPulse} 3.6s ease-in-out infinite;
-                z-index: -1;
-            }
-
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+            /* Bottom-focused card shadow only (no upper glow) */
+            box-shadow: 0 16px 40px #0d6275;
         `;
     }}
 `;
@@ -125,6 +108,19 @@ const Card = styled.div`
     position: relative;
     display: inline-flex;
     animation: ${scaleIn} 0.6s ease-out;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+
+    &:hover {
+        transform: translateY(-2px) scale(1.01);
+    }
+
+    svg {
+        overflow: visible;
+    }
+
+    .progress-ring__value {
+        transition: stroke-dasharray 0.9s ease-out;
+    }
 `;
 
 const ProgressLabelContainer = styled.div`
@@ -203,8 +199,16 @@ export const DailyProgressCard: React.FC<Props> = ({
     const isImprovement = score > prevScore;
     const isReset = prevScore > 0 && score === 0;
 
-    const color =
-        risk === "low" ? "#22c55e" : risk === "medium" ? "#f76e19" : "#ff0004";
+    // Progress circle colors (fixed)
+    const trackColor = "#e0f7f9";
+    const progressColor = "#21b2ba";
+
+    // Trend colors — down arrow bright red when relapsed
+    const trendColor = isImprovement
+        ? "#2ecc71"
+        : isReset
+        ? "#ff0004"
+        : "#95a5a6";
 
     const [animScore, setAnimScore] = useState(0);
 
@@ -231,19 +235,22 @@ export const DailyProgressCard: React.FC<Props> = ({
         <Wrapper $risk={risk}>
             <Card>
                 <svg width={size} height={size}>
+                    {/* Track */}
                     <circle
                         cx={size / 2}
                         cy={size / 2}
                         r={r}
-                        stroke="#e4eff0"
+                        stroke={trackColor}
                         strokeWidth={stroke}
                         fill="none"
                     />
+                    {/* Progress */}
                     <circle
+                        className="progress-ring__value"
                         cx={size / 2}
                         cy={size / 2}
                         r={r}
-                        stroke={color}
+                        stroke={progressColor}
                         strokeWidth={stroke}
                         fill="none"
                         strokeDasharray={`${dash} ${circ - dash}`}
@@ -258,13 +265,7 @@ export const DailyProgressCard: React.FC<Props> = ({
                 </ProgressLabelContainer>
 
                 <Trend
-                    $color={
-                        isImprovement
-                            ? "#2ecc71"
-                            : isReset
-                            ? "#e74c3c"
-                            : "#95a5a6"
-                    }
+                    $color={trendColor}
                     $highlight={isImprovement}
                 >
                     {isImprovement ? <ArrowUp /> : isReset ? <ArrowDown /> : <Minus />}
@@ -287,9 +288,11 @@ export const DailyProgressCard: React.FC<Props> = ({
 /**---------------------------------
     Auto component fetching data
 ------------------------------------*/
-export const DailyProgressCardAuto = () => {
-    const { data, loading } = useSoberStreak();
+export const DailyProgressCardAuto: React.FC = () => {
+    const { data, loading, error } = useSoberStreak();
+
     if (loading) return <p>Loading streak…</p>;
+    if (error) return <p>{error}</p>;
     if (!data) return <p>No streak data yet.</p>;
 
     return (
@@ -302,5 +305,5 @@ export const DailyProgressCardAuto = () => {
 
 export default {
     DailyProgressCard,
-    DailyProgressCardAuto
+    DailyProgressCardAuto,
 };
