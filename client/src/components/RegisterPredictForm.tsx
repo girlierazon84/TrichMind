@@ -1,5 +1,3 @@
-// client/src/components/RegisterPredictForm.tsx
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
@@ -7,10 +5,9 @@ import { ThemeButton, FormInput } from "@/components";
 import { useRegisterAndPredict } from "@/hooks";
 import { UserIcon, BrainIcon } from "@/assets/icons";
 
-
-/* -----------------------------------------------------
+/**-------------------------------------
     ANIMATIONS — calm, premium, soft
------------------------------------------------------ */
+----------------------------------------*/
 const fadeIn = keyframes`
   from { opacity: 0; }
   to { opacity: 1; }
@@ -26,9 +23,9 @@ const popupAppear = keyframes`
   to   { opacity: 1; transform: translateY(0) scale(1); }
 `;
 
-/* -----------------------------------------------------
+/**----------------------
     Styled Components
------------------------------------------------------ */
+-------------------------*/
 const FormContainer = styled.form`
   display: flex;
   flex-direction: column;
@@ -123,14 +120,14 @@ const PopupText = styled.p`
   line-height: 1.5;
 `;
 
-/* -----------------------------------------------------
+/**--------------
     Component
------------------------------------------------------ */
-
+-----------------*/
 export const RegisterPredictForm: React.FC = () => {
   const { registerAndPredict, submitting, submitError } =
     useRegisterAndPredict();
 
+  // Form state
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -146,26 +143,32 @@ export const RegisterPredictForm: React.FC = () => {
     emotion: "",
   });
 
+  // Popup state
   const [showPopup, setShowPopup] = useState(false);
   const navigate = useNavigate();
 
+  // Handle input changes
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Submit registration and prediction
     const success = await registerAndPredict(form);
 
+    // Show success popup
     if (success) {
       setShowPopup(true);
     }
   };
 
+  // Close popup and navigate to login
   const closePopup = () => {
     setShowPopup(false);
     navigate("/login");
@@ -194,7 +197,7 @@ export const RegisterPredictForm: React.FC = () => {
       {/* Registration Form */}
       <FormContainer onSubmit={handleSubmit}>
         <SectionTitle>
-          <img src={ UserIcon } alt="User Icon" />
+          <img src={UserIcon} alt="User Icon" />
           ACCOUNT DETAILS
         </SectionTitle>
 
@@ -234,7 +237,7 @@ export const RegisterPredictForm: React.FC = () => {
         />
 
         <SectionTitle>
-          <img src={ BrainIcon } alt="Brain Icon" />
+          <img src={BrainIcon} alt="Brain Icon" />
           BEHAVIOR & EMOTIONS
         </SectionTitle>
 
