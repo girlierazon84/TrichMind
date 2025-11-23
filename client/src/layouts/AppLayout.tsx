@@ -1,13 +1,10 @@
-// client/src/layouts/AppLayout.tsx
-
 import { Outlet, useLocation } from "react-router-dom";
 import { BottomNav } from "@/components";
 import { useAuth } from "@/hooks";
 
-
-// ─────────────────────────────────────────────────────────────
-// App Layout Component
-// ─────────────────────────────────────────────────────────────
+/**-------------------------
+    App Layout Component
+----------------------------*/
 export const AppLayout = () => {
     const { isAuthenticated } = useAuth();
     const location = useLocation();
@@ -17,7 +14,7 @@ export const AppLayout = () => {
         "/login",
         "/register",
         "/forgot-password",
-        "/reset-password"
+        "/reset-password",
     ];
 
     // Check if current path matches any hidden route prefix
@@ -28,7 +25,7 @@ export const AppLayout = () => {
     return (
         <>
             <Outlet />
-            {/* ✔ Only show for logged-in users, and not on login/register */}
+            {/* ✔ Only show for logged-in users, and not on login/register/etc */}
             {isAuthenticated && !hideNav && <BottomNav />}
         </>
     );
