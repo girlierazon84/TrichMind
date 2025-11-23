@@ -5,7 +5,6 @@ import styled, { keyframes, css } from "styled-components";
 import { fadeIn, scaleIn } from "@/styles";
 import { useSoberStreak } from "@/hooks";
 
-
 // Icons
 const ArrowUp = () => (
     <svg
@@ -97,7 +96,6 @@ const Wrapper = styled.div<{ $risk: "low" | "medium" | "high" }>`
                 : theme.colors.high_risk_gradient;
 
         return css`
-            /* 🟦 STRONG Animated Gradient Border */
             border: 3px solid transparent;
             background-image:
                 linear-gradient(${gradient}),
@@ -106,7 +104,6 @@ const Wrapper = styled.div<{ $risk: "low" | "medium" | "high" }>`
             background-clip: border-box, padding-box;
             animation: ${borderFlow} 5s ease infinite;
 
-            /* ⭐ SUBTLE glow hugging the border only */
             &::before {
                 content: "";
                 position: absolute;
@@ -119,7 +116,6 @@ const Wrapper = styled.div<{ $risk: "low" | "medium" | "high" }>`
                 z-index: -1;
             }
 
-            /* 🌑 LIGHT shadow (not heavy, not large) */
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
         `;
     }}
@@ -188,7 +184,9 @@ type Props = {
     centerSubLabel?: string;
 };
 
-// Main component
+/**----------------------------------
+    Daily Progress Card Component
+-------------------------------------*/
 export const DailyProgressCard: React.FC<Props> = ({
     score,
     prevScore = 0,
@@ -205,7 +203,6 @@ export const DailyProgressCard: React.FC<Props> = ({
     const isImprovement = score > prevScore;
     const isReset = prevScore > 0 && score === 0;
 
-    // Stroke color for the circular progress (not the glow)
     const color =
         risk === "low" ? "#22c55e" : risk === "medium" ? "#f76e19" : "#ff0004";
 
@@ -287,7 +284,9 @@ export const DailyProgressCard: React.FC<Props> = ({
     );
 };
 
-// Auto component fetching data
+/**---------------------------------
+    Auto component fetching data
+------------------------------------*/
 export const DailyProgressCardAuto = () => {
     const { data, loading } = useSoberStreak();
     if (loading) return <p>Loading streak…</p>;
@@ -301,4 +300,7 @@ export const DailyProgressCardAuto = () => {
     );
 };
 
-export default DailyProgressCard;
+export default {
+    DailyProgressCard,
+    DailyProgressCardAuto
+};
