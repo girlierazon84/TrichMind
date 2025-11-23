@@ -12,8 +12,10 @@ import {
 } from "../templates";
 import { loggerService, userService } from "../services";
 
-/** Generate Access & Refresh Tokens */
-const generateTokens = (userId: string) => {
+/**----------------------------------------------
+    🔐 Generate JWT Access and Refresh Tokens
+-------------------------------------------------*/
+export const generateTokens = (userId: string) => {
     const accessToken = jwt.sign({ sub: userId }, ENV.JWT_SECRET, {
         expiresIn: "15m",
     });
@@ -25,7 +27,9 @@ const generateTokens = (userId: string) => {
     return { accessToken, refreshToken };
 };
 
-/** REGISTER */
+/**---------------------------
+    📝 Register a new user
+------------------------------*/
 export const register = async (req: Request, res: Response) => {
     try {
         const data = req.body as RegisterDTO; // already validated by middleware
@@ -60,7 +64,9 @@ export const register = async (req: Request, res: Response) => {
     }
 };
 
-/** LOGIN */
+/**------------------
+    🔐 User login
+---------------------*/
 export const login = async (req: Request, res: Response) => {
     try {
         const credentials = req.body as LoginDTO; // validated by middleware
@@ -95,7 +101,9 @@ export const login = async (req: Request, res: Response) => {
     }
 };
 
-/** REFRESH TOKEN */
+/**-----------------------------
+    🔄 Refresh Access Token
+--------------------------------*/
 export const refreshToken = async (req: Request, res: Response) => {
     try {
         const { token } = req.body;
@@ -129,7 +137,9 @@ export const refreshToken = async (req: Request, res: Response) => {
     }
 };
 
-/** FORGOT PASSWORD */
+/**------------------------
+    🔒 Forgot Password
+---------------------------*/
 export const forgotPassword = async (req: Request, res: Response) => {
     try {
         const { email } = req.body;
@@ -181,7 +191,9 @@ export const forgotPassword = async (req: Request, res: Response) => {
     }
 };
 
-/** RESET PASSWORD */
+/**-----------------------
+    🔑 Reset Password
+--------------------------*/
 export const resetPassword = async (req: Request, res: Response) => {
     try {
         const { token, newPassword } = req.body;
@@ -216,4 +228,12 @@ export const resetPassword = async (req: Request, res: Response) => {
         );
         res.status(400).json({ error: "Invalid or expired token" });
     }
+};
+
+export default {
+    register,
+    login,
+    refreshToken,
+    forgotPassword,
+    resetPassword,
 };
