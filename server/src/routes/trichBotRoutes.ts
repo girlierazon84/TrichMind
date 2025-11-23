@@ -2,10 +2,15 @@
 
 import { Router } from "express";
 import { validate, authentication } from "../middlewares";
-import { createMessage, listMessages } from "../controllers";
 import {
-    TrichBotCreateSchema,
-    TrichBotListQuerySchema,
+    createMessage,
+    listMessages,
+    updateMessageFeedback,
+} from "../controllers";
+import {
+    TrichBotCreateDTO,
+    TrichBotListQuery,
+    TrichBotFeedbackDTO,
 } from "../schemas";
 
 // Initialize router
@@ -14,15 +19,23 @@ const router = Router();
 // 🟢 TrichBot Routes
 router.post(
     "/",
-    authentication(),
-    validate(TrichBotCreateSchema),
+    authentication({ required: true }),
+    validate(TrichBotCreateDTO),
     createMessage
 );
+
 router.get(
     "/",
-    authentication(),
-    validate(TrichBotListQuerySchema, "query"),
+    authentication({ required: true }),
+    validate(TrichBotListQuery, "query"),
     listMessages
+);
+
+router.put(
+    "/:id/feedback",
+    authentication({ required: true }),
+    validate(TrichBotFeedbackDTO),
+    updateMessageFeedback
 );
 
 export default router;
