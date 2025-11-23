@@ -44,3 +44,5 @@ export const triggerRelapseAlert = async (userId: string, score: number) => {
         );
     }
 };
+
+export default triggerRelapseAlert;
