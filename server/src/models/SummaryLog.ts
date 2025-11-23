@@ -17,6 +17,7 @@ export interface ISummaryLog extends Document {
     status: "sent" | "failed";
 }
 
+// Mongoose Schema for Summary Logs
 const SummaryLogSchema = new Schema<ISummaryLog>(
     {
         userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -34,4 +35,7 @@ const SummaryLogSchema = new Schema<ISummaryLog>(
 // ⚡ Optimize lookups per user and week
 SummaryLogSchema.index({ userId: 1, weekOf: -1 });
 
+// Export the Mongoose model
 export const SummaryLog = model<ISummaryLog>("SummaryLog", SummaryLogSchema);
+
+export default SummaryLog;
