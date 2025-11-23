@@ -4,9 +4,8 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "styled-components";
-import { theme, GlobalStyle } from "@/styles";  // your theme file
+import { theme, GlobalStyle } from "@/styles";
 import { AppRoutes } from "@/routes";
-
 
 // Render the application
 ReactDOM.createRoot(document.getElementById("root")!).render(
