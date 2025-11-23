@@ -19,6 +19,7 @@ export interface IGameSession extends Document {
     metadata?: Record<string, any>;
 }
 
+// Mongoose Schema for TrichGame Sessions
 const GameSessionSchema = new Schema<IGameSession>(
     {
         userId: {
@@ -47,3 +48,5 @@ export const GameSession = model<IGameSession>(
     "GameSession",
     GameSessionSchema
 );
+
+export default GameSession;
