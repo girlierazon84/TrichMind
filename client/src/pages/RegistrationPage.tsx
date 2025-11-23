@@ -4,10 +4,7 @@ import styled, { keyframes } from "styled-components";
 import { RegisterPredictForm } from "@/components";
 import { AppLogo } from "@/assets/images";
 
-
-/* -----------------------------------------------------
-    PREMIUM ANIMATIONS
------------------------------------------------------ */
+// Animations
 const fadeIn = keyframes`
   from { opacity: 0; }
   to { opacity: 1; }
@@ -23,9 +20,6 @@ const softPop = keyframes`
   to   { transform: scale(1); opacity: 1; }
 `;
 
-/* -----------------------------------------------------
-    Styled Components
------------------------------------------------------ */
 const RegistrationContainer = styled.main`
   width: 100%;
   display: flex;
@@ -66,14 +60,14 @@ const Title = styled.h1`
   animation: ${floatUp} 0.7s ease-out;
 `;
 
-/* -----------------------------------------------------
-    Component
------------------------------------------------------ */
+/**--------------------------------
+    Registration Page Component
+-----------------------------------*/
 export const RegistrationPage: React.FC = () => {
   return (
     <RegistrationContainer>
       <LogoWrapper>
-        <Logo src={ AppLogo } alt="TrichMind Logo" />
+        <Logo src={AppLogo} alt="TrichMind Logo" />
       </LogoWrapper>
 
       <PageCard>
