@@ -5,7 +5,9 @@ import axios from "axios";
 import { ENV, ENV_AUTO } from "../config";
 import { logger } from "./logger";
 
-/** Resolve the base URL for this Node server (local vs Docker). */
+/**-----------------------------------------------------------------
+    Resolve the base URL for this Node server (local vs Docker).
+--------------------------------------------------------------------*/
 const resolveServerBaseUrl = (): string => {
     const explicit = (ENV as any).SERVER_URL as string | undefined;
     if (explicit) {
@@ -19,10 +21,9 @@ const resolveServerBaseUrl = (): string => {
     return `http://server:${ENV_AUTO.PORT}`;
 };
 
-/**----------------------------
-Schedule weekly summary emails
-Runs every Sunday at 09:00
--------------------------------**/
+/**----------------------------------------------------------------
+    Schedule weekly summary emails - Runs every Sunday at 09:00
+-------------------------------------------------------------------**/
 export const startWeeklySummaryScheduler = () => {
     try {
         cron.schedule("0 9 * * 0", async () => {
@@ -49,3 +50,5 @@ export const startWeeklySummaryScheduler = () => {
         );
     }
 };
+
+export default startWeeklySummaryScheduler;
