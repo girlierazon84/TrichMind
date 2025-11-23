@@ -44,6 +44,7 @@ const GameSessionSchema = new Schema<IGameSession>(
 // ⚡ Index for fast lookup of latest sessions per user
 GameSessionSchema.index({ userId: 1, createdAt: -1 });
 
+// Export the Mongoose model
 export const GameSession = model<IGameSession>(
     "GameSession",
     GameSessionSchema
