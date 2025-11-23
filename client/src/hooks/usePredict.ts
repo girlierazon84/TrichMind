@@ -20,15 +20,14 @@ type WirePrediction =
       risk_code?: string | number;
     });
 
-type RiskCodeCarrier = {
+interface RiskCodeCarrier {
   risk_code?: string | number;
-};
+}
 
-// ------------------------------------------------------------
-// Normalize API response to consistent risk_bucket & risk_code
-// ------------------------------------------------------------
+/**-----------------------------------------------------------------
+    Normalize API response to consistent risk_bucket & risk_code
+--------------------------------------------------------------------*/
 const normalize = (resp: WirePrediction): PredictionResponse => {
-  // 🚫 No default “medium” here — we require the backend to send a bucket
   if (!resp.risk_bucket) {
     throw new Error("Prediction response missing risk_bucket");
   }
@@ -49,14 +48,32 @@ const normalize = (resp: WirePrediction): PredictionResponse => {
   };
 };
 
-// -----------------------------------------
-// Threshold to trigger relapse alerts
-// -----------------------------------------
+/**----------------------------------------
+    Threshold to trigger relapse alerts
+-------------------------------------------*/
 const RELAPSE_ALERT_THRESHOLD = 0.7;
 
-// ------------------------------------------------------------
-// Retrieve user email from localStorage (if available)
-// ------------------------------------------------------------
+/**---------------------------------
+    Detect “dummy/demo” payloads
+------------------------------------*/
+const isTrivialPayload = (payload: PredictPayload): boolean => {
+  return (
+    payload.age === 0 &&
+    payload.age_of_onset === 0 &&
+    (payload.years_since_onset ?? 0) === 0 &&
+    payload.pulling_severity === 0 &&
+    payload.pulling_frequency === "unknown" &&
+    payload.pulling_awareness === "unknown" &&
+    (payload.successfully_stopped === "no" ||
+      payload.successfully_stopped === false) &&
+    payload.how_long_stopped_days === 0 &&
+    payload.emotion === "neutral"
+  );
+};
+
+/**---------------------------------------------------------
+    Retrieve user email from localStorage (if available)
+------------------------------------------------------------*/
 function getLocalUserEmail(): string | undefined {
   try {
     const raw = localStorage.getItem("user");
@@ -68,9 +85,9 @@ function getLocalUserEmail(): string | undefined {
   }
 }
 
-// -------------------------------------
-// React hook for making predictions
-// -------------------------------------
+/**--------------------------------------
+    React hook for making predictions
+-----------------------------------------*/
 export const usePredict = () => {
   const [result, setResult] = useState<PredictionResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -81,17 +98,33 @@ export const usePredict = () => {
     setLoading(true);
     setError(null);
     try {
+      // 🚫 Block demo / empty payloads
+      if (isTrivialPayload(payload)) {
+        throw new Error(
+          "Prediction payload is empty/default. Please provide your real data."
+        );
+      }
+
       const wire = (await predictApi.predict(payload)) as WirePrediction;
       const normalized = normalize(wire);
 
       setResult(normalized);
 
+      // 🔹 Persist last prediction for dashboard
+      try {
+        localStorage.setItem("tm_last_prediction", JSON.stringify(normalized));
+      } catch {
+        // ignore storage failures
+      }
+
+      // Logging
       await log("Prediction completed", {
         risk_score: normalized.risk_score,
         risk_bucket: normalized.risk_bucket,
         confidence: normalized.confidence,
       });
 
+      // Check if alert should be triggered
       const shouldTriggerAlert =
         normalized.risk_bucket === "high" ||
         normalized.risk_score >= RELAPSE_ALERT_THRESHOLD;
@@ -99,6 +132,7 @@ export const usePredict = () => {
       if (shouldTriggerAlert) {
         const email = getLocalUserEmail();
 
+        // 1️⃣ Save alert
         try {
           await alertApi.create({
             score: normalized.risk_score,
@@ -107,6 +141,7 @@ export const usePredict = () => {
             email,
           });
 
+          // Log alert creation
           await warn("Relapse risk alert created", {
             score: normalized.risk_score,
             risk_bucket: normalized.risk_bucket,
@@ -115,8 +150,11 @@ export const usePredict = () => {
           });
         } catch (alertErr: unknown) {
           const msg =
-            alertErr instanceof Error ? alertErr.message : String(alertErr);
+            alertErr instanceof Error
+              ? alertErr.message
+              : String(alertErr);
 
+          // Log alert creation failure
           await logError("Failed to create relapse alert", {
             error: msg,
             score: normalized.risk_score,
@@ -124,6 +162,7 @@ export const usePredict = () => {
           });
         }
 
+        // 2️⃣ Show supportive toast
         showSupportiveToast(normalized);
       }
 
@@ -133,6 +172,7 @@ export const usePredict = () => {
         e instanceof Error ? e.message : "Prediction request failed";
       setError(msg);
 
+      // Log prediction error
       await logError("Prediction error", {
         message: msg,
         payloadSummary: {
@@ -151,6 +191,9 @@ export const usePredict = () => {
   return { predict, result, loading, error };
 };
 
+/**-----------------------------------------------------
+    Show supportive toast based on prediction result
+--------------------------------------------------------*/
 function showSupportiveToast(result: PredictionResponse) {
   const msg =
     result.risk_bucket === "high"
