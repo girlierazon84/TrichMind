@@ -3,29 +3,35 @@
 import { useState } from "react";
 import { trichBotApi } from "@/services";
 import { useLogger } from "@/hooks";
+import type { TrichBotMessage } from "@/services";
 
-
-// ─────────────────────────────────────
-// Hook to manage TrichBot interactions
-// ─────────────────────────────────────
+/**-----------------------------------------
+    Hook to manage TrichBot interactions
+--------------------------------------------*/
 export const useTrichBot = () => {
-    // Loading state
     const [loading, setLoading] = useState(false);
     const { log } = useLogger(false);
 
     // Send a message to TrichBot
-    const sendMessage = async (prompt: string) => {
+    const sendMessage = async (
+        prompt: string,
+        intent?: string
+    ): Promise<TrichBotMessage> => {
         setLoading(true);
         try {
-            const response = await trichBotApi.sendMessage({ prompt });
-            await log("TrichBot interaction", { prompt });
-            return response;
+            const message = await trichBotApi.sendMessage({ prompt, intent });
+            await log("TrichBot interaction", {
+                prompt,
+                intent,
+                messageId: message._id,
+            });
+            return message;
         } finally {
             setLoading(false);
         }
     };
 
     return { sendMessage, loading };
-}
+};
 
 export default useTrichBot;
