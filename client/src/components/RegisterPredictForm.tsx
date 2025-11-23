@@ -1,3 +1,5 @@
+// client/src/components/RegisterPredictForm.tsx  (path may differ, adjust if needed)
+
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
@@ -162,8 +164,41 @@ export const RegisterPredictForm: React.FC = () => {
     // Submit registration and prediction
     const success = await registerAndPredict(form);
 
-    // Show success popup
     if (success) {
+      // Seed sober streak based on how_long_stopped_days + successfully_stopped
+      try {
+        const rawDays = Number(form.how_long_stopped_days);
+        const stoppedDays = Number.isFinite(rawDays) && rawDays > 0 ? rawDays : 0;
+
+        const stoppedNow =
+          form.successfully_stopped
+            .trim()
+            .toLowerCase() === "yes";
+
+        const todayIsoDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+        const streak = stoppedNow
+          ? {
+              // currently on a streak
+              currentStreak: stoppedDays,
+              previousStreak: 0,
+              longestStreak: stoppedDays,
+              lastEntryDate: todayIsoDate,
+            }
+          : {
+              // previous streak, currently relapsed
+              currentStreak: 0,
+              previousStreak: stoppedDays,
+              longestStreak: stoppedDays,
+              lastEntryDate: todayIsoDate,
+            };
+
+        localStorage.setItem("tm_sober_streak", JSON.stringify(streak));
+      } catch {
+        // ignore storage errors
+      }
+
+      // Show success popup
       setShowPopup(true);
     }
   };
