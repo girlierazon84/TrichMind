@@ -23,4 +23,7 @@ export interface PredictionResponse {
     risk_score: number;
     confidence: number;
     risk_bucket: RiskBucket;
+    model_version?: string;
+    risk_code?: string;
+    runtime_sec?: number;
 }
