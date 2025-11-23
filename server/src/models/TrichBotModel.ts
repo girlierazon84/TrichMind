@@ -21,6 +21,7 @@ export interface ITrichBotMessage extends Omit<Document, "model"> {
     updatedAt: Date;
 }
 
+// Define the schema for TrichBot messages
 const TrichBotSchema = new Schema<ITrichBotMessage>(
     {
         userId: {
