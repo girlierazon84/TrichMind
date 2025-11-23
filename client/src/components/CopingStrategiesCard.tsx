@@ -3,11 +3,12 @@
 import React from "react";
 import styled from "styled-components";
 import { fadeIn, slideUp } from "@/styles";
+import checkIcon from "@/assets/icons/check.png";
+import failedIcon from "@/assets/icons/failed.png";
 
-
-/* ──────────────────────────────
+/**-------------------
     🧩 Interfaces
-────────────────────────────── */
+----------------------*/
 export interface CopingStrategiesCardProps {
     worked?: string[];
     notWorked?: string[];
@@ -71,6 +72,9 @@ const PillButton = styled.button<{ $type: "worked" | "notWorked"; $index: number
     }
 `;
 
+/**-------------------------------------
+    Coping Strategies Card Component
+----------------------------------------*/
 export const CopingStrategiesCard: React.FC<CopingStrategiesCardProps> = ({
     worked = ["Fidget toy"],
     notWorked = ["Journaling"],
@@ -86,7 +90,7 @@ export const CopingStrategiesCard: React.FC<CopingStrategiesCardProps> = ({
                     $index={index}
                     onClick={() => onToggle?.(name, "worked")}
                 >
-                    <img src="/assets/icons/check.png" alt="Effective strategy" />
+                    <img src={checkIcon} alt="Effective strategy" />
                     {name}
                 </PillButton>
             ))}
@@ -97,7 +101,7 @@ export const CopingStrategiesCard: React.FC<CopingStrategiesCardProps> = ({
                     $index={worked.length + index}
                     onClick={() => onToggle?.(name, "notWorked")}
                 >
-                    <img src="/assets/icons/failed.png" alt="Less effective strategy" />
+                    <img src={failedIcon} alt="Less effective strategy" />
                     {name}
                 </PillButton>
             ))}
