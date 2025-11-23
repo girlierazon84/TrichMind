@@ -25,6 +25,7 @@ export interface ILogEvent extends Document {
     updatedAt: Date;
 }
 
+// Mongoose Schema for Log Events
 const LogSchema = new Schema<ILogEvent>(
     {
         userId: { type: Schema.Types.ObjectId, ref: "User", index: true },
@@ -63,4 +64,7 @@ const LogSchema = new Schema<ILogEvent>(
 LogSchema.index({ level: 1, category: 1, createdAt: -1 });
 LogSchema.index({ userId: 1, createdAt: -1 });
 
+// Export the Mongoose model
 export const LogEvent = model<ILogEvent>("LogEvent", LogSchema);
+
+export default LogEvent;
