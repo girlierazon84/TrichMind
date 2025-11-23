@@ -32,3 +32,5 @@ export function validate(schema: ZodSchema, part: Part = "body") {
         next();
     };
 }
+
+export default validate;
