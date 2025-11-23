@@ -70,6 +70,7 @@ export function authentication(
     };
 }
 
+// Extended Request Type with auth
 export type AuthRequest = Request & {
     auth: { userId: string; token?: string };
 };
