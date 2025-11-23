@@ -7,7 +7,9 @@ import { logger } from "./logger";
 // SMTP configuration
 const smtpPort = Number(ENV.SMTP_PORT) || 587;
 
-// Create a reusable transporter object using the default SMTP transport
+/**--------------------------------------------------------------------------
+    Create a reusable transporter object using the default SMTP transport
+-----------------------------------------------------------------------------*/
 export const mailer = nodemailer.createTransport({
     host: ENV.SMTP_HOST,
     port: smtpPort,
@@ -20,9 +22,9 @@ export const mailer = nodemailer.createTransport({
         :   undefined,
 });
 
-/**-------------------------------------
-Send an email with HTML + text fallback
-----------------------------------------**/
+/**--------------------------------------------
+    Send an email with HTML + text fallback
+-----------------------------------------------**/
 export const sendMail = async (
     to: string,
     subject: string,
@@ -48,4 +50,9 @@ export const sendMail = async (
             `❌ Email send failed (${subject} → ${to}): ${err.message}`
         );
     }
+};
+
+export default {
+    mailer,
+    sendMail,
 };
