@@ -19,22 +19,10 @@ const fadeIn = keyframes`
     to   { opacity: 1; transform: translateY(0) scale(1); }
 `;
 
-const floatUp = keyframes`
-    0%   { transform: translateY(0px); }
-    50%  { transform: translateY(-8px); }
-    100% { transform: translateY(0px); }
-`;
-
 const shimmer = keyframes`
     0% { opacity:.5; }
     50% { opacity:1; }
     100% { opacity:.5; }
-`;
-
-const pulseAura = keyframes`
-    0%   { opacity:0.25; transform: scale(.92); }
-    50%  { opacity:0.65; transform: scale(1.03); }
-    100% { opacity:0.25; transform: scale(.92); }
 `;
 
 const shineSweep = keyframes`
@@ -58,9 +46,10 @@ const Card = styled.div<{ $risk: RiskLevel; $compact?: boolean }>`
     border-radius: ${({ theme }) => theme.radius.lg};
     text-align: center;
 
-    animation: ${fadeIn} 0.6s ease-out, ${floatUp} 6s ease-in-out infinite;
+    /* Only a gentle appear animation (no floating up/down) */
+    animation: ${fadeIn} 0.6s ease-out;
     transform-style: preserve-3d;
-    transition: transform 0.15s ease-out;
+    transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
 
     ${({ theme, $risk }) => {
         const bg =
@@ -80,20 +69,12 @@ const Card = styled.div<{ $risk: RiskLevel; $compact?: boolean }>`
         return css`
             background: ${bg};
             border: 1px solid ${border};
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
             backdrop-filter: blur(5px);
 
-            &::before {
-                content: "";
-                position: absolute;
-                inset: -26px;
-                border-radius: inherit;
-                z-index: -1;
-                background: ${border};
-                filter: blur(45px);
-                opacity: 0.45;
-                animation: ${pulseAura} 4s infinite ease-in-out;
-            }
+            /* Strong, bottom-focused colored shadow for 3D effect */
+            box-shadow:
+                0 14px 26px rgba(0, 0, 0, 0.35),
+                0 22px 52px ${border};
 
             &::after {
                 content: "";
@@ -199,13 +180,6 @@ const Quote = styled.p<{ $compact?: boolean }>`
     font-size: ${({ $compact }) => ($compact ? ".8rem" : "0.95rem")};
 `;
 
-const ModelInfo = styled.div`
-    margin-top: 1rem;
-    font-size: 0.72rem;
-    opacity: 0.8;
-    color: white;
-`;
-
 /**------------------
     🧠 Component
 ---------------------*/
@@ -214,7 +188,7 @@ export const RiskResultCard: React.FC<{
     compact?: boolean;
     quote?: string;
 }> = ({ data, compact = false, quote }) => {
-    const { risk_bucket, risk_score, confidence, model_version } = data;
+    const { risk_bucket, risk_score, confidence } = data;
 
     const band = (risk_bucket ?? "medium").toLowerCase() as RiskLevel;
 
@@ -308,7 +282,6 @@ export const RiskResultCard: React.FC<{
                 </ConfidenceWrapper>
 
                 <Quote $compact={compact}>“{quote || fallback[band]}”</Quote>
-                <ModelInfo>Model: {model_version || "v1.0.0"}</ModelInfo>
             </Card>
         </TiltWrapper>
     );
