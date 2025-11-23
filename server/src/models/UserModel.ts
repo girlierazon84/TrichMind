@@ -92,3 +92,5 @@ UserSchema.pre("save", function (next) {
 });
 
 export const User = model<IUser>("User", UserSchema);
+
+export default User;
