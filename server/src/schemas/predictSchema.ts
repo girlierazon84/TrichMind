@@ -27,6 +27,7 @@ export const PredictSchema = z.object({
     exerciseMinutes: z.coerce.number().min(0).max(1440).optional(),
 });
 
+// DTO type for friendly ML prediction payload
 export type PredictDTO = z.infer<typeof PredictSchema>;
 
 /**-----------------------------------------------------------
@@ -51,4 +52,10 @@ export const PredictEncodedSchema = z.object({
     sleep_quality_score: z.coerce.number().min(0).max(10).optional(),
 });
 
+// DTO type for encoded ML prediction payload
 export type PredictEncodedDTO = z.infer<typeof PredictEncodedSchema>;
+
+export default {
+    PredictSchema,
+    PredictEncodedSchema,
+};
