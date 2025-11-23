@@ -10,9 +10,9 @@ import type {
   RiskBucket,
 } from "@/types/ml";
 
-// -----------------------------------------
-// Wire shape (allows uppercase buckets & numeric risk_code)
-// -----------------------------------------
+/**--------------------------------------------------------------
+    Wire shape (allows uppercase buckets & numeric risk_code)
+-----------------------------------------------------------------*/
 type WirePrediction =
   | PredictionResponse
   | (Omit<PredictionResponse, "risk_bucket" | "risk_code"> & {
@@ -28,8 +28,12 @@ type RiskCodeCarrier = {
 // Normalize API response to consistent risk_bucket & risk_code
 // ------------------------------------------------------------
 const normalize = (resp: WirePrediction): PredictionResponse => {
-  const bucketRaw = resp.risk_bucket ?? "medium";
-  const bucket = String(bucketRaw).toLowerCase() as RiskBucket;
+  // 🚫 No default “medium” here — we require the backend to send a bucket
+  if (!resp.risk_bucket) {
+    throw new Error("Prediction response missing risk_bucket");
+  }
+
+  const bucket = String(resp.risk_bucket).toLowerCase() as RiskBucket;
 
   const { risk_code: rawRiskCode } = resp as RiskCodeCarrier;
 
@@ -73,7 +77,6 @@ export const usePredict = () => {
   const [error, setError] = useState<string | null>(null);
   const { log, error: logError, warn } = useLogger(false);
 
-  // Make prediction API call
   async function predict(payload: PredictPayload): Promise<PredictionResponse> {
     setLoading(true);
     setError(null);
@@ -83,30 +86,19 @@ export const usePredict = () => {
 
       setResult(normalized);
 
-      // 🔹 Persist last prediction for dashboard
-      try {
-        localStorage.setItem("tm_last_prediction", JSON.stringify(normalized));
-      } catch {
-        // ignore storage failures
-      }
-
-      // Logging
       await log("Prediction completed", {
         risk_score: normalized.risk_score,
         risk_bucket: normalized.risk_bucket,
         confidence: normalized.confidence,
       });
 
-      // Check if alert should be triggered
       const shouldTriggerAlert =
         normalized.risk_bucket === "high" ||
         normalized.risk_score >= RELAPSE_ALERT_THRESHOLD;
 
-      // Trigger alert if necessary
       if (shouldTriggerAlert) {
         const email = getLocalUserEmail();
 
-        // 1️⃣ Save alert
         try {
           await alertApi.create({
             score: normalized.risk_score,
@@ -115,20 +107,16 @@ export const usePredict = () => {
             email,
           });
 
-          // Log alert creation
           await warn("Relapse risk alert created", {
             score: normalized.risk_score,
             risk_bucket: normalized.risk_bucket,
             threshold: RELAPSE_ALERT_THRESHOLD,
             email: email ?? "(unknown)",
           });
-        } catch (alertErr) {
+        } catch (alertErr: unknown) {
           const msg =
-            alertErr instanceof Error
-              ? alertErr.message
-              : String(alertErr);
+            alertErr instanceof Error ? alertErr.message : String(alertErr);
 
-          // Log alert creation failure
           await logError("Failed to create relapse alert", {
             error: msg,
             score: normalized.risk_score,
@@ -136,17 +124,15 @@ export const usePredict = () => {
           });
         }
 
-        // 2️⃣ Show supportive toast
         showSupportiveToast(normalized);
       }
 
       return normalized;
-    } catch (e) {
+    } catch (e: unknown) {
       const msg =
         e instanceof Error ? e.message : "Prediction request failed";
       setError(msg);
 
-      // Log prediction error
       await logError("Prediction error", {
         message: msg,
         payloadSummary: {
@@ -165,9 +151,6 @@ export const usePredict = () => {
   return { predict, result, loading, error };
 };
 
-// ------------------------------------------------------------
-// Show supportive toast based on prediction result
-// ------------------------------------------------------------
 function showSupportiveToast(result: PredictionResponse) {
   const msg =
     result.risk_bucket === "high"
