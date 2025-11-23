@@ -33,6 +33,7 @@ const TriggerSchema = new Schema<ITrigger>(
 TriggerSchema.index({ userId: 1, frequency: -1 });
 TriggerSchema.index({ userId: 1, name: 1 }, { unique: false });
 
+// Export the Mongoose model
 export const Trigger = model<ITrigger>("Trigger", TriggerSchema);
 
 export default Trigger;
