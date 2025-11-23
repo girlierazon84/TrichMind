@@ -40,3 +40,5 @@ AlertLogSchema.index({ userId: 1, triggeredAt: -1 });
 
 // ✅ Named export for consistency
 export const AlertLog = model<IAlertLog>("AlertLog", AlertLogSchema);
+
+export default AlertLog;
