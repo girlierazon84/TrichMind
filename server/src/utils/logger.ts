@@ -15,11 +15,12 @@ if (!fs.existsSync(LOG_DIR)) {
 
 // Daily log file rotation
 const date = new Date().toISOString().split("T")[0];
+// Log file path
 const LOG_FILE = path.join(LOG_DIR, `trichmind-${date}.log`);
 
-/**
- * Formats and writes log messages with timestamps, environment, and levels.
- */
+/**------------------------------------------------------------------------------
+    Formats and writes log messages with timestamps, environment, and levels.
+---------------------------------------------------------------------------------**/
 function write(level: "info" | "warn" | "error", message: unknown): void {
     const timestamp = new Date().toISOString();
     const env = (ENV.NODE_ENV || "development").toUpperCase();
@@ -54,20 +55,27 @@ function write(level: "info" | "warn" | "error", message: unknown): void {
     }
 }
 
-/**
- * 🧠 Smart logger with info, warn, error + object-safe formatting
- */
+/**---------------------------------------------------------------------
+    🧠 Smart logger with info, warn, error + object-safe formatting
+------------------------------------------------------------------------*/
 export const logger = {
     info: (msg: unknown) => write("info", msg),
     warn: (msg: unknown) => write("warn", msg),
     error: (msg: unknown) => write("error", msg),
 };
 
-/** Optional utility for structured log contexts */
+/**-------------------------------------------------
+    Optional utility for structured log contexts
+----------------------------------------------------*/
 export const logWithContext = (
     level: "info" | "warn" | "error",
     context: string,
     message: unknown
 ) => {
     write(level, `[${context}] ${message}`);
+};
+
+export default {
+    logger,
+    logWithContext,
 };
