@@ -1,39 +1,25 @@
-// client/src/components/FormInput.tsx
-
 import React from "react";
 import styled from "styled-components";
 
-// ──────────────────────────────
-// Types
-// ──────────────────────────────
+/**----------
+    Types
+-------------*/
 export interface FormInputProps
     extends Omit<
         React.InputHTMLAttributes<HTMLInputElement>,
         "onChange" | "type" | "value" | "name"
     > {
-    /** Label displayed above the input */
     label?: string;
-    /** HTML input type (text, number, email, etc.) */
     type?: React.HTMLInputTypeAttribute;
-    /** Unique name/id for the field */
     name: string;
-    /** Controlled input value */
     value: string | number;
-    /** Input placeholder text */
     placeholder?: string;
-    /** Change handler */
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    /** Optional validation message */
     error?: string;
-    /** Optional right-side icon */
     icon?: React.ReactNode;
 }
 
-// ──────────────────────────────
 // Styled Components
-// ──────────────────────────────
-
-/** 🌿 Wrapper for label + input + error message */
 const InputWrapper = styled.div`
     display: flex;
     flex-direction: column;
@@ -41,7 +27,6 @@ const InputWrapper = styled.div`
     margin-bottom: 1rem;
 `;
 
-/** 🏷️ Label styling */
 const StyledLabel = styled.label`
     font-size: 0.9rem;
     font-weight: 500;
@@ -50,7 +35,6 @@ const StyledLabel = styled.label`
     text-align: justify;
 `;
 
-/** ✍️ Styled input — uses transient prop `$hasError` */
 const InputField = styled.input<{ $hasError?: boolean }>`
     padding: 0.75rem 1rem;
     font-size: 1rem;
@@ -80,14 +64,12 @@ const InputField = styled.input<{ $hasError?: boolean }>`
     }
 `;
 
-/** 🚨 Error message */
 const ErrorText = styled.span`
     font-size: 0.8rem;
     color: ${({ theme }) => theme.colors.high_risk};
     margin-top: 0.25rem;
 `;
 
-/** 🌟 Input with optional icon */
 const InputContainer = styled.div`
     position: relative;
     display: flex;
@@ -104,13 +86,13 @@ const InputContainer = styled.div`
 
     input {
         width: 100%;
-        padding-right: 2.5rem; /* space for icon */
+        padding-right: 2.5rem;
     }
 `;
 
-// ──────────────────────────────
-// Component
-// ──────────────────────────────
+/**------------------------
+    FormInput Component
+---------------------------*/
 export const FormInput: React.FC<FormInputProps> = ({
     label,
     type = "text",
@@ -122,7 +104,7 @@ export const FormInput: React.FC<FormInputProps> = ({
     disabled,
     error,
     icon,
-    ...rest // allows props like min, max, step, autoFocus, etc.
+    ...rest
 }) => {
     const accessibleLabel = label || name.replace(/_/g, " ");
     const accessiblePlaceholder =
