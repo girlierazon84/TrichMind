@@ -4,6 +4,7 @@ import React from "react";
 import styled from "styled-components";
 import { usePredictedRiskTrend } from "@/hooks";
 
+// Styled Components
 const TableWrapper = styled.div`
     margin-top: 2rem;
     background: ${({ theme }) => theme.colors.card_bg};
@@ -33,6 +34,9 @@ const RiskValue = styled.div<{ score: number }>`
         theme.colors.low_risk};
 `;
 
+/**-------------------------------------------------------
+    Component to display a 14-day risk forecast table.
+----------------------------------------------------------*/
 export const RiskForecastTable: React.FC = () => {
     const { trend, loading, error } = usePredictedRiskTrend(14);
 
