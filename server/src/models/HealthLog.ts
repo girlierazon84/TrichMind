@@ -52,3 +52,5 @@ HealthLogSchema.index({ userId: 1, date: -1 });
 
 // ✅ Use named export (no default)
 export const HealthLog = model<IHealthLog>("HealthLog", HealthLogSchema);
+
+export default HealthLog;
