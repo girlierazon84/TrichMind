@@ -27,6 +27,7 @@ export interface IUser extends Document {
     comparePassword(pw: string): Promise<boolean>;
 }
 
+// Mongoose Schema for Users
 const UserSchema = new Schema<IUser>(
     {
         email: {
@@ -91,6 +92,7 @@ UserSchema.pre("save", function (next) {
     next();
 });
 
+// Export the Mongoose model
 export const User = model<IUser>("User", UserSchema);
 
 export default User;
