@@ -48,6 +48,7 @@ export interface IPredict extends Document {
     updatedAt: Date;
 }
 
+// Mongoose Schema for Predict entries
 const PredictSchema = new Schema<IPredict>(
     {
         userId: {
@@ -121,6 +122,10 @@ const PredictSchema = new Schema<IPredict>(
     { timestamps: true }
 );
 
+// ⚡ Optimize queries by user and recency
 PredictSchema.index({ userId: 1, createdAt: -1 });
 
+// Export the Mongoose model
 export const Predict = model<IPredict>("Predict", PredictSchema);
+
+export default Predict;
