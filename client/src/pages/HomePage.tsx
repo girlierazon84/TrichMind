@@ -35,7 +35,7 @@ export interface MeResponse {
         avatarUrl?: string;
         date_of_birth?: string;
 
-        // Raw fields from registration
+        // Raw fields from registration – might or might not be present
         age?: number;
         age_of_onset?: number;
         years_since_onset?: number;
@@ -46,7 +46,7 @@ export interface MeResponse {
         how_long_stopped_days?: number;
         emotion?: string;
 
-        // Optional encoded / derived fields (if backend exposes them)
+        // Optional encoded / derived fields
         pulling_frequency_encoded?: number;
         awareness_level_encoded?: number;
         how_long_stopped_days_est?: number;
@@ -300,22 +300,6 @@ const WelcomeBody = styled.p`
     line-height: 1.5;
 `;
 
-// Helper to compute age if backend doesn't send `age`
-const getAgeFromDob = (dateStr?: string): number | undefined => {
-    if (!dateStr) return undefined;
-    const dob = new Date(dateStr);
-    if (Number.isNaN(dob.getTime())) return undefined;
-
-    const today = new Date();
-    let age = today.getFullYear() - dob.getFullYear();
-    const m = today.getMonth() - dob.getMonth();
-
-    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-        age -= 1;
-    }
-    return age;
-};
-
 /**--------------
     Component
 -----------------*/
@@ -374,7 +358,7 @@ export const HomePage: React.FC = () => {
         }
     }, [isAuthenticated]);
 
-    // Load dashboard (user + ML prediction)
+    // Load dashboard: user info + last prediction from localStorage
     useEffect(() => {
         if (!isAuthenticated) {
             setLoading(false);
@@ -384,7 +368,7 @@ export const HomePage: React.FC = () => {
         const loadDashboard = async () => {
             setLoading(true);
             try {
-                // 1) Fetch user
+                // 1) Fetch user (for avatar, name)
                 const meRes = await axiosClient.get<MeResponse>("/api/auth/me");
                 const u = meRes.data.user;
                 console.log("[Dashboard] /api/auth/me →", u);
@@ -404,56 +388,38 @@ export const HomePage: React.FC = () => {
                     setAvatarUrl(null);
                 }
 
-                // 2) Build friendly ML payload from raw user fields
-                const age =
-                    u.age !== undefined && u.age !== null
-                        ? u.age
-                        : getAgeFromDob(u.date_of_birth);
-
-                const payload = {
-                    age,
-                    age_of_onset: u.age_of_onset,
-                    years_since_onset: u.years_since_onset,
-                    pulling_severity: u.pulling_severity,
-                    pulling_frequency: u.pulling_frequency,
-                    pulling_awareness: u.pulling_awareness,
-                    successfully_stopped: u.successfully_stopped,
-                    how_long_stopped_days: u.how_long_stopped_days,
-                    emotion: u.emotion,
-                };
-
-                console.log("[Dashboard] ML payload →", payload);
-
-                // 🔹 Always call friendly predictor; let backend handle optional fields
+                // 2) Load last prediction from localStorage
                 try {
-                    const predRes = await axiosClient.post<PredictionResponse>(
-                        "/api/ml/predict_friendly",
-                        payload
+                    const stored = localStorage.getItem("tm_last_prediction");
+                    if (stored) {
+                        const parsed = JSON.parse(stored) as PredictionResponse;
+                        console.log("[Dashboard] Using stored prediction →", parsed);
+
+                        setRiskScore(parsed.risk_score);
+                        setConfidence(parsed.confidence);
+
+                        const band = (parsed.risk_bucket ?? "medium").toUpperCase() as RiskLevel;
+                        setBucket(band);
+
+                        if (parsed.risk_code) {
+                            setRiskCode(parsed.risk_code);
+                        }
+                        if (parsed.model_version) {
+                            setModelVersion(parsed.model_version);
+                        }
+                    } else {
+                        console.warn(
+                            "[Dashboard] No stored prediction found (tm_last_prediction); using defaults"
+                        );
+                    }
+                } catch (storageErr) {
+                    console.error(
+                        "[Dashboard] Failed to read stored prediction:",
+                        storageErr
                     );
-                    const data = predRes.data;
-                    console.log("[Dashboard] /api/ml/predict_friendly →", data);
-
-                    setRiskScore(data.risk_score);
-                    setConfidence(data.confidence);
-
-                    // backend sends 'low' | 'medium' | 'high'
-                    const band = (data.risk_bucket ?? "medium").toUpperCase() as RiskLevel;
-                    setBucket(band);
-
-                    if (data.risk_code !== undefined && data.risk_code !== null) {
-                        setRiskCode(String(data.risk_code));
-                    }
-
-                    if (data.model_version) {
-                        setModelVersion(data.model_version);
-                    }
-                } catch (mlErr) {
-                    console.error("[Dashboard] ML prediction failed:", mlErr);
-                    // Keep defaults if ML fails
                 }
             } catch (userErr) {
                 console.error("[Dashboard] Failed to load user:", userErr);
-                // Only redirect if /me fails (auth problem)
                 navigate("/login");
             } finally {
                 setLoading(false);
@@ -514,7 +480,10 @@ export const HomePage: React.FC = () => {
 
     const headerAvatar = avatarUrl || UserIcon;
 
-    console.log("[Dashboard] Final predictionData passed to RiskResultCard →", predictionData);
+    console.log(
+        "[Dashboard] Final predictionData passed to RiskResultCard →",
+        predictionData
+    );
 
     return (
         <>
