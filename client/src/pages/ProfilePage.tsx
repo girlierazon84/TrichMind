@@ -8,9 +8,9 @@ import { axiosClient, authApi } from "@/services";
 import { ThemeButton, FormInput } from "@/components";
 import { BackIcon, UserIcon } from "@/assets/icons";
 
-/* -----------------------------------------------------
+/**---------------
     Animations
------------------------------------------------------ */
+------------------*/
 const pageFade = keyframes`
   from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -22,9 +22,9 @@ const pulse = keyframes`
   100% { box-shadow: 0 0 0 0 rgba(91, 138, 255, 0); transform: translateY(0); }
 `;
 
-/* -----------------------------------------------------
+/**----------------------
     Styled Components
------------------------------------------------------ */
+-------------------------*/
 const Wrapper = styled.main`
   margin: 2.5rem auto;
   padding: 2.2rem 2rem 2.5rem;
@@ -144,12 +144,12 @@ const PrimarySaveButton = styled(ThemeButton)<{ $pulse?: boolean }>`
     `}
 `;
 
-/* SECONDARY BUTTON */
+// Secondary button variant
 const SecondaryButton = styled(ThemeButton)`
   opacity: 0.8;
 `;
 
-/* Loading text shown while auth/profile loads */
+// Loading text shown while auth/profile loads
 const LoadingText = styled.div`
   padding: 1.5rem;
   text-align: center;
@@ -238,9 +238,9 @@ const CropButtons = styled.div`
   }
 `;
 
-/* -----------------------------------------------------
+/**--------------------
     Component Types
------------------------------------------------------ */
+-----------------------*/
 interface ExtendedUser {
   id: string;
   email: string;
@@ -250,9 +250,9 @@ interface ExtendedUser {
   avatarUrl?: string;
 }
 
-/* -----------------------------------------------------
+/**--------------
     Component
------------------------------------------------------ */
+-----------------*/
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, logout } = useAuth();
@@ -274,10 +274,11 @@ export const ProfilePage: React.FC = () => {
   const [passwordMsg, setPasswordMsg] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
-  /* Load profile */
+  // Fetch profile on mount
   useEffect(() => {
     if (!isAuthenticated) return;
 
+    // Fetch profile data
     axiosClient
       .get<{ user: ExtendedUser }>("/api/auth/me")
       .then((res) => {
@@ -289,18 +290,20 @@ export const ProfilePage: React.FC = () => {
       .finally(() => setLoading(false));
   }, [isAuthenticated]);
 
-  /* Track if form has changed */
+  // Track if form has changed
   const hasChanges = useMemo(() => {
     if (!profile || !initialProfile) return false;
     return JSON.stringify(profile) !== JSON.stringify(initialProfile);
   }, [profile, initialProfile]);
 
-  /* Input change */
+  // Input change
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!profile) return;
 
+    // Update profile field
     const { name, value } = e.target;
 
+    // Update profile field
     setProfile({
       ...profile,
       [name]:
@@ -312,11 +315,12 @@ export const ProfilePage: React.FC = () => {
     });
   };
 
-  /* Avatar upload */
+  // Avatar upload
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Load image for cropping
     const img = new Image();
     img.onload = () => {
       setAvatarSource(img);
@@ -326,39 +330,46 @@ export const ProfilePage: React.FC = () => {
     img.src = URL.createObjectURL(file);
   };
 
-  /* Save avatar crop into avatarUrl (as base64) */
+  // Save avatar crop into avatarUrl (as base64)
   const applyAvatarCrop = () => {
     if (!avatarSource) return;
 
+    // Create canvas for cropping
     const canvas = document.createElement("canvas");
     const size = 260;
     canvas.width = size;
     canvas.height = size;
 
+    // Get canvas context
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // Calculate cropping coordinates and size
     const w = avatarSource.width * zoom;
     const h = avatarSource.height * zoom;
     const x = (size - w) / 2;
     const y = (size - h) / 2;
 
+    // Draw circular cropped image
     ctx.beginPath();
     ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
     ctx.clip();
 
+    // Draw the image on the canvas
     ctx.drawImage(avatarSource, x, y, w, h);
 
+    // Get base64 URL and update profile
     const url = canvas.toDataURL("image/png");
     setAvatarPreview(url);
     setProfile((p) => (p ? { ...p, avatarUrl: url } : p));
     setShowCropper(false);
   };
 
-  /* Save profile */
+  // Save profile
   const handleSave = async () => {
     if (!profile) return;
 
+    // Save profile data
     setSaving(true);
     try {
       const res = await axiosClient.patch<{ ok: boolean; user: ExtendedUser }>(
@@ -372,16 +383,18 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
-  /* Change password */
+  // Change password
   const handlePasswordChange = async () => {
     setPasswordMsg(null);
     setPasswordSuccess(false);
 
+    // Check if new password and confirm password match
     if (newPassword !== confirmPassword) {
       setPasswordMsg("Passwords do not match.");
       return;
     }
 
+    // Attempt to change password
     try {
       await authApi.changePassword({ oldPassword, newPassword });
       setPasswordSuccess(true);
@@ -394,7 +407,7 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
-  /* UI states */
+  // UI states
   if (!isAuthenticated) return <LoadingText>Please login…</LoadingText>;
   if (loading) return <LoadingText>Loading your profile…</LoadingText>;
 
