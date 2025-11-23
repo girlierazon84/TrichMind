@@ -15,6 +15,7 @@ export const alertService = {
         const user = await User.findById(userId);
         if (!user) throw new Error("User not found");
 
+        // Check against threshold
         const threshold = Number(ENV.RELAPSE_ALERT_THRESHOLD ?? 0.7);
         const finalThreshold = isNaN(threshold) ? 0.7 : threshold;
 
@@ -26,6 +27,7 @@ export const alertService = {
             return { sent: false, message: "Below threshold" };
         }
 
+        // Build and send email
         const { html, text } = buildRelapseAlertEmail(
             user.displayName,
             score
@@ -37,6 +39,7 @@ export const alertService = {
             text
         );
 
+        // Log the alert
         await AlertLog.create({ userId, score, sent: true, email: user.email });
         await loggerService.logInfo("Relapse alert sent", {
             userId,
