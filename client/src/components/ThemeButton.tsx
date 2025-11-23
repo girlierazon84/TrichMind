@@ -2,6 +2,9 @@
 
 import styled from "styled-components";
 
+/**----------------
+    ThemeButton
+-------------------*/
 export const ThemeButton = styled.button`
     background: ${({ theme }) => theme.colors.primary};
     color: ${({ theme }) => theme.colors.card_bg};
@@ -17,6 +20,12 @@ export const ThemeButton = styled.button`
     &:hover {
         background: ${({ theme }) => theme.colors.fifthly};
         transform: translateY(-2px);
+    }
+
+    &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
     }
 `;
 
