@@ -20,7 +20,7 @@ import {
 import { useAuth } from "@/hooks";
 import { AppLogo } from "@/assets/images";
 import { UserIcon } from "@/assets/icons";
-import type { PredictionResponse } from "@/types/ml";
+import type { PredictionResponse, PredictPayload } from "@/types/ml";
 
 /**----------
     Types
@@ -35,7 +35,7 @@ export interface MeResponse {
         avatarUrl?: string;
         date_of_birth?: string;
 
-        // Raw fields from registration – might or might not be present
+        // Raw fields from registration / profile
         age?: number;
         age_of_onset?: number;
         years_since_onset?: number;
@@ -300,6 +300,22 @@ const WelcomeBody = styled.p`
     line-height: 1.5;
 `;
 
+// Helper: compute age if backend only has date_of_birth
+const getAgeFromDob = (dateStr?: string): number | undefined => {
+    if (!dateStr) return undefined;
+    const dob = new Date(dateStr);
+    if (Number.isNaN(dob.getTime())) return undefined;
+
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+        age -= 1;
+    }
+    return age;
+};
+
 /**--------------
     Component
 -----------------*/
@@ -358,7 +374,7 @@ export const HomePage: React.FC = () => {
         }
     }, [isAuthenticated]);
 
-    // Load dashboard: user info + last prediction from localStorage
+    // Load dashboard: user info + **fresh prediction from user data**
     useEffect(() => {
         if (!isAuthenticated) {
             setLoading(false);
@@ -368,7 +384,7 @@ export const HomePage: React.FC = () => {
         const loadDashboard = async () => {
             setLoading(true);
             try {
-                // 1) Fetch user (for avatar, name)
+                // 1) Fetch user (for avatar, name, and raw inputs)
                 const meRes = await axiosClient.get<MeResponse>("/api/auth/me");
                 const u = meRes.data.user;
                 console.log("[Dashboard] /api/auth/me →", u);
@@ -388,35 +404,57 @@ export const HomePage: React.FC = () => {
                     setAvatarUrl(null);
                 }
 
-                // 2) Load last prediction from localStorage
+                // 2) Build ML payload from **your stored data**
+                const ageFromProfile = u.age;
+                const computedAge = getAgeFromDob(u.date_of_birth);
+                const age = ageFromProfile ?? computedAge ?? 0;
+
+                const payload: PredictPayload = {
+                    age,
+                    age_of_onset: u.age_of_onset ?? 0,
+                    years_since_onset: u.years_since_onset ?? 0,
+                    pulling_severity: u.pulling_severity ?? 0,
+                    pulling_frequency: u.pulling_frequency || "unknown",
+                    pulling_awareness: u.pulling_awareness || "unknown",
+                    successfully_stopped: u.successfully_stopped ?? "no",
+                    how_long_stopped_days: u.how_long_stopped_days ?? 0,
+                    emotion: u.emotion || "neutral",
+                };
+
+                console.log("[Dashboard] ML payload →", payload);
+
+                // 3) Call friendly predictor with that payload
                 try {
-                    const stored = localStorage.getItem("tm_last_prediction");
-                    if (stored) {
-                        const parsed = JSON.parse(stored) as PredictionResponse;
-                        console.log("[Dashboard] Using stored prediction →", parsed);
-
-                        setRiskScore(parsed.risk_score);
-                        setConfidence(parsed.confidence);
-
-                        const band = (parsed.risk_bucket ?? "medium").toUpperCase() as RiskLevel;
-                        setBucket(band);
-
-                        if (parsed.risk_code) {
-                            setRiskCode(parsed.risk_code);
-                        }
-                        if (parsed.model_version) {
-                            setModelVersion(parsed.model_version);
-                        }
-                    } else {
-                        console.warn(
-                            "[Dashboard] No stored prediction found (tm_last_prediction); using defaults"
-                        );
-                    }
-                } catch (storageErr) {
-                    console.error(
-                        "[Dashboard] Failed to read stored prediction:",
-                        storageErr
+                    const predRes = await axiosClient.post<PredictionResponse>(
+                        "/api/ml/predict_friendly",
+                        payload
                     );
+                    const data = predRes.data;
+                    console.log("[Dashboard] /api/ml/predict_friendly →", data);
+
+                    setRiskScore(data.risk_score);
+                    setConfidence(data.confidence);
+
+                    const band = (data.risk_bucket ?? "medium").toUpperCase() as RiskLevel;
+                    setBucket(band);
+
+                    if (data.risk_code !== undefined && data.risk_code !== null) {
+                        setRiskCode(String(data.risk_code));
+                    }
+
+                    if (data.model_version) {
+                        setModelVersion(data.model_version);
+                    }
+
+                    // Optional: persist last prediction for other views
+                    try {
+                        localStorage.setItem("tm_last_prediction", JSON.stringify(data));
+                    } catch {
+                        // ignore storage errors
+                    }
+                } catch (mlErr) {
+                    console.error("[Dashboard] ML prediction failed:", mlErr);
+                    // You could add UI here telling the user prediction failed
                 }
             } catch (userErr) {
                 console.error("[Dashboard] Failed to load user:", userErr);
