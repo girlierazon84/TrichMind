@@ -33,6 +33,7 @@
     "morgan": "^1.10.1",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.10",
+    "openai": "^6.9.1",
     "zod": "^4.1.12"
   },
   "devDependencies": {
@@ -44,7 +45,7 @@
     "@types/express": "^5.0.5",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/mongoose": "^5.11.96",
-    "@types/node": "^24.9.2",
+    "@types/node": "^24.10.1",
     "@types/nodemailer": "^7.0.3",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
