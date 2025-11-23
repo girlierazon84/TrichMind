@@ -2,24 +2,33 @@
 
 import { axiosClient } from "@/services";
 
-
-/** Log event schema */
+/**---------------------
+    Log event schema
+------------------------*/
 export interface LogEvent {
     _id?: string;
     userId?: string;
     level?: "info" | "warning" | "error" | "debug";
-    category?: "auth" | "ml" | "ui" | "network" | "alert" | "summary" | "system";
+    category?:
+        | "auth"
+        | "ml"
+        | "ui"
+        | "network"
+        | "alert"
+        | "summary"
+        | "system"
+        | "unknown";
     message: string;
     context?: Record<string, unknown>;
     timestamp?: string;
 }
 
-/**
- * 🧾 Logger API — centralized logging for frontend events, model activity, and alerts
- * Backend endpoint: `/api/logs`
- */
+/**-----------------------------------------------------------------------------------------
+    🧾 Logger API — centralized logging for frontend events, model activity, and alerts
+    Backend endpoint: `/api/logs`
+--------------------------------------------------------------------------------------------*/
 export const loggerApi = {
-    /** 🪵 Log a generic event (info/debug) */
+    // Log a generic event (info/debug)
     log: async (data: Omit<LogEvent, "_id" | "timestamp">) => {
         const res = await axiosClient.post("/api/logs", {
             level: data.level || "info",
@@ -29,17 +38,17 @@ export const loggerApi = {
         return res.data;
     },
 
-    /** ⚠️ Log a warning */
+    // ⚠️ Log a warning
     warn: async (message: string, context?: Record<string, unknown>) => {
         return loggerApi.log({ level: "warning", message, context });
     },
 
-    /** ❌ Log an error */
+    // ❌ Log an error
     error: async (message: string, context?: Record<string, unknown>) => {
         return loggerApi.log({ level: "error", message, context });
     },
 
-    /** 💬 Retrieve logs (for dashboards or admin views) */
+    // 💬 Retrieve logs (for dashboards or admin views)
     list: async (params?: {
         userId?: string;
         category?: string;
@@ -51,3 +60,5 @@ export const loggerApi = {
         return res.data;
     },
 };
+
+export default loggerApi;
