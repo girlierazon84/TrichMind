@@ -8,11 +8,7 @@ import { ThemeButton, FormInput } from "@/components";
 import { GlobalStyle } from "@/styles";
 import { AppLogo } from "@/assets/images";
 
-
-/* -----------------------------------------------------
-    Premium Calm Animations
------------------------------------------------------ */
-
+// Animations
 const fadeIn = keyframes`
     from { opacity: 0; }
     to { opacity: 1; }
@@ -22,10 +18,6 @@ const smoothRise = keyframes`
     from { opacity: 0; transform: translateY(30px) scale(0.97); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
 `;
-
-/* -----------------------------------------------------
-    Styled Components
------------------------------------------------------ */
 
 const PageWrapper = styled.main`
     margin: -50px 0;
@@ -98,10 +90,9 @@ const ButtonWrapper = styled.div`
     margin-top: 3rem;
 `;
 
-/* -----------------------------------------------------
-    Component
------------------------------------------------------ */
-
+/**-------------------------
+    Login Page Component
+----------------------------*/
 export const LoginPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -116,13 +107,11 @@ export const LoginPage: React.FC = () => {
 
     const redirectTo = (location.state as { from?: string } | null)?.from ?? "/";
 
-    /* Animate card entrance */
     useEffect(() => {
         const t = setTimeout(() => setCardVisible(true), 50);
         return () => clearTimeout(t);
     }, []);
 
-    /* Auto redirect if already logged in */
     useEffect(() => {
         if (user) {
             navigate(redirectTo, { replace: true });
@@ -134,7 +123,6 @@ export const LoginPage: React.FC = () => {
         setError(null);
 
         try {
-            // login(email, password) must match your hook signature
             const result = await login({ email: email.trim(), password });
 
             if (result?.token) {
