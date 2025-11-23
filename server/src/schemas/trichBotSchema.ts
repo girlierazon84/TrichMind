@@ -2,54 +2,43 @@
 
 import { z } from "zod";
 
-/**-------------------------------------------------
+/**------------------------------------------------------
     🤖 TrichBot AI schema
-    Stores chat interactions, tips, and feedback.
-----------------------------------------------------**/
-export const TrichBotCreateSchema = z.object({
-    prompt: z.string().min(1),
-    response: z.string().min(1),
-    tips: z.array(z.string()).optional(),
-    riskScore: z.coerce.number().min(0).max(1).optional(),
+    Client sends ONLY prompt (+ optional intent).
+    Server fills response, tips, modelInfo, feedback.
+---------------------------------------------------------**/
+
+// Payload from client when asking the bot
+export const TrichBotCreateDTO = z.object({
+    prompt: z.string().min(1, "Prompt is required"),
     intent: z.string().optional(),
-    model: z
-        .object({
-            name: z.string().optional(),
-            version: z.string().optional(),
-        })
-        .optional(),
-    feedback: z
-        .object({
-            helpful: z.boolean().optional(),
-            rating: z.coerce.number().int().min(1).max(5).optional(),
-            comment: z.string().optional(),
-        })
-        .optional(),
 });
-// DTO type for creating a TrichBot entry
-export type TrichBotCreate = z.infer<typeof TrichBotCreateSchema>;
-// DTO type for creating a TrichBot entry
-export type TrichBotCreateDTO = TrichBotCreate;
+export type TrichBotCreateDTO = z.infer<typeof TrichBotCreateDTO>;
 
-// Schema for updating TrichBot entries (all fields optional)
-export const TrichBotUpdateSchema = TrichBotCreateSchema.partial();
-// DTO type for updating a TrichBot entry
-export type TrichBotUpdate = z.infer<typeof TrichBotUpdateSchema>;
-// DTO type for updating a TrichBot entry
-export type TrichBotUpdateDTO = TrichBotUpdate;
-
-// Schema for querying TrichBot entries with pagination and filtering
-export const TrichBotListQuerySchema = z.object({
-    userId: z.string().optional(), // reserved for admin / support tooling
+// Query params for listing messages
+export const TrichBotListQuery = z.object({
+    userId: z.string().optional(), // for future admin use
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(20),
     sort: z.string().default("-createdAt"),
 });
-// DTO type for listing TrichBot entries
-export type TrichBotListQuery = z.infer<typeof TrichBotListQuerySchema>;
+export type TrichBotListQuery = z.infer<typeof TrichBotListQuery>;
+
+// Feedback payload for /:id/feedback
+export const TrichBotFeedbackDTO = z
+    .object({
+        helpful: z.boolean().optional(),
+        rating: z.number().int().min(1).max(5).optional(),
+        comment: z.string().optional(),
+    })
+    .refine(
+        (v) => v.helpful !== undefined || v.rating !== undefined || !!v.comment?.trim(),
+        { message: "At least one feedback field is required" }
+    );
+export type TrichBotFeedbackDTO = z.infer<typeof TrichBotFeedbackDTO>;
 
 export default {
-    TrichBotCreateSchema,
-    TrichBotUpdateSchema,
-    TrichBotListQuerySchema,
+    TrichBotCreateDTO,
+    TrichBotListQuery,
+    TrichBotFeedbackDTO,
 };
