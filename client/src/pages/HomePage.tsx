@@ -29,13 +29,13 @@ export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 
 export interface MeResponse {
     user?: {
-        // 🔸 Core fields
+        // Core fields
         email: string;
         displayName?: string;
         avatarUrl?: string;
         date_of_birth?: string;
 
-        // 🔸 Raw fields from registration
+        // Raw fields from registration
         age?: number;
         age_of_onset?: number;
         years_since_onset?: number;
@@ -46,7 +46,7 @@ export interface MeResponse {
         how_long_stopped_days?: number;
         emotion?: string;
 
-        // 🔹 Optional encoded / derived fields
+        // Optional encoded / derived fields (if backend exposes them)
         pulling_frequency_encoded?: number;
         awareness_level_encoded?: number;
         how_long_stopped_days_est?: number;
@@ -385,8 +385,10 @@ export const HomePage: React.FC = () => {
             setLoading(true);
             try {
                 // 1) Fetch user
-                const me = await axiosClient.get<MeResponse>("/api/auth/me");
-                const u = me.data.user;
+                const meRes = await axiosClient.get<MeResponse>("/api/auth/me");
+                const u = meRes.data.user;
+                console.log("[Dashboard] /api/auth/me →", u);
+
                 if (!u) throw new Error("Missing user");
 
                 // Avatar
@@ -420,28 +422,23 @@ export const HomePage: React.FC = () => {
                     emotion: u.emotion,
                 };
 
-                const missing = Object.entries(payload)
-                    .filter(([, v]) => v === undefined || v === null || v === "")
-                    .map(([k]) => k);
+                console.log("[Dashboard] ML payload →", payload);
 
-                if (missing.length) {
-                    console.warn(
-                        "Skipping ML prediction, missing fields:",
-                        missing.join(", ")
-                    );
-                } else {
-                    const pred = await axiosClient.post<PredictionResponse>(
+                // 🔹 Always call friendly predictor; let backend handle optional fields
+                try {
+                    const predRes = await axiosClient.post<PredictionResponse>(
                         "/api/ml/predict_friendly",
                         payload
                     );
-
-                    const data = pred.data;
+                    const data = predRes.data;
+                    console.log("[Dashboard] /api/ml/predict_friendly →", data);
 
                     setRiskScore(data.risk_score);
                     setConfidence(data.confidence);
-                    setBucket(
-                        String(data.risk_bucket || "medium").toUpperCase() as RiskLevel
-                    );
+
+                    // backend sends 'low' | 'medium' | 'high'
+                    const band = (data.risk_bucket ?? "medium").toUpperCase() as RiskLevel;
+                    setBucket(band);
 
                     if (data.risk_code !== undefined && data.risk_code !== null) {
                         setRiskCode(String(data.risk_code));
@@ -450,10 +447,13 @@ export const HomePage: React.FC = () => {
                     if (data.model_version) {
                         setModelVersion(data.model_version);
                     }
+                } catch (mlErr) {
+                    console.error("[Dashboard] ML prediction failed:", mlErr);
+                    // Keep defaults if ML fails
                 }
-            } catch (err) {
-                console.error("Dashboard load / ML prediction failed:", err);
-                // On hard failure, force re-login
+            } catch (userErr) {
+                console.error("[Dashboard] Failed to load user:", userErr);
+                // Only redirect if /me fails (auth problem)
                 navigate("/login");
             } finally {
                 setLoading(false);
@@ -504,16 +504,17 @@ export const HomePage: React.FC = () => {
     }
 
     const riskBucketLower = bucket.toLowerCase() as "low" | "medium" | "high";
-    const predictionData = {
+    const predictionData: PredictionResponse = {
         risk_score: riskScore,
         risk_bucket: riskBucketLower,
         confidence,
         model_version: modelVersion ?? "live",
-        // RiskResultCard expects risk_code as string
         risk_code: riskCode,
     };
 
     const headerAvatar = avatarUrl || UserIcon;
+
+    console.log("[Dashboard] Final predictionData passed to RiskResultCard →", predictionData);
 
     return (
         <>
