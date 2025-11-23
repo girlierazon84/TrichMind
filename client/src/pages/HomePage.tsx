@@ -5,6 +5,7 @@ import {
     useState,
     useMemo,
     useRef,
+    type MouseEvent,
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
@@ -28,27 +29,30 @@ export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 
 export interface MeResponse {
     user?: {
+        // 🔸 Core fields
         email: string;
         displayName?: string;
         avatarUrl?: string;
+        date_of_birth?: string;
 
+        // 🔸 Raw fields from registration
+        age?: number;
+        age_of_onset?: number;
+        years_since_onset?: number;
         pulling_severity?: number;
+        pulling_frequency?: string;
+        pulling_awareness?: string;
+        successfully_stopped?: string;
+        how_long_stopped_days?: number;
+        emotion?: string;
+
+        // 🔹 Optional encoded / derived fields
         pulling_frequency_encoded?: number;
         awareness_level_encoded?: number;
         how_long_stopped_days_est?: number;
         successfully_stopped_encoded?: number;
-        years_since_onset?: number;
-        age?: number;
-        age_of_onset?: number;
         emotion_intensity_sum?: number;
     };
-}
-
-// ML response (dashboard) extends core PredictionResponse
-export interface DashboardPrediction extends PredictionResponse {
-    // Align with PredictionResponse's risk_code type (likely string)
-    risk_code?: string;
-    model_version?: string;
 }
 
 /**---------------
@@ -296,6 +300,22 @@ const WelcomeBody = styled.p`
     line-height: 1.5;
 `;
 
+// Helper to compute age if backend doesn't send `age`
+const getAgeFromDob = (dateStr?: string): number | undefined => {
+    if (!dateStr) return undefined;
+    const dob = new Date(dateStr);
+    if (Number.isNaN(dob.getTime())) return undefined;
+
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+        age -= 1;
+    }
+    return age;
+};
+
 /**--------------
     Component
 -----------------*/
@@ -306,7 +326,7 @@ export const HomePage: React.FC = () => {
     const [riskScore, setRiskScore] = useState(0);
     const [confidence, setConfidence] = useState(0);
     const [bucket, setBucket] = useState<RiskLevel>("MEDIUM");
-    const [riskCode, setRiskCode] = useState<number>(1);
+    const [riskCode, setRiskCode] = useState<string>("1");
     const [modelVersion, setModelVersion] = useState<string | undefined>();
     const [loading, setLoading] = useState(true);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -317,11 +337,12 @@ export const HomePage: React.FC = () => {
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
 
-    const toggleMenu = (e: React.MouseEvent) => {
+    const toggleMenu = (e: MouseEvent) => {
         e.stopPropagation();
         setMenuOpen((prev) => !prev);
     };
 
+    // Close dropdown on outside click
     useEffect(() => {
         const handler = (e: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -329,10 +350,12 @@ export const HomePage: React.FC = () => {
             }
         };
 
-        window.addEventListener("click", handler);
-        return () => window.removeEventListener("click", handler);
+        window.addEventListener("click", handler as unknown as EventListener);
+        return () =>
+            window.removeEventListener("click", handler as unknown as EventListener);
     }, []);
 
+    // Mobile layout detection
     useEffect(() => {
         const mq = window.matchMedia("(max-width: 768px)");
         const update = () => setIsMobile(mq.matches);
@@ -341,6 +364,7 @@ export const HomePage: React.FC = () => {
         return () => mq.removeEventListener("change", update);
     }, []);
 
+    // One-time welcome modal per session
     useEffect(() => {
         if (!isAuthenticated) return;
         const seen = sessionStorage.getItem("tm_welcome_seen");
@@ -350,6 +374,7 @@ export const HomePage: React.FC = () => {
         }
     }, [isAuthenticated]);
 
+    // Load dashboard (user + ML prediction)
     useEffect(() => {
         if (!isAuthenticated) {
             setLoading(false);
@@ -357,11 +382,14 @@ export const HomePage: React.FC = () => {
         }
 
         const loadDashboard = async () => {
+            setLoading(true);
             try {
+                // 1) Fetch user
                 const me = await axiosClient.get<MeResponse>("/api/auth/me");
                 const u = me.data.user;
                 if (!u) throw new Error("Missing user");
 
+                // Avatar
                 if (u.avatarUrl) {
                     setAvatarUrl((prev) => {
                         if (prev !== u.avatarUrl) {
@@ -370,22 +398,41 @@ export const HomePage: React.FC = () => {
                         }
                         return u.avatarUrl as string;
                     });
+                } else {
+                    setAvatarUrl(null);
                 }
 
-                try {
-                    const pred = await axiosClient.post<DashboardPrediction>(
-                        "/api/ml/predict",
-                        {
-                            pulling_severity: u.pulling_severity,
-                            pulling_frequency_encoded: u.pulling_frequency_encoded,
-                            awareness_level_encoded: u.awareness_level_encoded,
-                            how_long_stopped_days_est: u.how_long_stopped_days_est,
-                            successfully_stopped_encoded: u.successfully_stopped_encoded,
-                            years_since_onset: u.years_since_onset,
-                            age: u.age,
-                            age_of_onset: u.age_of_onset,
-                            emotion_intensity_sum: u.emotion_intensity_sum,
-                        }
+                // 2) Build friendly ML payload from raw user fields
+                const age =
+                    u.age !== undefined && u.age !== null
+                        ? u.age
+                        : getAgeFromDob(u.date_of_birth);
+
+                const payload = {
+                    age,
+                    age_of_onset: u.age_of_onset,
+                    years_since_onset: u.years_since_onset,
+                    pulling_severity: u.pulling_severity,
+                    pulling_frequency: u.pulling_frequency,
+                    pulling_awareness: u.pulling_awareness,
+                    successfully_stopped: u.successfully_stopped,
+                    how_long_stopped_days: u.how_long_stopped_days,
+                    emotion: u.emotion,
+                };
+
+                const missing = Object.entries(payload)
+                    .filter(([, v]) => v === undefined || v === null || v === "")
+                    .map(([k]) => k);
+
+                if (missing.length) {
+                    console.warn(
+                        "Skipping ML prediction, missing fields:",
+                        missing.join(", ")
+                    );
+                } else {
+                    const pred = await axiosClient.post<PredictionResponse>(
+                        "/api/ml/predict_friendly",
+                        payload
                     );
 
                     const data = pred.data;
@@ -396,28 +443,23 @@ export const HomePage: React.FC = () => {
                         String(data.risk_bucket || "medium").toUpperCase() as RiskLevel
                     );
 
-                    if (typeof data.risk_code === "string") {
-                        const parsed = Number(data.risk_code);
-                        if (!Number.isNaN(parsed)) {
-                            setRiskCode(parsed);
-                        }
+                    if (data.risk_code !== undefined && data.risk_code !== null) {
+                        setRiskCode(String(data.risk_code));
                     }
 
                     if (data.model_version) {
                         setModelVersion(data.model_version);
                     }
-                } catch (err) {
-                    console.error("ML prediction failed:", err);
                 }
-            } catch {
+            } catch (err) {
+                console.error("Dashboard load / ML prediction failed:", err);
+                // On hard failure, force re-login
                 navigate("/login");
-                return;
             } finally {
                 setLoading(false);
             }
         };
 
-        setLoading(true);
         void loadDashboard();
     }, [isAuthenticated, navigate]);
 
@@ -467,8 +509,8 @@ export const HomePage: React.FC = () => {
         risk_bucket: riskBucketLower,
         confidence,
         model_version: modelVersion ?? "live",
-        // RiskResultCard expects risk_code as string → stringify
-        risk_code: String(riskCode),
+        // RiskResultCard expects risk_code as string
+        risk_code: riskCode,
     };
 
     const headerAvatar = avatarUrl || UserIcon;
