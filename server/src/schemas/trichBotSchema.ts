@@ -26,17 +26,30 @@ export const TrichBotCreateSchema = z.object({
         })
         .optional(),
 });
+// DTO type for creating a TrichBot entry
 export type TrichBotCreate = z.infer<typeof TrichBotCreateSchema>;
+// DTO type for creating a TrichBot entry
 export type TrichBotCreateDTO = TrichBotCreate;
 
+// Schema for updating TrichBot entries (all fields optional)
 export const TrichBotUpdateSchema = TrichBotCreateSchema.partial();
+// DTO type for updating a TrichBot entry
 export type TrichBotUpdate = z.infer<typeof TrichBotUpdateSchema>;
+// DTO type for updating a TrichBot entry
 export type TrichBotUpdateDTO = TrichBotUpdate;
 
+// Schema for querying TrichBot entries with pagination and filtering
 export const TrichBotListQuerySchema = z.object({
     userId: z.string().optional(), // reserved for admin / support tooling
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(20),
     sort: z.string().default("-createdAt"),
 });
+// DTO type for listing TrichBot entries
 export type TrichBotListQuery = z.infer<typeof TrichBotListQuerySchema>;
+
+export default {
+    TrichBotCreateSchema,
+    TrichBotUpdateSchema,
+    TrichBotListQuerySchema,
+};
