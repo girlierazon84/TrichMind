@@ -11,22 +11,20 @@ import {
     JournalPage,
     TriggersInsightsPage,
     TrichGamePage,
-    TrichBotPage
+    TrichBotPage,
 } from "@/pages";
 
 import AppLayout from "@/layouts/AppLayout";
 
-
-// -------------------------
-// App Routes
-// -------------------------
+/**---------------
+    App Routes
+------------------*/
 export const AppRoutes = () => {
     return (
         <Routes>
-
-            {/* -------------------------
-                §Public Routes (NO BottomNav)
-            -------------------------- */}
+            {/* --------------------------------
+                Public Routes (NO BottomNav)
+            ------------------------------------*/}
             <Route
                 path="/login"
                 element={
@@ -45,9 +43,13 @@ export const AppRoutes = () => {
                 }
             />
 
-            {/* ---------------------------------------------
+            {/**---------------------------------------------------------------------
+                If you add forgot/reset pages, they also stay here as PublicRoute
+            -------------------------------------------------------------------------*/}
+
+            {/**-------------------------------------------------
                 Protected Routes (BottomNav is inside Layout)
-            ---------------------------------------------- */}
+            -----------------------------------------------------*/}
             <Route element={<AppLayout />}>
                 <Route
                     path="/"
