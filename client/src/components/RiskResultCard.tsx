@@ -11,9 +11,9 @@ export interface RiskResultData extends PredictionResponse {
     model_version?: string;
 }
 
-/**------------------
+/**-------------------
     🌀 Animations
----------------------*/
+----------------------*/
 const fadeIn = keyframes`
     from { opacity: 0; transform: translateY(12px) scale(.97); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -215,12 +215,19 @@ export const RiskResultCard: React.FC<{
     quote?: string;
 }> = ({ data, compact = false, quote }) => {
     const { risk_bucket, risk_score, confidence, model_version } = data;
-    const band = risk_bucket.toLowerCase() as RiskLevel;
+
+    const band = (risk_bucket ?? "medium").toLowerCase() as RiskLevel;
 
     const [score, setScore] = useState(0);
     const [conf, setConf] = useState(0);
 
     const cardRef = useRef<HTMLDivElement>(null);
+
+    // Debug: see what the card actually receives
+    useEffect(() => {
+        console.log("[RiskResultCard] data received →", data);
+        console.log("[RiskResultCard] band →", band);
+    }, [data, band]);
 
     const handleMove = (e: React.MouseEvent) => {
         const card = cardRef.current;
@@ -249,17 +256,17 @@ export const RiskResultCard: React.FC<{
         const targetScore = risk_score * 100;
         const targetConf = confidence * 100;
 
-        const frame = requestAnimationFrame(function animate(time) {
+        let frameId = requestAnimationFrame(function animate(time) {
             const t = Math.min(1, (time - start) / duration);
             const eased = 1 - Math.pow(1 - t, 3);
 
             setScore(targetScore * eased);
             setConf(targetConf * eased);
 
-            if (t < 1) requestAnimationFrame(animate);
+            if (t < 1) frameId = requestAnimationFrame(animate);
         });
 
-        return () => cancelAnimationFrame(frame);
+        return () => cancelAnimationFrame(frameId);
     }, [risk_score, confidence]);
 
     const fallback = {
