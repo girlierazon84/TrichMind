@@ -14,29 +14,34 @@ import {
     userApi,
 } from "@/services";
 import { useLogger } from "@/hooks";
-import type { AxiosError } from "axios";   // ✅ For proper error typing
+import type { AxiosError } from "axios";
 
-
-// -------------------- types --------------------
+// types
 interface User {
     id: string;
     email: string;
     displayName?: string;
 }
 
+/**------------------------
+    Authentication Hook
+---------------------------*/
 export const useAuth = () => {
+    // User state
     const [user, setUser] = useState<User | null>(
         JSON.parse(localStorage.getItem("user") || "null")
     );
 
+    // JWT Access Token
     const [token, setToken] = useState<string | null>(
         localStorage.getItem("access_token")
     );
 
+    // Loading state
     const [loading, setLoading] = useState(false);
     const { log, warn, error: logError } = useLogger(false);
 
-    /* -------------------- normalize user -------------------- */
+    // normalize user object
     const normalizeUser = useCallback((raw: unknown): User => {
         const obj = raw as Record<string, unknown>;
         const u = (obj.user as Record<string, unknown>) ?? obj;
@@ -48,7 +53,7 @@ export const useAuth = () => {
         };
     }, []);
 
-    /* -------------------- auth header -------------------- */
+    // auth header
     const updateAuthHeader = useCallback((jwt: string | null) => {
         if (jwt) {
             axiosClient.defaults.headers.common["Authorization"] = `Bearer ${jwt}`;
@@ -57,9 +62,17 @@ export const useAuth = () => {
         }
     }, []);
 
-    /* -------------------- logout -------------------- */
+    // Ensure header is in sync on mount
+    useEffect(() => {
+        if (token) {
+            updateAuthHeader(token);
+        }
+    }, [token, updateAuthHeader]);
+
+    // logout
     const logout = useCallback(() => {
         localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
         localStorage.removeItem("user");
         setToken(null);
         setUser(null);
@@ -67,25 +80,23 @@ export const useAuth = () => {
         log("User logged out");
     }, [log, updateAuthHeader]);
 
-    /* -------------------- load user -------------------- */
+    // load user
     const loadUser = useCallback(async () => {
         if (!token) return;
 
         try {
             updateAuthHeader(token);
 
+            // Fetch user profile
             const profile = await authApi.me();
+            // Normalize and store user
             const normalized = normalizeUser(profile);
 
+            // Update state and localStorage
             setUser(normalized);
             localStorage.setItem("user", JSON.stringify(normalized));
         } catch (err: unknown) {
-            // ----------------------------
-            // FIX: No "any", proper narrowing
-            // ----------------------------
-
             const axiosErr = err as AxiosError<{ error?: string }>;
-
             const expired =
                 axiosErr.response?.data?.error === "Token expired";
 
@@ -95,17 +106,25 @@ export const useAuth = () => {
         }
     }, [token, updateAuthHeader, normalizeUser, logout, warn]);
 
+    // load user on token change
     useEffect(() => {
         if (token) void loadUser();
     }, [token, loadUser]);
 
-    /* -------------------- store auth -------------------- */
+    // store auth
     const storeAuth = useCallback(
         (res: AuthResponse): User => {
+            // Access token
             localStorage.setItem("access_token", res.token);
             setToken(res.token);
             updateAuthHeader(res.token);
 
+            // Refresh token (for /api/auth/refresh)
+            if (res.refreshToken) {
+                localStorage.setItem("refresh_token", res.refreshToken);
+            }
+
+            // Normalize and store user
             const normalized = normalizeUser(res.user);
             setUser(normalized);
             localStorage.setItem("user", JSON.stringify(normalized));
@@ -115,7 +134,7 @@ export const useAuth = () => {
         [normalizeUser, updateAuthHeader]
     );
 
-    /* -------------------- register -------------------- */
+    // register
     const register = async (data: RegisterData) => {
         setLoading(true);
         try {
@@ -130,7 +149,7 @@ export const useAuth = () => {
         }
     };
 
-    /* -------------------- login -------------------- */
+    // login
     const login = async (data: LoginData) => {
         setLoading(true);
         try {
@@ -145,17 +164,17 @@ export const useAuth = () => {
         }
     };
 
-    /* -------------------- forgot password -------------------- */
+    // forgot password
     const forgotPassword = async (email: string): Promise<{ message: string }> =>
         authApi.forgotPassword(email);
 
-    /* -------------------- reset password -------------------- */
+    // reset password
     const resetPassword = async (data: {
         token: string;
         newPassword: string;
     }): Promise<{ message: string }> => authApi.resetPassword(data);
 
-    /* -------------------- refresh user -------------------- */
+    // refresh user
     const refreshUser = async () => {
         if (!token) return;
 
