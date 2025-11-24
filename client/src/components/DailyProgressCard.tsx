@@ -74,10 +74,13 @@ const Wrapper = styled.div<{ $risk: "low" | "medium" | "high" }>`
     align-items: center;
     text-align: center;
 
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto 2rem;
+
     padding: 1.8rem 1rem;
     background: ${({ theme }) => theme.colors.card_bg};
     border-radius: ${({ theme }) => theme.radius.lg};
-    margin-bottom: 2rem;
     animation: ${fadeIn} 0.45s ease-out;
     overflow: visible;
 
@@ -86,21 +89,21 @@ const Wrapper = styled.div<{ $risk: "low" | "medium" | "high" }>`
             $risk === "low"
                 ? theme.colors.low_risk_gradient
                 : $risk === "medium"
-                ? theme.colors.medium_risk_gradient
-                : theme.colors.high_risk_gradient;
+                    ? theme.colors.medium_risk_gradient
+                    : theme.colors.high_risk_gradient;
 
-        return css`
-            border: 3px solid transparent;
-            background-image:
-                linear-gradient(${gradient}),
-                linear-gradient(${theme.colors.card_bg}, ${theme.colors.card_bg});
-            background-origin: border-box;
-            background-clip: border-box, padding-box;
-            animation: ${borderFlow} 5s ease infinite;
+            return css`
+        border: 3px solid transparent;
+        background-image:
+            linear-gradient(${gradient}),
+            linear-gradient(${theme.colors.card_bg}, ${theme.colors.card_bg});
+        background-origin: border-box;
+        background-clip: border-box, padding-box;
+        animation: ${borderFlow} 5s ease infinite;
 
-            /* Bottom-focused card shadow only (no upper glow) */
-            box-shadow: 0 16px 40px #0d6275;
-        `;
+        /* Cohesive 3D shadow */
+        box-shadow: 0 16px 40px #0d6275;
+    `;
     }}
 `;
 
@@ -153,8 +156,8 @@ const Trend = styled.div<{ $color: string; $highlight: boolean }>`
     ${({ $highlight }) =>
         $highlight &&
         css`
-            animation: ${softPulse} 1.5s ease-out 0.4s;
-        `}
+        animation: ${softPulse} 1.5s ease-out 0.4s;
+    `}
 `;
 
 const Caption = styled.div`
@@ -207,8 +210,8 @@ export const DailyProgressCard: React.FC<Props> = ({
     const trendColor = isImprovement
         ? "#2ecc71"
         : isReset
-        ? "#ff0004"
-        : "#95a5a6";
+            ? "#ff0004"
+            : "#95a5a6";
 
     const [animScore, setAnimScore] = useState(0);
 
@@ -264,10 +267,7 @@ export const DailyProgressCard: React.FC<Props> = ({
                     <ProgressSub>{centerSubLabel}</ProgressSub>
                 </ProgressLabelContainer>
 
-                <Trend
-                    $color={trendColor}
-                    $highlight={isImprovement}
-                >
+                <Trend $color={trendColor} $highlight={isImprovement}>
                     {isImprovement ? <ArrowUp /> : isReset ? <ArrowDown /> : <Minus />}
                     {Math.abs(score - prevScore)}
                 </Trend>
@@ -278,8 +278,8 @@ export const DailyProgressCard: React.FC<Props> = ({
                 {isReset
                     ? "Start fresh — every day counts!"
                     : isImprovement
-                    ? "Keep going strong!"
-                    : "Stay consistent."}
+                        ? "Keep going strong!"
+                        : "Stay consistent."}
             </SubMsg>
         </Wrapper>
     );
