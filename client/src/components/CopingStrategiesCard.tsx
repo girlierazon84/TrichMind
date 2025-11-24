@@ -32,9 +32,10 @@ const cardEnter = keyframes`
     Styled Components
 ----------------------*/
 const Card = styled.div`
+  perspective: 900px;
   width: 100%;
   max-width: 960px;
-  margin: 0 auto 2rem;
+  margin: 2rem 0 0 0;
 
   background: ${({ theme }) => theme.colors.card_bg};
   padding: ${({ theme }) => theme.spacing(4)};
