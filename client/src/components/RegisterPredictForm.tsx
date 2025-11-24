@@ -1,4 +1,4 @@
-// client/src/components/RegisterPredictForm.tsx  (path may differ, adjust if needed)
+// client/src/components/RegisterPredictForm.tsx
 
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -122,15 +122,51 @@ const PopupText = styled.p`
   line-height: 1.5;
 `;
 
+/**--------------------
+    Types
+-----------------------*/
+interface RegisterFormState {
+  email: string;
+  password: string;
+  displayName: string;
+  date_of_birth: string;
+  age_of_onset: string;
+  years_since_onset: string;
+  pulling_severity: string;
+  pulling_frequency: string;
+  pulling_awareness: string;
+  successfully_stopped: string;
+  how_long_stopped_days: string;
+  emotion: string;
+  coping_worked: string;      // comma-separated in UI
+  coping_not_worked: string;  // comma-separated in UI
+}
+
+interface RegisterPayload {
+  email: string;
+  password: string;
+  displayName: string;
+  date_of_birth: string;
+  age_of_onset: string;
+  years_since_onset: string;
+  pulling_severity: string;
+  pulling_frequency: string;
+  pulling_awareness: string;
+  successfully_stopped: string;
+  how_long_stopped_days: string;
+  emotion: string;
+  coping_worked: string[];     // arrays sent to backend
+  coping_not_worked: string[]; // arrays sent to backend
+}
+
 /**--------------
     Component
 -----------------*/
 export const RegisterPredictForm: React.FC = () => {
-  const { registerAndPredict, submitting, submitError } =
-    useRegisterAndPredict();
+  const { registerAndPredict, submitting, submitError } = useRegisterAndPredict();
 
-  // Form state
-  const [form, setForm] = useState({
+  // Form state (all strings for inputs)
+  const [form, setForm] = useState<RegisterFormState>({
     email: "",
     password: "",
     displayName: "",
@@ -143,6 +179,8 @@ export const RegisterPredictForm: React.FC = () => {
     successfully_stopped: "",
     how_long_stopped_days: "",
     emotion: "",
+    coping_worked: "",
+    coping_not_worked: "",
   });
 
   // Popup state
@@ -150,19 +188,46 @@ export const RegisterPredictForm: React.FC = () => {
   const navigate = useNavigate();
 
   // Handle input changes
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Small helper for parsing comma-separated strategies → string[]
+  const parseStrategies = (raw: string): string[] =>
+    raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
   // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Submit registration and prediction
-    const success = await registerAndPredict(form);
+    // Parse coping strategies into arrays
+    const workedList = parseStrategies(form.coping_worked);
+    const notWorkedList = parseStrategies(form.coping_not_worked);
+
+    // Payload sent to backend (arrays, not raw strings)
+    const payload: RegisterPayload = {
+      email: form.email,
+      password: form.password,
+      displayName: form.displayName,
+      date_of_birth: form.date_of_birth,
+      age_of_onset: form.age_of_onset,
+      years_since_onset: form.years_since_onset,
+      pulling_severity: form.pulling_severity,
+      pulling_frequency: form.pulling_frequency,
+      pulling_awareness: form.pulling_awareness,
+      successfully_stopped: form.successfully_stopped,
+      how_long_stopped_days: form.how_long_stopped_days,
+      emotion: form.emotion,
+      coping_worked: workedList,
+      coping_not_worked: notWorkedList,
+    };
+
+    // Submit registration and prediction (no `any` needed)
+    const success = await registerAndPredict(payload);
 
     if (success) {
       // Seed sober streak based on how_long_stopped_days + successfully_stopped
@@ -171,9 +236,7 @@ export const RegisterPredictForm: React.FC = () => {
         const stoppedDays = Number.isFinite(rawDays) && rawDays > 0 ? rawDays : 0;
 
         const stoppedNow =
-          form.successfully_stopped
-            .trim()
-            .toLowerCase() === "yes";
+          form.successfully_stopped.trim().toLowerCase() === "yes";
 
         const todayIsoDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
@@ -194,6 +257,14 @@ export const RegisterPredictForm: React.FC = () => {
             };
 
         localStorage.setItem("tm_sober_streak", JSON.stringify(streak));
+      } catch {
+        // ignore storage errors
+      }
+
+      // 🔹 Persist coping strategies for dashboard CopingStrategiesCard + hook
+      try {
+        localStorage.setItem("tm_coping_worked", JSON.stringify(workedList));
+        localStorage.setItem("tm_coping_not_worked", JSON.stringify(notWorkedList));
       } catch {
         // ignore storage errors
       }
@@ -353,6 +424,26 @@ export const RegisterPredictForm: React.FC = () => {
           value={form.emotion}
           onChange={handleChange}
           required
+        />
+
+        <SectionTitle>
+          🧩 COPING STRATEGIES
+        </SectionTitle>
+
+        <FormInput
+          name="coping_worked"
+          label="Coping strategies that helped you"
+          placeholder="e.g. fidget toy, deep breathing, wearing gloves"
+          value={form.coping_worked}
+          onChange={handleChange}
+        />
+
+        <FormInput
+          name="coping_not_worked"
+          label="Coping strategies that did not help"
+          placeholder="e.g. journaling, stress ball"
+          value={form.coping_not_worked}
+          onChange={handleChange}
         />
 
         <ThemeButton className="submit-button" type="submit" disabled={submitting}>
