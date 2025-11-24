@@ -38,6 +38,8 @@ type RiskLevel = "low" | "medium" | "high";
 const TiltWrapper = styled.div`
     perspective: 900px;
     width: 100%;
+    max-width: 960px;
+    margin: 0 auto 2rem;
 `;
 
 const Card = styled.div<{ $risk: RiskLevel; $compact?: boolean }>`
@@ -46,7 +48,9 @@ const Card = styled.div<{ $risk: RiskLevel; $compact?: boolean }>`
     border-radius: ${({ theme }) => theme.radius.lg};
     text-align: center;
 
-    /* Only a gentle appear animation (no floating up/down) */
+    width: 100%;
+
+    /* Gentle appear animation */
     animation: ${fadeIn} 0.6s ease-out;
     transform-style: preserve-3d;
     transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
@@ -56,39 +60,37 @@ const Card = styled.div<{ $risk: RiskLevel; $compact?: boolean }>`
             $risk === "low"
                 ? theme.colors.low_risk_gradient
                 : $risk === "medium"
-                ? theme.colors.medium_risk_gradient
-                : theme.colors.high_risk_gradient;
+                    ? theme.colors.medium_risk_gradient
+                    : theme.colors.high_risk_gradient;
 
         const border =
             $risk === "low"
                 ? theme.colors.low_risk
                 : $risk === "medium"
-                ? theme.colors.medium_risk
-                : theme.colors.high_risk;
+                    ? theme.colors.medium_risk
+                    : theme.colors.high_risk;
 
         return css`
-            background: ${bg};
-            border: 1px solid ${border};
-            backdrop-filter: blur(5px);
+        background: ${bg};
+        border: 1px solid ${border};
+        backdrop-filter: blur(5px);
 
-            /* Strong, bottom-focused colored shadow for 3D effect */
-            box-shadow:
-                0 14px 26px rgba(0, 0, 0, 0.35),
-                0 22px 52px ${border};
+        /* Cohesive 3D shadow (matches DailyProgressCard) */
+        box-shadow: 0 16px 40px #0d6275;
 
-            &::after {
-                content: "";
-                position: absolute;
-                inset: 0;
-                border-radius: inherit;
-                background: linear-gradient(
-                    145deg,
-                    rgba(255, 255, 255, 0.22) 0%,
-                    rgba(255, 255, 255, 0) 50%
-                );
-                pointer-events: none;
-            }
-        `;
+        &::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: linear-gradient(
+                145deg,
+                rgba(255, 255, 255, 0.22) 0%,
+                rgba(255, 255, 255, 0) 50%
+            );
+            pointer-events: none;
+        }
+    `;
     }}
 `;
 
@@ -168,8 +170,8 @@ const ConfidenceBar = styled.div<{ w: number; $risk: RiskLevel }>`
         $risk === "low"
             ? `background: ${theme.colors.low_risk};`
             : $risk === "medium"
-            ? `background: ${theme.colors.medium_risk};`
-            : `background: ${theme.colors.high_risk};`}
+                ? `background: ${theme.colors.medium_risk};`
+                : `background: ${theme.colors.high_risk};`}
 `;
 
 const Quote = styled.p<{ $compact?: boolean }>`
@@ -197,7 +199,6 @@ export const RiskResultCard: React.FC<{
 
     const cardRef = useRef<HTMLDivElement>(null);
 
-    // Debug: see what the card actually receives
     useEffect(() => {
         console.log("[RiskResultCard] data received →", data);
         console.log("[RiskResultCard] band →", band);
@@ -262,9 +263,7 @@ export const RiskResultCard: React.FC<{
 
                 <Title $compact={compact}>Relapse Risk Summary</Title>
 
-                <RiskLabel $compact={compact}>
-                    {band.toUpperCase()}
-                </RiskLabel>
+                <RiskLabel $compact={compact}>{band.toUpperCase()}</RiskLabel>
 
                 <ScoreLine $compact={compact}>
                     Score: <b>{score.toFixed(1)}%</b>
