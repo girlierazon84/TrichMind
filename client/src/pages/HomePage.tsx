@@ -156,14 +156,6 @@ const Section = styled.section`
     }
 `;
 
-const DashboardSection = styled.div`
-    width: 100%;
-    max-width: 960px;
-    display: flex;
-    flex-direction: column;
-    gap: ${({ theme }) => theme.spacing(4)};
-`;
-
 const WelcomeText = styled.h2`
     font-size: 1.65rem;
     text-align: center;
@@ -472,9 +464,9 @@ export const HomePage: React.FC = () => {
                     />
                 </Section>
 
-                <DashboardSection>
+                <Section>
                     <RiskTrendChart />
-                </DashboardSection>
+                </Section>
             </PageWrapper>
 
             {showWelcome && (
