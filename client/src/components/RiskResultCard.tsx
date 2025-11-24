@@ -39,7 +39,7 @@ const TiltWrapper = styled.div`
     perspective: 900px;
     width: 100%;
     max-width: 960px;
-    margin: 0 auto 2rem;
+    margin: 2rem 0 0 0;
 `;
 
 const Card = styled.div<{ $risk: RiskLevel; $compact?: boolean }>`
