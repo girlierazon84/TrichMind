@@ -14,7 +14,7 @@ import {
     ReferenceArea,
 } from "recharts";
 import { useRiskTrendChart, usePredictedRiskTrend } from "@/hooks";
-import InsightsIcon from "@/assets/icons/insights.png";
+import { InsightsIcon } from "@/assets/icons";
 
 /* Animations */
 const slideUp = keyframes`
@@ -72,6 +72,10 @@ const ChartWrapper = styled.div`
     display: flex;
     flex-direction: column;
     animation: ${slideUp} 0.6s ease-out;
+
+    & .recharts-cartesian-axis-tick-value {
+        font-size: 0.65rem;
+    }
 `;
 
 const HeaderRow = styled.div`
@@ -87,7 +91,7 @@ const Icon = styled.img`
 `;
 
 const ChartTitle = styled.h3`
-    font-size: 1.1rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: ${({ theme }) => theme.colors.text_primary};
     margin: 0;
@@ -107,6 +111,9 @@ const Message = styled.p`
     margin-top: 2rem;
 `;
 
+
+
+// Main Component
 export const RiskTrendChart: React.FC = () => {
     const theme = useTheme();
 
@@ -189,9 +196,10 @@ export const RiskTrendChart: React.FC = () => {
                         </linearGradient>
                     </defs>
 
-                    <CartesianGrid strokeDasharray="3 3" stroke="#ddd" />
+                    <CartesianGrid strokeDasharray="2 2" stroke="#ddd" />
 
                     <XAxis
+                        className="x-axis"
                         dataKey="date"
                         stroke={theme.colors.text_secondary}
                         tickFormatter={(v: string) =>
