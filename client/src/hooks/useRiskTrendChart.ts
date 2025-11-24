@@ -27,6 +27,16 @@ export const useRiskTrendChart = () => {
             setError(null);
 
             try {
+                // If user is not logged in, don't call backend
+                const token = localStorage.getItem("access_token");
+                if (!token) {
+                    if (alive) {
+                        setData([]);
+                        setLoading(false);
+                    }
+                    return;
+                }
+
                 const res = await axiosClient.get<{ trend: HistoryPoint[] }>(
                     "/api/health/risk-trend"
                 );
