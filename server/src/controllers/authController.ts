@@ -12,9 +12,9 @@ import {
 } from "../templates";
 import { loggerService, userService } from "../services";
 
-/**----------------------------------------------
+/**-----------------------------------------------
     🔐 Generate JWT Access and Refresh Tokens
--------------------------------------------------*/
+--------------------------------------------------*/
 export const generateTokens = (userId: string) => {
     const accessToken = jwt.sign({ sub: userId }, ENV.JWT_SECRET, {
         expiresIn: "15m",
