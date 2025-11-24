@@ -85,15 +85,44 @@ router.post(
 
 /* ──────────────────────────────
     🔹 GET /api/auth/me
+    Returns a shaped user object with coping strategies arrays
 ──────────────────────────────── */
 router.get("/me", authentication(), async (req, res) => {
     try {
         const userId = req.auth?.userId;
-        const user = await User.findById(userId)
+        const dbUser = await User.findById(userId)
             .select("-password")
             .lean();
-        if (!user) return res.status(404).json({ error: "User not found" });
-        res.json({ ok: true, user });
+
+        if (!dbUser) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        res.json({
+            ok: true,
+            user: {
+                id: dbUser._id.toString(),
+                email: dbUser.email,
+                displayName: dbUser.displayName,
+                avatarUrl: dbUser.avatarUrl,
+                date_of_birth: dbUser.date_of_birth,
+
+                // Behavioural fields
+                age: dbUser.age,
+                age_of_onset: dbUser.age_of_onset,
+                years_since_onset: dbUser.years_since_onset,
+                pulling_severity: dbUser.pulling_severity,
+                pulling_frequency_encoded: dbUser.pulling_frequency_encoded,
+                awareness_level_encoded: dbUser.awareness_level_encoded,
+                successfully_stopped_encoded: dbUser.successfully_stopped_encoded,
+                how_long_stopped_days_est: dbUser.how_long_stopped_days_est,
+                emotion: dbUser.emotion,
+
+                // ⬇️ Coping strategies – always arrays for frontend
+                coping_worked: (dbUser as any).coping_worked ?? [],
+                coping_not_worked: (dbUser as any).coping_not_worked ?? [],
+            },
+        });
     } catch (err) {
         console.error("❌ /me error:", err);
         res.status(500).json({ error: "Failed to fetch user profile" });
