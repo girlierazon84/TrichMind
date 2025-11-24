@@ -1,8 +1,7 @@
 // client/src/components/RiskTrendChart.tsx
 
 import React, { useMemo } from "react";
-import styled, { useTheme } from "styled-components";
-import { fadeIn, slideUp } from "@/styles";
+import styled, { keyframes, useTheme } from "styled-components";
 import {
     LineChart,
     Line,
@@ -14,10 +13,19 @@ import {
     Legend,
     ReferenceArea,
 } from "recharts";
-import {
-    useRiskTrendChart,
-    usePredictedRiskTrend,
-} from "@/hooks";
+import { useRiskTrendChart, usePredictedRiskTrend } from "@/hooks";
+import InsightsIcon from "@/assets/icons/insights.png";
+
+/* Animations */
+const slideUp = keyframes`
+    from { opacity: 0; transform: translateY(16px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+`;
+
+const fadeIn = keyframes`
+    from { opacity: 0; }
+    to   { opacity: 1; }
+`;
 
 // Local Types
 export interface HistoryPoint {
@@ -44,32 +52,45 @@ interface PredictionPoint {
 
 type MergedPoint = PastPoint | FuturePoint;
 
-// Tooltip helper types (no `any`, no recharts Payload import)
+// Tooltip helper types
 type TooltipValue = number | string;
 type TooltipName = string;
 interface TooltipItem {
     payload?: MergedPoint;
 }
 
-// Styled Components
+/* Styled Components */
 const ChartWrapper = styled.div`
     width: 100%;
-    height: 340px;
+    max-width: 960px;
+    height: 360px;
     background: ${({ theme }) => theme.colors.card_bg};
-    border-radius: 16px;
-    padding: 1rem 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    margin-top: 1.5rem;
+    border-radius: ${({ theme }) => theme.radius.lg};
+    padding: ${({ theme }) => theme.spacing(4)};
+    box-shadow: 0 16px 40px #0d6275;
+    margin: 0 auto 2rem;
     display: flex;
     flex-direction: column;
     animation: ${slideUp} 0.6s ease-out;
 `;
 
-const ChartTitle = styled.h3`
-    font-size: 1.2rem;
-    font-weight: 600;
+const HeaderRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
     margin-bottom: 1rem;
+`;
+
+const Icon = styled.img`
+    width: 20px;
+    height: 20px;
+`;
+
+const ChartTitle = styled.h3`
+    font-size: 1.1rem;
+    font-weight: 600;
     color: ${({ theme }) => theme.colors.text_primary};
+    margin: 0;
     animation: ${fadeIn} 0.6s ease-out;
 `;
 
@@ -91,6 +112,7 @@ export const RiskTrendChart: React.FC = () => {
 
     const { data: history, loading: histLoading, error: histError } =
         useRiskTrendChart();
+
     const {
         trend: predicted,
         loading: predLoading,
@@ -140,9 +162,10 @@ export const RiskTrendChart: React.FC = () => {
 
     return (
         <ChartWrapper>
-            <ChartTitle>
-                📈 Combined Relapse Risk Trend (History + 14-Day Forecast)
-            </ChartTitle>
+            <HeaderRow>
+                <Icon src={InsightsIcon} alt="Insights icon" />
+                <ChartTitle>Combined Relapse Risk Trend (History + 14-Day Forecast)</ChartTitle>
+            </HeaderRow>
 
             <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={mergedData}>
@@ -200,9 +223,7 @@ export const RiskTrendChart: React.FC = () => {
                             item: TooltipItem
                         ) => {
                             const numeric =
-                                typeof value === "number"
-                                    ? value
-                                    : Number(value);
+                                typeof value === "number" ? value : Number(value);
                             const point = item.payload;
                             const label =
                                 point?.type === "past" ? "Historical" : "Forecast";
@@ -222,8 +243,8 @@ export const RiskTrendChart: React.FC = () => {
                             value === "past"
                                 ? "Historical"
                                 : value === "future"
-                                ? "Forecast"
-                                : value
+                                    ? "Forecast"
+                                    : value
                         }
                     />
 
