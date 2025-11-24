@@ -122,9 +122,9 @@ const PopupText = styled.p`
   line-height: 1.5;
 `;
 
-/**--------------------
-    Types
------------------------*/
+/**--------------------------
+    Types for form & payload
+---------------------------*/
 interface RegisterFormState {
   email: string;
   password: string;
@@ -138,25 +138,14 @@ interface RegisterFormState {
   successfully_stopped: string;
   how_long_stopped_days: string;
   emotion: string;
-  coping_worked: string;      // comma-separated in UI
-  coping_not_worked: string;  // comma-separated in UI
+  coping_worked: string;     // comma-separated in the input
+  coping_not_worked: string; // comma-separated in the input
 }
 
-interface RegisterPayload {
-  email: string;
-  password: string;
-  displayName: string;
-  date_of_birth: string;
-  age_of_onset: string;
-  years_since_onset: string;
-  pulling_severity: string;
-  pulling_frequency: string;
-  pulling_awareness: string;
-  successfully_stopped: string;
-  how_long_stopped_days: string;
-  emotion: string;
-  coping_worked: string[];     // arrays sent to backend
-  coping_not_worked: string[]; // arrays sent to backend
+interface RegisterPredictPayload
+  extends Omit<RegisterFormState, "coping_worked" | "coping_not_worked"> {
+  coping_worked: string[];
+  coping_not_worked: string[];
 }
 
 /**--------------
@@ -165,7 +154,7 @@ interface RegisterPayload {
 export const RegisterPredictForm: React.FC = () => {
   const { registerAndPredict, submitting, submitError } = useRegisterAndPredict();
 
-  // Form state (all strings for inputs)
+  // Form state
   const [form, setForm] = useState<RegisterFormState>({
     email: "",
     password: "",
@@ -201,39 +190,38 @@ export const RegisterPredictForm: React.FC = () => {
       .filter(Boolean);
 
   // Handle form submission
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Parse coping strategies into arrays
+    // 1️⃣ Parse coping strategies into arrays
     const workedList = parseStrategies(form.coping_worked);
     const notWorkedList = parseStrategies(form.coping_not_worked);
 
-    // Payload sent to backend (arrays, not raw strings)
-    const payload: RegisterPayload = {
-      email: form.email,
-      password: form.password,
-      displayName: form.displayName,
-      date_of_birth: form.date_of_birth,
-      age_of_onset: form.age_of_onset,
-      years_since_onset: form.years_since_onset,
-      pulling_severity: form.pulling_severity,
-      pulling_frequency: form.pulling_frequency,
-      pulling_awareness: form.pulling_awareness,
-      successfully_stopped: form.successfully_stopped,
-      how_long_stopped_days: form.how_long_stopped_days,
-      emotion: form.emotion,
+    // 2️⃣ Persist them to localStorage immediately so the dashboard
+    //    hook can hydrate from them even before backend knows about them
+    try {
+      localStorage.setItem("tm_coping_worked", JSON.stringify(workedList));
+      localStorage.setItem("tm_coping_not_worked", JSON.stringify(notWorkedList));
+    } catch {
+      // ignore storage errors
+    }
+
+    // 3️⃣ Build payload sent to backend (arrays, not raw strings)
+    const payload: RegisterPredictPayload = {
+      ...form,
       coping_worked: workedList,
       coping_not_worked: notWorkedList,
     };
 
-    // Submit registration and prediction (no `any` needed)
+    // 4️⃣ Submit registration and prediction
     const success = await registerAndPredict(payload);
 
     if (success) {
       // Seed sober streak based on how_long_stopped_days + successfully_stopped
       try {
         const rawDays = Number(form.how_long_stopped_days);
-        const stoppedDays = Number.isFinite(rawDays) && rawDays > 0 ? rawDays : 0;
+        const stoppedDays =
+          Number.isFinite(rawDays) && rawDays > 0 ? rawDays : 0;
 
         const stoppedNow =
           form.successfully_stopped.trim().toLowerCase() === "yes";
@@ -261,14 +249,6 @@ export const RegisterPredictForm: React.FC = () => {
         // ignore storage errors
       }
 
-      // 🔹 Persist coping strategies for dashboard CopingStrategiesCard + hook
-      try {
-        localStorage.setItem("tm_coping_worked", JSON.stringify(workedList));
-        localStorage.setItem("tm_coping_not_worked", JSON.stringify(notWorkedList));
-      } catch {
-        // ignore storage errors
-      }
-
       // Show success popup
       setShowPopup(true);
     }
@@ -288,14 +268,14 @@ export const RegisterPredictForm: React.FC = () => {
           <PopupBox>
             <PopupTitle>🎉 Welcome to TrichMind!</PopupTitle>
             <PopupText>
-              Your account has been created successfully.<br /><br />
-              Please <strong>log in</strong> to view your personalized relapse risk prediction
-              and continue your mindful recovery journey.
+              Your account has been created successfully.
+              <br />
+              <br />
+              Please <strong>log in</strong> to view your personalized relapse
+              risk prediction and continue your mindful recovery journey.
             </PopupText>
 
-            <ThemeButton onClick={closePopup}>
-              Go to Login
-            </ThemeButton>
+            <ThemeButton onClick={closePopup}>Go to Login</ThemeButton>
           </PopupBox>
         </PopupOverlay>
       )}
@@ -426,9 +406,7 @@ export const RegisterPredictForm: React.FC = () => {
           required
         />
 
-        <SectionTitle>
-          🧩 COPING STRATEGIES
-        </SectionTitle>
+        <SectionTitle>🧩 COPING STRATEGIES</SectionTitle>
 
         <FormInput
           name="coping_worked"
