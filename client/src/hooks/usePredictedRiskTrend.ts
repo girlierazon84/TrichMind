@@ -3,11 +3,10 @@
 import { useEffect, useState } from "react";
 import { axiosClient } from "@/services";
 
-
 // --------------------------
 // Types and Interfaces
 // --------------------------
-interface PredictedPoint {
+export interface PredictedPoint {
     day: number;
     predicted_risk: number;
 }
@@ -28,26 +27,26 @@ export const usePredictedRiskTrend = (days: number = 14) => {
     useEffect(() => {
         let alive = true;
 
-        // Fetch trend data from the backend
         const fetchTrend = async () => {
+            setLoading(true);
+            setError(null);
+
             try {
                 const res = await axiosClient.get<MLTrendResponse>(
                     `/api/ml/risk-trend?days=${days}`
                 );
-                if (alive) {
-                    setTrend(res.data.trend);
-                }
+                if (!alive) return;
+
+                setTrend(res.data?.trend ?? []);
             } catch (err) {
-                console.error(err);
-                if (alive) {
-                    setError("Failed to load predicted risk trend");
-                }
+                console.error("[usePredictedRiskTrend] Failed to load trend:", err);
+                if (alive) setError("Failed to load predicted risk trend");
             } finally {
                 if (alive) setLoading(false);
             }
         };
 
-        fetchTrend();
+        void fetchTrend();
         return () => {
             alive = false;
         };
