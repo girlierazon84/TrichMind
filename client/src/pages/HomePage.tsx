@@ -8,7 +8,7 @@ import {
     type MouseEvent,
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import styled, { keyframes } from "styled-components";
+import styled from "styled-components";
 import { axiosClient } from "@/services";
 import {
     RiskResultCard,
@@ -17,7 +17,7 @@ import {
     RiskTrendChart,
     ThemeButton,
 } from "@/components";
-import { useAuth } from "@/hooks";
+import { useAuth, useCopingStrategies } from "@/hooks";
 import { AppLogo } from "@/assets/images";
 import { UserIcon } from "@/assets/icons";
 import type { PredictionResponse } from "@/types/ml";
@@ -52,47 +52,12 @@ export interface MeResponse {
         how_long_stopped_days_est?: number;
         successfully_stopped_encoded?: number;
         emotion_intensity_sum?: number;
+
+        // Coping strategies from backend
+        coping_worked?: string[];
+        coping_not_worked?: string[];
     };
 }
-
-/**---------------
-    Animations
-------------------*/
-const fadeIn = keyframes`
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
-`;
-
-const smoothRise = keyframes`
-    from { opacity: 0; transform: translateY(26px); }
-    to   { opacity: 1; transform: translateY(0); }
-`;
-
-const softPop = keyframes`
-    from { opacity: 0; transform: scale(0.96); }
-    to   { opacity: 1; transform: scale(1); }
-`;
-
-const dropdownFade = keyframes`
-    from { opacity: 0; transform: translateY(-8px); }
-    to   { opacity: 1; transform: translateY(0); }
-`;
-
-const shimmer = keyframes`
-    0%   { background-position: -220px 0; }
-    100% { background-position: 220px 0; }
-`;
-
-const avatarPulse = keyframes`
-    0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(91, 138, 255, 0.4); }
-    60%  { transform: scale(1.06); box-shadow: 0 0 0 12px rgba(91, 138, 255, 0); }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(91, 138, 255, 0); }
-`;
-
-const modalFade = keyframes`
-    from { opacity: 0; transform: translateY(18px) scale(0.96); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
-`;
 
 /**-------------------------------
     Styled Components – Layout
@@ -105,7 +70,6 @@ const PageWrapper = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
-    animation: ${fadeIn} 0.45s ease-out;
 
     @media (max-width: 768px) {
         padding: ${({ theme }) => theme.spacing(3)};
@@ -120,7 +84,6 @@ const Header = styled.header`
     justify-content: space-between;
     align-items: center;
     margin-bottom: ${({ theme }) => theme.spacing(5)};
-    animation: ${smoothRise} 0.5s ease-out;
 
     .app_logo {
         height: 90px;
@@ -139,7 +102,7 @@ const AvatarButton = styled.button`
     cursor: pointer;
 `;
 
-const AvatarImage = styled.img<{ $pulse?: boolean }>`
+const AvatarImage = styled.img`
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -147,7 +110,6 @@ const AvatarImage = styled.img<{ $pulse?: boolean }>`
     border: 2px solid rgba(255, 255, 255, 0.75);
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
     transition: transform 0.25s ease, box-shadow 0.25s ease;
-    ${({ $pulse }) => ($pulse ? `animation: ${avatarPulse} 1.3s ease-out;` : "")};
 
     ${AvatarButton}:hover & {
         transform: scale(1.06);
@@ -170,7 +132,6 @@ const DropdownMenu = styled.div<{ open: boolean }>`
     pointer-events: ${({ open }) => (open ? "auto" : "none")};
 
     transition: opacity 0.25s ease, transform 0.25s ease;
-    animation: ${dropdownFade} 0.25s ease-out;
     z-index: 5000;
 `;
 
@@ -189,31 +150,23 @@ const MenuItem = styled.button`
     }
 `;
 
-const Section = styled.section<{ $delay?: number; $pop?: boolean }>`
+const Section = styled.section`
     width: 100%;
     max-width: 960px;
-
     padding: ${({ theme }) => theme.spacing(5)};
     margin-bottom: ${({ theme }) => theme.spacing(4)};
-
-    animation: ${({ $pop }) => ($pop ? softPop : smoothRise)} 0.6s ease-out;
-    animation-delay: ${({ $delay }) => ($delay ? `${$delay}ms` : "0ms")};
-    animation-fill-mode: both;
 
     @media (max-width: 768px) {
         padding: ${({ theme }) => theme.spacing(3)};
     }
 `;
 
-const DashboardSection = styled.div<{ $delay?: number }>`
+const DashboardSection = styled.div`
     width: 100%;
     max-width: 960px;
     display: flex;
     flex-direction: column;
     gap: ${({ theme }) => theme.spacing(4)};
-    animation: ${softPop} 0.65s ease-out;
-    animation-delay: ${({ $delay }) => ($delay ? `${$delay}ms` : "0ms")};
-    animation-fill-mode: both;
 `;
 
 const WelcomeText = styled.h2`
@@ -223,33 +176,19 @@ const WelcomeText = styled.h2`
     color: ${({ theme }) => theme.colors.text_primary};
 `;
 
-// Skeleton + Welcome modal styled components
+// Skeleton + Welcome modal styled components (no shimmer/animations)
 const SkeletonCircle = styled.div`
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0.15),
-        rgba(255, 255, 255, 0.32),
-        rgba(255, 255, 255, 0.15)
-    );
-    background-size: 220px 100%;
-    animation: ${shimmer} 1.4s infinite linear;
+    background: rgba(255, 255, 255, 0.2);
 `;
 
 const SkeletonBar = styled.div<{ $width?: string; $height?: string }>`
     width: ${({ $width }) => $width || "100%"};
     height: ${({ $height }) => $height || "16px"};
     border-radius: 999px;
-    background: linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0.15),
-        rgba(255, 255, 255, 0.32),
-        rgba(255, 255, 255, 0.15)
-    );
-    background-size: 220px 100%;
-    animation: ${shimmer} 1.4s infinite linear;
+    background: rgba(255, 255, 255, 0.18);
 `;
 
 const SkeletonCard = styled.div`
@@ -284,7 +223,6 @@ const WelcomeCard = styled.div`
     width: 90%;
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
     text-align: center;
-    animation: ${modalFade} 0.35s ease-out;
 `;
 
 const WelcomeTitle = styled.h2`
@@ -306,6 +244,12 @@ const WelcomeBody = styled.p`
 export const HomePage: React.FC = () => {
     const navigate = useNavigate();
     const { user, isAuthenticated, logout } = useAuth();
+    const {
+        worked: copingWorked,
+        notWorked: copingNotWorked,
+        setFromBackend,
+        toggleStrategy,
+    } = useCopingStrategies();
 
     const [riskScore, setRiskScore] = useState(0);
     const [confidence, setConfidence] = useState(0);
@@ -316,7 +260,6 @@ export const HomePage: React.FC = () => {
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-    const [avatarShouldPulse, setAvatarShouldPulse] = useState(false);
     const [showWelcome, setShowWelcome] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
@@ -365,11 +308,15 @@ export const HomePage: React.FC = () => {
             return;
         }
 
+        let cancelled = false;
+
         const loadDashboard = async () => {
             setLoading(true);
             try {
-                // 1) Fetch user (for avatar, name)
+                // 1) Fetch user (for avatar, name, coping strategies)
                 const meRes = await axiosClient.get<MeResponse>("/api/auth/me");
+                if (cancelled) return;
+
                 const u = meRes.data.user;
                 console.log("[Dashboard] /api/auth/me →", u);
 
@@ -377,16 +324,14 @@ export const HomePage: React.FC = () => {
 
                 // Avatar
                 if (u.avatarUrl) {
-                    setAvatarUrl((prev) => {
-                        if (prev !== u.avatarUrl) {
-                            setAvatarShouldPulse(true);
-                            setTimeout(() => setAvatarShouldPulse(false), 1300);
-                        }
-                        return u.avatarUrl as string;
-                    });
+                    setAvatarUrl(u.avatarUrl as string);
                 } else {
                     setAvatarUrl(null);
                 }
+
+                // Coping strategies → hook (also syncs localStorage)
+                // If backend arrays are undefined/null, hook keeps existing values (e.g. from localStorage)
+                setFromBackend(u.coping_worked, u.coping_not_worked);
 
                 // 2) Load last prediction from localStorage
                 try {
@@ -419,15 +364,23 @@ export const HomePage: React.FC = () => {
                     );
                 }
             } catch (userErr) {
-                console.error("[Dashboard] Failed to load user:", userErr);
-                navigate("/login");
+                if (!cancelled) {
+                    console.error("[Dashboard] Failed to load user:", userErr);
+                    navigate("/login");
+                }
             } finally {
-                setLoading(false);
+                if (!cancelled) {
+                    setLoading(false);
+                }
             }
         };
 
         void loadDashboard();
-    }, [isAuthenticated, navigate]);
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isAuthenticated, navigate, setFromBackend]);
 
     const quote = useMemo(() => {
         switch (bucket) {
@@ -484,6 +437,10 @@ export const HomePage: React.FC = () => {
         "[Dashboard] Final predictionData passed to RiskResultCard →",
         predictionData
     );
+    console.log("[Dashboard] Coping strategies in HomePage →", {
+        copingWorked,
+        copingNotWorked,
+    });
 
     return (
         <>
@@ -498,7 +455,6 @@ export const HomePage: React.FC = () => {
                             <AvatarImage
                                 src={headerAvatar}
                                 alt="User avatar"
-                                $pulse={avatarShouldPulse}
                             />
                         </AvatarButton>
 
@@ -519,7 +475,7 @@ export const HomePage: React.FC = () => {
                     </UserMenuWrapper>
                 </Header>
 
-                <Section $delay={120} $pop>
+                <Section>
                     <WelcomeText>
                         Welcome back, {user?.displayName || user?.email || "Friend"} 👋
                     </WelcomeText>
@@ -531,15 +487,19 @@ export const HomePage: React.FC = () => {
                     />
                 </Section>
 
-                <Section $delay={300}>
+                <Section>
                     <DailyProgressCardAuto />
                 </Section>
 
-                <Section $delay={450}>
-                    <CopingStrategiesCard />
+                <Section>
+                    <CopingStrategiesCard
+                        worked={copingWorked}
+                        notWorked={copingNotWorked}
+                        onToggle={toggleStrategy}
+                    />
                 </Section>
 
-                <DashboardSection $delay={650}>
+                <DashboardSection>
                     <RiskTrendChart />
                 </DashboardSection>
             </PageWrapper>
