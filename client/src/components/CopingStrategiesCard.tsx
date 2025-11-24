@@ -20,7 +20,7 @@ export interface CopingStrategiesCardProps {
 const cardEnter = keyframes`
   from {
     opacity: 0;
-    transform: translateY(18px) scale(0.97);
+    transform: translateY(12px) scale(0.97);
   }
   to {
     opacity: 1;
@@ -34,18 +34,22 @@ const cardEnter = keyframes`
 const Card = styled.div`
   width: 100%;
   max-width: 960px;
+  margin: 0 auto 2rem;
+
   background: ${({ theme }) => theme.colors.card_bg};
   padding: ${({ theme }) => theme.spacing(4)};
   border-radius: ${({ theme }) => theme.radius.lg};
-  box-shadow: ${({ theme }) => theme.colors.card_shadow};
-  margin: ${({ theme }) => theme.spacing(4)} 0;
+
   animation: ${cardEnter} 0.45s ease-out;
   transform-style: preserve-3d;
   transition: transform 0.22s ease-out, box-shadow 0.22s ease-out;
 
+  /* Cohesive 3D shadow (same base as other cards) */
+  box-shadow: 0 16px 40px #0d6275;
+
   &:hover {
-    transform: translateY(-4px) scale(1.01);
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 20px 48px #0d6275;
   }
 `;
 
