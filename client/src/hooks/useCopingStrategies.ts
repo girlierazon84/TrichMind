@@ -34,30 +34,30 @@ export interface UseCopingStrategiesResult {
 
 /**---------------------------------------------------
     Central source of truth for coping strategies:
-    Hydrates from localStorage on mount
-    Can be updated from backend (/api/auth/me)
-    Persists all changes back to localStorage
+    • Hydrates from localStorage on mount
+    • Can be updated from backend (/api/auth/me)
+    • Persists all changes back to localStorage
 ------------------------------------------------------*/
 export const useCopingStrategies = (): UseCopingStrategiesResult => {
     const [worked, setWorked] = useState<string[]>([]);
     const [notWorked, setNotWorked] = useState<string[]>([]);
 
-    // Initial hydrate from localStorage
+    // Initial hydrate from localStorage (no defaults, just user data)
     useEffect(() => {
         try {
             const w = safeParseArray(
                 localStorage.getItem(STORAGE_WORKED),
-                ["Fidget toy"]
+                []
             );
             const n = safeParseArray(
                 localStorage.getItem(STORAGE_NOT_WORKED),
-                ["Journaling"]
+                []
             );
             setWorked(w);
             setNotWorked(n);
         } catch {
-            setWorked(["Fidget toy"]);
-            setNotWorked(["Journaling"]);
+            setWorked([]);
+            setNotWorked([]);
         }
     }, []);
 
@@ -71,7 +71,7 @@ export const useCopingStrategies = (): UseCopingStrategiesResult => {
         }
     }, []);
 
-    // ⬇️ STABLE: Update from backend data (no deps on worked/notWorked)
+    // Update from backend data (no defaults injected)
     const setFromBackend = useCallback(
         (backendWorked?: string[] | null, backendNotWorked?: string[] | null) => {
             setWorked((prevWorked) => {
@@ -95,7 +95,7 @@ export const useCopingStrategies = (): UseCopingStrategiesResult => {
         [persist]
     );
 
-    // ⬇️ STABLE: Toggle strategy in a bucket, using functional state updates
+    // Toggle strategy in a bucket, using functional state updates
     const toggleStrategy = useCallback(
         (name: string, bucket: CopingBucket) => {
             const trimmed = name.trim();
@@ -136,10 +136,10 @@ export const useCopingStrategies = (): UseCopingStrategiesResult => {
         [persist]
     );
 
-    // Reset to default strategies
+    // Reset: just clear the user's strategies
     const reset = useCallback(() => {
-        const w = ["Fidget toy"];
-        const n = ["Journaling"];
+        const w: string[] = [];
+        const n: string[] = [];
         setWorked(w);
         setNotWorked(n);
         persist(w, n);
