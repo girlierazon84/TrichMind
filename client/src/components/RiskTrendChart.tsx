@@ -59,30 +59,43 @@ interface TooltipItem {
     payload?: MergedPoint;
 }
 
-/* Styled Components */
+/* Styled Components - mobile first */
 const ChartWrapper = styled.div`
+    perspective: 900px;
     width: 100%;
     max-width: 960px;
-    height: 360px;
+    margin: 2rem 0 0 0;
     background: ${({ theme }) => theme.colors.card_bg};
     border-radius: ${({ theme }) => theme.radius.lg};
-    padding: ${({ theme }) => theme.spacing(4)};
-    box-shadow: 0 16px 40px #0d6275;
-    margin: 0 auto 2rem;
+    padding: ${({ theme }) => theme.spacing(3)};
+    box-shadow: 0 10px 28px rgba(13, 98, 117, 0.65);
     display: flex;
     flex-direction: column;
     animation: ${slideUp} 0.6s ease-out;
+    overflow: hidden;
 
     & .recharts-cartesian-axis-tick-value {
-        font-size: 0.65rem;
+        font-size: 0.6rem;
+    }
+
+    @media (min-width: 480px) {
+        height: 240px;
+        padding: ${({ theme }) => theme.spacing(3)} ${({ theme }) => theme.spacing(4)};
+    }
+
+    @media (min-width: 768px) {
+        max-width: 460px;
+        height: 260px;
+        margin: 0 1.5rem 2rem;
     }
 `;
 
 const HeaderRow = styled.div`
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    margin-bottom: 1rem;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
 `;
 
 const Icon = styled.img`
@@ -91,26 +104,30 @@ const Icon = styled.img`
 `;
 
 const ChartTitle = styled.h3`
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 600;
     color: ${({ theme }) => theme.colors.text_primary};
     margin: 0;
     animation: ${fadeIn} 0.6s ease-out;
+
+    @media (min-width: 480px) {
+        font-size: 0.9rem;
+    }
 `;
 
 const ErrorText = styled.p`
     color: ${({ theme }) => theme.colors.high_risk};
-    font-weight: 500;
     text-align: center;
     margin-top: 1rem;
+    font-size: 0.85rem;
 `;
 
 const Message = styled.p`
     color: ${({ theme }) => theme.colors.text_secondary};
     text-align: center;
-    margin-top: 2rem;
+    margin-top: 1.5rem;
+    font-size: 0.85rem;
 `;
-
 
 
 // Main Component
@@ -171,11 +188,16 @@ export const RiskTrendChart: React.FC = () => {
         <ChartWrapper>
             <HeaderRow>
                 <Icon src={InsightsIcon} alt="Insights icon" />
-                <ChartTitle>Combined Relapse Risk Trend (History + 14-Day Forecast)</ChartTitle>
+                <ChartTitle>
+                    Combined Relapse Risk Trend (History + 14-Day Forecast)
+                </ChartTitle>
             </HeaderRow>
 
             <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={mergedData}>
+                <LineChart
+                    data={mergedData}
+                    margin={{ top: 10, right: 8, left: -10, bottom: 0 }}
+                >
                     <defs>
                         <linearGradient id="riskGradient" x1="0" y1="0" x2="0" y2="1">
                             <stop
@@ -202,6 +224,8 @@ export const RiskTrendChart: React.FC = () => {
                         className="x-axis"
                         dataKey="date"
                         stroke={theme.colors.text_secondary}
+                        tickMargin={6}
+                        minTickGap={10}
                         tickFormatter={(v: string) =>
                             new Date(v).toLocaleDateString(undefined, {
                                 month: "short",
@@ -214,6 +238,7 @@ export const RiskTrendChart: React.FC = () => {
                         domain={[0, 100]}
                         tickFormatter={(v: number) => `${v}%`}
                         stroke={theme.colors.text_secondary}
+                        width={40}
                     />
 
                     {/* Forecast highlight area */}
@@ -244,6 +269,11 @@ export const RiskTrendChart: React.FC = () => {
                                 year: "numeric",
                             })
                         }
+                        contentStyle={{
+                            borderRadius: 8,
+                            fontSize: "0.75rem",
+                        }}
+                        labelStyle={{ fontSize: "0.75rem" }}
                     />
 
                     <Legend
@@ -251,9 +281,10 @@ export const RiskTrendChart: React.FC = () => {
                             value === "past"
                                 ? "Historical"
                                 : value === "future"
-                                    ? "Forecast"
-                                    : value
+                                ? "Forecast"
+                                : value
                         }
+                        wrapperStyle={{ fontSize: "0.75rem", paddingTop: 4 }}
                     />
 
                     {/* Past (solid line) */}
@@ -265,6 +296,7 @@ export const RiskTrendChart: React.FC = () => {
                         dot={{ r: 3 }}
                         name="past"
                         data={mergedData.filter((d) => d.type === "past")}
+                        isAnimationActive={false}
                     />
 
                     {/* Future (dashed line) */}
@@ -277,6 +309,7 @@ export const RiskTrendChart: React.FC = () => {
                         dot={false}
                         name="future"
                         data={mergedData.filter((d) => d.type === "future")}
+                        isAnimationActive={false}
                     />
                 </LineChart>
             </ResponsiveContainer>
