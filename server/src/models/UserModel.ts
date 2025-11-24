@@ -23,6 +23,10 @@ export interface IUser extends Document {
     emotion?: string;
     avatarUrl?: string;
 
+    // ⬇️ NEW: coping strategies (stored as string arrays)
+    coping_worked?: string[];
+    coping_not_worked?: string[];
+
     compare(pw: string): Promise<boolean>;
     comparePassword(pw: string): Promise<boolean>;
 }
@@ -53,6 +57,16 @@ const UserSchema = new Schema<IUser>(
         emotion: { type: String, trim: true },
 
         avatarUrl: { type: String, trim: true },
+
+        // ⬇️ NEW: coping strategies in DB
+        coping_worked: {
+            type: [String],
+            default: [],
+        },
+        coping_not_worked: {
+            type: [String],
+            default: [],
+        },
     },
     { timestamps: true }
 );
