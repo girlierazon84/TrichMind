@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 const STORAGE_WORKED = "tm_coping_worked";
 const STORAGE_NOT_WORKED = "tm_coping_not_worked";
 
-// Safely parse a JSON array from localStorage → always returns an array
+// Safely parse a JSON array from localStorage, with fallback = []
 const safeParseArray = (raw: string | null): string[] => {
     if (!raw) return [];
     try {
@@ -23,19 +23,24 @@ const safeParseArray = (raw: string | null): string[] => {
 // Types
 export type CopingBucket = "worked" | "notWorked";
 
+// Hook return type
 export interface UseCopingStrategiesResult {
     worked: string[];
     notWorked: string[];
+    /**
+     * Used when you *really* want to replace with a source of truth
+     * (e.g. when backend returns non-empty arrays, or from Profile form).
+     */
     setFromBackend: (worked?: string[] | null, notWorked?: string[] | null) => void;
     toggleStrategy: (name: string, bucket: CopingBucket) => void;
     reset: () => void;
 }
 
 /**---------------------------------------------------
-  Central source of truth for coping strategies:
-  • Hydrates from localStorage on mount
-  • Can be updated from backend (/api/auth/me)
-  • Persists all changes back to localStorage
+    Central source of truth for coping strategies:
+    • Hydrates from localStorage on mount
+    • Can be updated from backend/profile (setFromBackend)
+    • Persists all changes back to localStorage
 ------------------------------------------------------*/
 export const useCopingStrategies = (): UseCopingStrategiesResult => {
     const [worked, setWorked] = useState<string[]>([]);
@@ -48,7 +53,6 @@ export const useCopingStrategies = (): UseCopingStrategiesResult => {
             const n = safeParseArray(localStorage.getItem(STORAGE_NOT_WORKED));
             setWorked(w);
             setNotWorked(n);
-            console.log("[Coping] Hydrated from localStorage →", { worked: w, notWorked: n });
         } catch {
             setWorked([]);
             setNotWorked([]);
@@ -60,39 +64,44 @@ export const useCopingStrategies = (): UseCopingStrategiesResult => {
         try {
             localStorage.setItem(STORAGE_WORKED, JSON.stringify(nextWorked));
             localStorage.setItem(STORAGE_NOT_WORKED, JSON.stringify(nextNotWorked));
-            console.log("[Coping] Persisted to localStorage →", {
-                worked: nextWorked,
-                notWorked: nextNotWorked,
-            });
         } catch {
             // ignore storage errors
         }
     }, []);
 
-    // STABLE: Update from backend data (never nukes existing arrays if backend is empty)
+    // ✅ Only override from backend when it actually has NON-EMPTY arrays
     const setFromBackend = useCallback(
         (backendWorked?: string[] | null, backendNotWorked?: string[] | null) => {
             setWorked((prevWorked) => {
-                const w = Array.isArray(backendWorked)
+                const normalizedBackendWorked = Array.isArray(backendWorked)
                     ? backendWorked.map(String).filter(Boolean)
-                    : prevWorked;
+                    : [];
+
+                const nextWorked =
+                    normalizedBackendWorked.length > 0 ? normalizedBackendWorked : prevWorked;
 
                 setNotWorked((prevNotWorked) => {
-                    const n = Array.isArray(backendNotWorked)
+                    const normalizedBackendNotWorked = Array.isArray(backendNotWorked)
                         ? backendNotWorked.map(String).filter(Boolean)
-                        : prevNotWorked;
+                        : [];
 
-                    persist(w, n);
-                    return n;
+                    const nextNotWorked =
+                        normalizedBackendNotWorked.length > 0
+                            ? normalizedBackendNotWorked
+                            : prevNotWorked;
+
+                    // Persist both together
+                    persist(nextWorked, nextNotWorked);
+                    return nextNotWorked;
                 });
 
-                return w;
+                return nextWorked;
             });
         },
-        [persist],
+        [persist]
     );
 
-    // Toggle strategy in a bucket, using functional state updates
+    // Toggle strategy in a bucket (and persist)
     const toggleStrategy = useCallback(
         (name: string, bucket: CopingBucket) => {
             const trimmed = name.trim();
@@ -105,7 +114,7 @@ export const useCopingStrategies = (): UseCopingStrategiesResult => {
                         ? prevWorked.filter((n) => n !== trimmed)
                         : [...prevWorked, trimmed];
 
-                    // Use latest notWorked when persisting
+                    // Persist using latest notWorked
                     setNotWorked((prevNotWorked) => {
                         persist(nextWorked, prevNotWorked);
                         return prevNotWorked;
@@ -120,7 +129,7 @@ export const useCopingStrategies = (): UseCopingStrategiesResult => {
                         ? prevNotWorked.filter((n) => n !== trimmed)
                         : [...prevNotWorked, trimmed];
 
-                    // Use latest worked when persisting
+                    // Persist using latest worked
                     setWorked((prevWorked) => {
                         persist(prevWorked, nextNotWorked);
                         return prevWorked;
@@ -130,23 +139,17 @@ export const useCopingStrategies = (): UseCopingStrategiesResult => {
                 });
             }
         },
-        [persist],
+        [persist]
     );
 
-    // Reset: clear everything
+    // Reset everything
     const reset = useCallback(() => {
         setWorked([]);
         setNotWorked([]);
         persist([], []);
     }, [persist]);
 
-    return {
-        worked,
-        notWorked,
-        setFromBackend,
-        toggleStrategy,
-        reset
-    };
+    return { worked, notWorked, setFromBackend, toggleStrategy, reset };
 };
 
 export default useCopingStrategies;
