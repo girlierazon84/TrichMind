@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import styled, { keyframes, css } from "styled-components";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks";
+import { useAuth, useCopingStrategies } from "@/hooks";
 import { axiosClient, authApi } from "@/services";
 import { ThemeButton, FormInput } from "@/components";
 import { BackIcon, UserIcon } from "@/assets/icons";
@@ -248,6 +248,10 @@ interface ExtendedUser {
   age?: number;
   years_since_onset?: number;
   avatarUrl?: string;
+
+  // Mirror backend fields used in /api/auth/me
+  coping_worked?: string[];
+  coping_not_worked?: string[];
 }
 
 /**--------------
@@ -256,6 +260,12 @@ interface ExtendedUser {
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, logout } = useAuth();
+
+  const {
+    worked: copingWorked,
+    notWorked: copingNotWorked,
+    setFromBackend,
+  } = useCopingStrategies();
 
   const [profile, setProfile] = useState<ExtendedUser | null>(null);
   const [initialProfile, setInitialProfile] = useState<ExtendedUser | null>(null);
@@ -278,32 +288,33 @@ export const ProfilePage: React.FC = () => {
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    // Fetch profile data
     axiosClient
-      .get<{ user: ExtendedUser }>("/api/auth/me")
+      .get<{ ok: boolean; user: ExtendedUser }>("/api/auth/me")
       .then((res) => {
         const user = res.data.user;
         setProfile(user);
         setInitialProfile(user);
         setAvatarPreview(user.avatarUrl || UserIcon);
+
+        // Seed coping strategies hook from backend values
+        // If backend arrays are undefined/null, hook keeps its current (localStorage) state
+        setFromBackend(user.coping_worked, user.coping_not_worked);
       })
       .finally(() => setLoading(false));
-  }, [isAuthenticated]);
+  }, [isAuthenticated, setFromBackend]);
 
-  // Track if form has changed
+  // Track if form has changed (profile-only; coping is auto-saved via hook)
   const hasChanges = useMemo(() => {
     if (!profile || !initialProfile) return false;
     return JSON.stringify(profile) !== JSON.stringify(initialProfile);
   }, [profile, initialProfile]);
 
-  // Input change
+  // Input change for profile numeric/string fields
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!profile) return;
 
-    // Update profile field
     const { name, value } = e.target;
 
-    // Update profile field
     setProfile({
       ...profile,
       [name]:
@@ -315,12 +326,26 @@ export const ProfilePage: React.FC = () => {
     });
   };
 
+  // Coping strategies inputs → shared hook (comma-separated lists)
+  const handleCopingInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const parsed = value
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    if (name === "coping_worked") {
+      setFromBackend(parsed, copingNotWorked);
+    } else if (name === "coping_not_worked") {
+      setFromBackend(copingWorked, parsed);
+    }
+  };
+
   // Avatar upload
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Load image for cropping
     const img = new Image();
     img.onload = () => {
       setAvatarSource(img);
@@ -334,31 +359,25 @@ export const ProfilePage: React.FC = () => {
   const applyAvatarCrop = () => {
     if (!avatarSource) return;
 
-    // Create canvas for cropping
     const canvas = document.createElement("canvas");
     const size = 260;
     canvas.width = size;
     canvas.height = size;
 
-    // Get canvas context
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Calculate cropping coordinates and size
     const w = avatarSource.width * zoom;
     const h = avatarSource.height * zoom;
     const x = (size - w) / 2;
     const y = (size - h) / 2;
 
-    // Draw circular cropped image
     ctx.beginPath();
     ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
     ctx.clip();
 
-    // Draw the image on the canvas
     ctx.drawImage(avatarSource, x, y, w, h);
 
-    // Get base64 URL and update profile
     const url = canvas.toDataURL("image/png");
     setAvatarPreview(url);
     setProfile((p) => (p ? { ...p, avatarUrl: url } : p));
@@ -369,12 +388,18 @@ export const ProfilePage: React.FC = () => {
   const handleSave = async () => {
     if (!profile) return;
 
-    // Save profile data
     setSaving(true);
     try {
+      // Send profile plus coping arrays
+      const payload = {
+        ...profile,
+        coping_worked: copingWorked,
+        coping_not_worked: copingNotWorked,
+      };
+
       const res = await axiosClient.patch<{ ok: boolean; user: ExtendedUser }>(
         "/api/users/profile",
-        profile
+        payload
       );
       setProfile(res.data.user);
       setInitialProfile(res.data.user);
@@ -388,13 +413,11 @@ export const ProfilePage: React.FC = () => {
     setPasswordMsg(null);
     setPasswordSuccess(false);
 
-    // Check if new password and confirm password match
     if (newPassword !== confirmPassword) {
       setPasswordMsg("Passwords do not match.");
       return;
     }
 
-    // Attempt to change password
     try {
       await authApi.changePassword({ oldPassword, newPassword });
       setPasswordSuccess(true);
@@ -410,6 +433,11 @@ export const ProfilePage: React.FC = () => {
   // UI states
   if (!isAuthenticated) return <LoadingText>Please login…</LoadingText>;
   if (loading) return <LoadingText>Loading your profile…</LoadingText>;
+
+  console.log("[Profile] Coping strategies in ProfilePage →", {
+    copingWorked,
+    copingNotWorked,
+  });
 
   return (
     <>
@@ -469,6 +497,24 @@ export const ProfilePage: React.FC = () => {
               type="number"
               value={profile?.years_since_onset ?? ""}
               onChange={handleChange}
+            />
+
+            <SectionTitle>Coping Strategies</SectionTitle>
+
+            <FormInput
+              label="Strategies that worked for you"
+              name="coping_worked"
+              placeholder="e.g. fidget toy, deep breathing, wearing gloves"
+              value={copingWorked.join(", ")}
+              onChange={handleCopingInputChange}
+            />
+
+            <FormInput
+              label="Strategies that did not help"
+              name="coping_not_worked"
+              placeholder="e.g. journaling, stress ball"
+              value={copingNotWorked.join(", ")}
+              onChange={handleCopingInputChange}
             />
           </Section>
 
