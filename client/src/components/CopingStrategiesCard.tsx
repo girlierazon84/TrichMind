@@ -9,9 +9,9 @@ import failedIcon from "@/assets/icons/failed.png";
     🧩 Interfaces
 ----------------------*/
 export interface CopingStrategiesCardProps {
-    worked?: string[];
-    notWorked?: string[];
-    onToggle?: (name: string, bucket: "worked" | "notWorked") => void;
+  worked?: string[];
+  notWorked?: string[];
+  onToggle?: (name: string, bucket: "worked" | "notWorked") => void;
 }
 
 /**-------------------
@@ -28,6 +28,17 @@ const cardEnter = keyframes`
   }
 `;
 
+const pillEnter = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
 /**-------------------
     Styled Components
 ----------------------*/
@@ -39,9 +50,27 @@ const Card = styled.div`
   border-radius: ${({ theme }) => theme.radius.lg};
   box-shadow: ${({ theme }) => theme.colors.card_shadow};
   margin: ${({ theme }) => theme.spacing(4)} 0;
+
+  position: relative;
+  overflow: hidden;
+
   animation: ${cardEnter} 0.45s ease-out;
   transform-style: preserve-3d;
   transition: transform 0.22s ease-out, box-shadow 0.22s ease-out;
+
+  /* subtle gradient edge for more "3D" feel */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      circle at 0 0,
+      rgba(255, 255, 255, 0.12),
+      transparent 55%
+    );
+    opacity: 0.9;
+  }
 
   &:hover {
     transform: translateY(-4px) scale(1.01);
@@ -74,7 +103,7 @@ const PillRow = styled.div`
   justify-content: flex-start;
 `;
 
-const PillButton = styled.button<{ $type: "worked" | "notWorked" }>`
+const PillButton = styled.button<{ $type: "worked" | "notWorked"; $index: number }>`
   border: none;
   border-radius: 9999px;
   padding: 0.45rem 0.95rem;
@@ -82,17 +111,23 @@ const PillButton = styled.button<{ $type: "worked" | "notWorked" }>`
   font-weight: 500;
   cursor: pointer;
   background-color: ${({ $type }) =>
-        $type === "worked" ? "#21b2ba1a" : "#e74c3c1a"};
+    $type === "worked" ? "#21b2ba1a" : "#e74c3c1a"};
   color: ${({ $type }) => ($type === "worked" ? "#21b2ba" : "#e74c3c")};
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  transition: background-color 0.2s ease-out, transform 0.16s ease-out,
+  transition:
+    background-color 0.2s ease-out,
+    transform 0.16s ease-out,
     box-shadow 0.2s ease-out;
+
+  animation: ${pillEnter} 0.35s ease-out;
+  animation-delay: ${({ $index }) => $index * 60}ms;
+  animation-fill-mode: both;
 
   &:hover {
     background-color: ${({ $type }) =>
-        $type === "worked" ? "#21b2ba2b" : "#e74c3c2b"};
+      $type === "worked" ? "#21b2ba2b" : "#e74c3c2b"};
     box-shadow: 0 0 8px rgba(0, 0, 0, 0.07);
     transform: translateY(-1px);
   }
@@ -112,60 +147,62 @@ const PillButton = styled.button<{ $type: "worked" | "notWorked" }>`
     Coping Strategies Card Component
 ----------------------------------------*/
 export const CopingStrategiesCard: React.FC<CopingStrategiesCardProps> = ({
-    worked,
-    notWorked,
-    onToggle,
+  worked,
+  notWorked,
+  onToggle,
 }) => {
-    // Only use what the app passes in (HomePage via useCopingStrategies)
-    const resolvedWorked: string[] = worked ?? [];
-    const resolvedNotWorked: string[] = notWorked ?? [];
+  // Only use what the app passes in (HomePage via useCopingStrategies)
+  const resolvedWorked: string[] = worked ?? [];
+  const resolvedNotWorked: string[] = notWorked ?? [];
 
-    const hasAny =
-        (resolvedWorked && resolvedWorked.length > 0) ||
-        (resolvedNotWorked && resolvedNotWorked.length > 0);
+  const hasAny =
+    (resolvedWorked && resolvedWorked.length > 0) ||
+    (resolvedNotWorked && resolvedNotWorked.length > 0);
 
-    return (
-        <Card>
-            <TitleRow>
-                <Title>Coping Strategies</Title>
-                {hasAny && (
-                    <Subtitle>
-                        {resolvedWorked.length} helpful • {resolvedNotWorked.length} less helpful
-                    </Subtitle>
-                )}
-            </TitleRow>
+  return (
+    <Card>
+      <TitleRow>
+        <Title>Coping Strategies</Title>
+        {hasAny && (
+          <Subtitle>
+            {resolvedWorked.length} helpful • {resolvedNotWorked.length} less helpful
+          </Subtitle>
+        )}
+      </TitleRow>
 
-            {hasAny ? (
-                <PillRow>
-                    {resolvedWorked.map((name) => (
-                        <PillButton
-                            key={`worked-${name}`}
-                            $type="worked"
-                            onClick={() => onToggle?.(name, "worked")}
-                        >
-                            <img src={checkIcon} alt="Effective strategy" />
-                            {name}
-                        </PillButton>
-                    ))}
+      {hasAny ? (
+        <PillRow>
+          {resolvedWorked.map((name, index) => (
+            <PillButton
+              key={`worked-${name}`}
+              $type="worked"
+              $index={index}
+              onClick={() => onToggle?.(name, "worked")}
+            >
+              <img src={checkIcon} alt="Effective strategy" />
+              {name}
+            </PillButton>
+          ))}
 
-                    {resolvedNotWorked.map((name) => (
-                        <PillButton
-                            key={`notWorked-${name}`}
-                            $type="notWorked"
-                            onClick={() => onToggle?.(name, "notWorked")}
-                        >
-                            <img src={failedIcon} alt="Less effective strategy" />
-                            {name}
-                        </PillButton>
-                    ))}
-                </PillRow>
-            ) : (
-                <Subtitle>
-                    Add coping strategies in your profile or when registering to see them here.
-                </Subtitle>
-            )}
-        </Card>
-    );
+          {resolvedNotWorked.map((name, index) => (
+            <PillButton
+              key={`notWorked-${name}`}
+              $type="notWorked"
+              $index={resolvedWorked.length + index}
+              onClick={() => onToggle?.(name, "notWorked")}
+            >
+              <img src={failedIcon} alt="Less effective strategy" />
+              {name}
+            </PillButton>
+          ))}
+        </PillRow>
+      ) : (
+        <Subtitle>
+          Add coping strategies when registering or in your profile to see them here.
+        </Subtitle>
+      )}
+    </Card>
+  );
 };
 
 export default CopingStrategiesCard;
