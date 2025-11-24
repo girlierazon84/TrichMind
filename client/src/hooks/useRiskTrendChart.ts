@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { axiosClient } from "@/services";
 
-
 // ----------------------------------------------------
 // Local Types
 // ----------------------------------------------------
@@ -16,26 +15,36 @@ export interface HistoryPoint {
 // Hook: useRiskTrendChart
 // ----------------------------------------------------
 export const useRiskTrendChart = () => {
-    // State
     const [data, setData] = useState<HistoryPoint[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Effects
     useEffect(() => {
+        let alive = true;
+
         const fetchTrend = async () => {
+            setLoading(true);
+            setError(null);
+
             try {
-                const res = await axiosClient.get("/api/health/risk-trend");
+                const res = await axiosClient.get<{ trend: HistoryPoint[] }>(
+                    "/api/health/risk-trend"
+                );
+                if (!alive) return;
+
                 setData(res.data?.trend ?? []);
             } catch (err) {
                 console.error("[useRiskTrendChart] Failed to load trend:", err);
-                setError("Failed to load historical trend");
+                if (alive) setError("Failed to load historical trend");
             } finally {
-                setLoading(false);
+                if (alive) setLoading(false);
             }
         };
 
-        fetchTrend();
+        void fetchTrend();
+        return () => {
+            alive = false;
+        };
     }, []);
 
     return { data, loading, error };
