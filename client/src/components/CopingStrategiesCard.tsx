@@ -2,7 +2,6 @@
 
 import React from "react";
 import styled from "styled-components";
-import { fadeIn, slideUp } from "@/styles";
 import checkIcon from "@/assets/icons/check.png";
 import failedIcon from "@/assets/icons/failed.png";
 
@@ -21,7 +20,6 @@ const Card = styled.div`
     border-radius: 16px;
     box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
     margin: 1.5rem 0;
-    animation: ${fadeIn} 0.5s ease-out;
 `;
 
 const Title = styled.h3`
@@ -38,7 +36,7 @@ const PillRow = styled.div`
     justify-content: flex-start;
 `;
 
-const PillButton = styled.button<{ $type: "worked" | "notWorked"; $index: number }>`
+const PillButton = styled.button<{ $type: "worked" | "notWorked" }>`
     border: none;
     border-radius: 9999px;
     padding: 0.5rem 1rem;
@@ -52,9 +50,6 @@ const PillButton = styled.button<{ $type: "worked" | "notWorked"; $index: number
     align-items: center;
     gap: 0.5rem;
     transition: background-color 0.25s ease-out, transform 0.2s ease-out, box-shadow 0.25s ease-out;
-    animation: ${slideUp} 0.45s ease-out;
-    animation-delay: ${({ $index }) => $index * 80}ms;
-    animation-fill-mode: both;
 
     &:hover {
         background-color: ${({ $type }) =>
@@ -76,37 +71,42 @@ const PillButton = styled.button<{ $type: "worked" | "notWorked"; $index: number
     Coping Strategies Card Component
 ----------------------------------------*/
 export const CopingStrategiesCard: React.FC<CopingStrategiesCardProps> = ({
-    worked = ["Fidget toy"],
-    notWorked = ["Journaling"],
+    worked,
+    notWorked,
     onToggle,
-}) => (
-    <Card>
-        <Title>💪 Coping Strategies</Title>
-        <PillRow>
-            {worked.map((name, index) => (
-                <PillButton
-                    key={`worked-${name}`}
-                    $type="worked"
-                    $index={index}
-                    onClick={() => onToggle?.(name, "worked")}
-                >
-                    <img src={checkIcon} alt="Effective strategy" />
-                    {name}
-                </PillButton>
-            ))}
-            {notWorked.map((name, index) => (
-                <PillButton
-                    key={`notWorked-${name}`}
-                    $type="notWorked"
-                    $index={worked.length + index}
-                    onClick={() => onToggle?.(name, "notWorked")}
-                >
-                    <img src={failedIcon} alt="Less effective strategy" />
-                    {name}
-                </PillButton>
-            ))}
-        </PillRow>
-    </Card>
-);
+}) => {
+    // 🔹 Only use what the app passes in (HomePage via useCopingStrategies)
+    const resolvedWorked: string[] = worked ?? [];
+    const resolvedNotWorked: string[] = notWorked ?? [];
+
+    return (
+        <Card>
+            <Title>💪 Coping Strategies</Title>
+            <PillRow>
+                {resolvedWorked.map((name) => (
+                    <PillButton
+                        key={`worked-${name}`}
+                        $type="worked"
+                        onClick={() => onToggle?.(name, "worked")}
+                    >
+                        <img src={checkIcon} alt="Effective strategy" />
+                        {name}
+                    </PillButton>
+                ))}
+
+                {resolvedNotWorked.map((name) => (
+                    <PillButton
+                        key={`notWorked-${name}`}
+                        $type="notWorked"
+                        onClick={() => onToggle?.(name, "notWorked")}
+                    >
+                        <img src={failedIcon} alt="Less effective strategy" />
+                        {name}
+                    </PillButton>
+                ))}
+            </PillRow>
+        </Card>
+    );
+};
 
 export default CopingStrategiesCard;
