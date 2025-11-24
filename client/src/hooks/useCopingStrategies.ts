@@ -6,24 +6,23 @@ import { useState, useEffect, useCallback } from "react";
 const STORAGE_WORKED = "tm_coping_worked";
 const STORAGE_NOT_WORKED = "tm_coping_not_worked";
 
-// Safely parse a JSON array from localStorage, with fallback
-const safeParseArray = (raw: string | null, fallback: string[]): string[] => {
-    if (!raw) return fallback;
+// Safely parse a JSON array from localStorage → always returns an array
+const safeParseArray = (raw: string | null): string[] => {
+    if (!raw) return [];
     try {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
             return parsed.map(String).filter(Boolean);
         }
-        return fallback;
+        return [];
     } catch {
-        return fallback;
+        return [];
     }
 };
 
 // Types
 export type CopingBucket = "worked" | "notWorked";
 
-// Hook return type
 export interface UseCopingStrategiesResult {
     worked: string[];
     notWorked: string[];
@@ -33,28 +32,23 @@ export interface UseCopingStrategiesResult {
 }
 
 /**---------------------------------------------------
-    Central source of truth for coping strategies:
-    • Hydrates from localStorage on mount
-    • Can be updated from backend (/api/auth/me)
-    • Persists all changes back to localStorage
+  Central source of truth for coping strategies:
+  • Hydrates from localStorage on mount
+  • Can be updated from backend (/api/auth/me)
+  • Persists all changes back to localStorage
 ------------------------------------------------------*/
 export const useCopingStrategies = (): UseCopingStrategiesResult => {
     const [worked, setWorked] = useState<string[]>([]);
     const [notWorked, setNotWorked] = useState<string[]>([]);
 
-    // Initial hydrate from localStorage (no defaults, just user data)
+    // Initial hydrate from localStorage
     useEffect(() => {
         try {
-            const w = safeParseArray(
-                localStorage.getItem(STORAGE_WORKED),
-                []
-            );
-            const n = safeParseArray(
-                localStorage.getItem(STORAGE_NOT_WORKED),
-                []
-            );
+            const w = safeParseArray(localStorage.getItem(STORAGE_WORKED));
+            const n = safeParseArray(localStorage.getItem(STORAGE_NOT_WORKED));
             setWorked(w);
             setNotWorked(n);
+            console.log("[Coping] Hydrated from localStorage →", { worked: w, notWorked: n });
         } catch {
             setWorked([]);
             setNotWorked([]);
@@ -66,12 +60,16 @@ export const useCopingStrategies = (): UseCopingStrategiesResult => {
         try {
             localStorage.setItem(STORAGE_WORKED, JSON.stringify(nextWorked));
             localStorage.setItem(STORAGE_NOT_WORKED, JSON.stringify(nextNotWorked));
+            console.log("[Coping] Persisted to localStorage →", {
+                worked: nextWorked,
+                notWorked: nextNotWorked,
+            });
         } catch {
             // ignore storage errors
         }
     }, []);
 
-    // Update from backend data (no defaults injected)
+    // STABLE: Update from backend data (never nukes existing arrays if backend is empty)
     const setFromBackend = useCallback(
         (backendWorked?: string[] | null, backendNotWorked?: string[] | null) => {
             setWorked((prevWorked) => {
@@ -84,7 +82,6 @@ export const useCopingStrategies = (): UseCopingStrategiesResult => {
                         ? backendNotWorked.map(String).filter(Boolean)
                         : prevNotWorked;
 
-                    // Persist both together
                     persist(w, n);
                     return n;
                 });
@@ -92,7 +89,7 @@ export const useCopingStrategies = (): UseCopingStrategiesResult => {
                 return w;
             });
         },
-        [persist]
+        [persist],
     );
 
     // Toggle strategy in a bucket, using functional state updates
@@ -133,19 +130,23 @@ export const useCopingStrategies = (): UseCopingStrategiesResult => {
                 });
             }
         },
-        [persist]
+        [persist],
     );
 
-    // Reset: just clear the user's strategies
+    // Reset: clear everything
     const reset = useCallback(() => {
-        const w: string[] = [];
-        const n: string[] = [];
-        setWorked(w);
-        setNotWorked(n);
-        persist(w, n);
+        setWorked([]);
+        setNotWorked([]);
+        persist([], []);
     }, [persist]);
 
-    return { worked, notWorked, setFromBackend, toggleStrategy, reset };
+    return {
+        worked,
+        notWorked,
+        setFromBackend,
+        toggleStrategy,
+        reset
+    };
 };
 
 export default useCopingStrategies;
