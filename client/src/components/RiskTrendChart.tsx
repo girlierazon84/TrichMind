@@ -10,10 +10,8 @@ import {
     Tooltip,
     CartesianGrid,
     ResponsiveContainer,
-    Legend,
-    ReferenceArea,
 } from "recharts";
-import { useRiskTrendChart, usePredictedRiskTrend } from "@/hooks";
+import { useRiskTrendChart } from "@/hooks";
 import { InsightsIcon } from "@/assets/icons";
 
 /* Animations */
@@ -27,39 +25,13 @@ const fadeIn = keyframes`
     to   { opacity: 1; }
 `;
 
-// Local Types
+/* Local Types – mirrors useRiskTrendChart */
 export interface HistoryPoint {
     date: string;
-    score: number;
+    score: number; // 0–1 from backend, we'll convert to %
 }
 
-interface PastPoint {
-    date: string;
-    risk_score: number;
-    type: "past";
-}
-
-interface FuturePoint {
-    date: string;
-    risk_score: number;
-    type: "future";
-}
-
-interface PredictionPoint {
-    day: number;
-    predicted_risk: number;
-}
-
-type MergedPoint = PastPoint | FuturePoint;
-
-// Tooltip helper types
-type TooltipValue = number | string;
-type TooltipName = string;
-interface TooltipItem {
-    payload?: MergedPoint;
-}
-
-/* Styled Components - mobile first */
+/* Styled Components */
 const ChartWrapper = styled.div`
     perspective: 900px;
     width: 100%;
@@ -129,73 +101,43 @@ const Message = styled.p`
     font-size: 0.85rem;
 `;
 
-
-// Main Component
+// -------------------------------------------------------
+// 🔮 RiskTrendChart – USER HISTORY ONLY (no demo / no ML)
+// -------------------------------------------------------
 export const RiskTrendChart: React.FC = () => {
     const theme = useTheme();
+    const { data: history, loading, error } = useRiskTrendChart();
 
-    const { data: history, loading: histLoading, error: histError } =
-        useRiskTrendChart();
+    const chartData = useMemo(
+        () =>
+            (history ?? []).map((item: HistoryPoint) => ({
+                date: item.date,
+                // backend stores 0–1, chart wants 0–100
+                risk_score: item.score * 100,
+            })),
+        [history]
+    );
 
-    const {
-        trend: predicted,
-        loading: predLoading,
-        error: predError,
-    } = usePredictedRiskTrend(14);
-
-    const loading = histLoading || predLoading;
-    const error = histError || predError;
-
-    const { mergedData, forecastStartIndex } = useMemo(() => {
-        const past: PastPoint[] = (history ?? []).map((item: HistoryPoint) => ({
-            date: item.date,
-            risk_score: item.score * 100,
-            type: "past",
-        }));
-
-        const lastDate = past.length
-            ? new Date(past[past.length - 1].date)
-            : new Date();
-
-        const future: FuturePoint[] = (predicted ?? []).map(
-            (p: PredictionPoint, i) => {
-                const d = new Date(lastDate);
-                d.setDate(d.getDate() + (i + 1));
-                return {
-                    date: d.toISOString(),
-                    risk_score: p.predicted_risk * 100,
-                    type: "future",
-                };
-            }
+    if (loading) return <Message>Loading your trend data…</Message>;
+    if (error) return <ErrorText>⚠️ Failed to load your risk history.</ErrorText>;
+    if (!chartData.length)
+        return (
+            <Message>
+                No trend data yet. Log a few check-ins to see your personal relapse risk
+                history here.
+            </Message>
         );
-
-        const merged: MergedPoint[] = [...past, ...future];
-
-        return {
-            mergedData: merged,
-            forecastStartIndex: past.length - 1,
-        };
-    }, [history, predicted]);
-
-    if (loading) return <Message>Loading trend data...</Message>;
-    if (error) return <ErrorText>⚠️ Failed to load risk trends.</ErrorText>;
-    if (!mergedData.length) return <Message>No trend data available.</Message>;
-
-    const forecastStartDate =
-        mergedData[forecastStartIndex]?.date ?? mergedData[0].date;
 
     return (
         <ChartWrapper>
             <HeaderRow>
                 <Icon src={InsightsIcon} alt="Insights icon" />
-                <ChartTitle>
-                    Combined Relapse Risk Trend (History + 14-Day Forecast)
-                </ChartTitle>
+                <ChartTitle>Your Relapse Risk History</ChartTitle>
             </HeaderRow>
 
             <ResponsiveContainer width="100%" height="100%">
                 <LineChart
-                    data={mergedData}
+                    data={chartData}
                     margin={{ top: 10, right: 8, left: -10, bottom: 0 }}
                 >
                     <defs>
@@ -221,7 +163,6 @@ export const RiskTrendChart: React.FC = () => {
                     <CartesianGrid strokeDasharray="2 2" stroke="#ddd" />
 
                     <XAxis
-                        className="x-axis"
                         dataKey="date"
                         stroke={theme.colors.text_secondary}
                         tickMargin={6}
@@ -241,27 +182,8 @@ export const RiskTrendChart: React.FC = () => {
                         width={40}
                     />
 
-                    {/* Forecast highlight area */}
-                    <ReferenceArea
-                        x1={forecastStartDate}
-                        x2={mergedData[mergedData.length - 1].date}
-                        fill={theme.colors.sixthly}
-                        fillOpacity={0.12}
-                    />
-
                     <Tooltip
-                        formatter={(
-                            value: TooltipValue,
-                            _name: TooltipName,
-                            item: TooltipItem
-                        ) => {
-                            const numeric =
-                                typeof value === "number" ? value : Number(value);
-                            const point = item.payload;
-                            const label =
-                                point?.type === "past" ? "Historical" : "Forecast";
-                            return [`${numeric.toFixed(1)}%`, label];
-                        }}
+                        formatter={(value: number) => [`${value.toFixed(1)}%`, "Risk"]}
                         labelFormatter={(label: string) =>
                             new Date(label).toLocaleDateString(undefined, {
                                 month: "short",
@@ -276,40 +198,14 @@ export const RiskTrendChart: React.FC = () => {
                         labelStyle={{ fontSize: "0.75rem" }}
                     />
 
-                    <Legend
-                        formatter={(value: string) =>
-                            value === "past"
-                                ? "Historical"
-                                : value === "future"
-                                ? "Forecast"
-                                : value
-                        }
-                        wrapperStyle={{ fontSize: "0.75rem", paddingTop: 4 }}
-                    />
-
-                    {/* Past (solid line) */}
                     <Line
                         type="monotone"
                         dataKey="risk_score"
                         stroke="url(#riskGradient)"
                         strokeWidth={3}
                         dot={{ r: 3 }}
-                        name="past"
-                        data={mergedData.filter((d) => d.type === "past")}
                         isAnimationActive={false}
-                    />
-
-                    {/* Future (dashed line) */}
-                    <Line
-                        type="monotone"
-                        dataKey="risk_score"
-                        stroke={theme.colors.medium_risk}
-                        strokeDasharray="6 6"
-                        strokeWidth={3}
-                        dot={false}
-                        name="future"
-                        data={mergedData.filter((d) => d.type === "future")}
-                        isAnimationActive={false}
+                        name="Risk"
                     />
                 </LineChart>
             </ResponsiveContainer>
