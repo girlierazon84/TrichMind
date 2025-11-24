@@ -32,17 +32,35 @@ export const RegisterSchema = z.object({
     successfully_stopped_encoded: z.coerce.boolean().optional(),
     how_long_stopped_days_est: z.coerce.number().min(0).optional(),
     emotion: z.string().trim().optional(),
+
+    // ⬇️ NEW: coping strategies from registration form
+    // Accept either comma-separated string or array of strings
+    coping_worked: z
+        .union([
+            z.string().trim(),          // "fidget toy, deep breathing"
+            z.array(z.string().trim()), // ["fidget toy", "deep breathing"]
+        ])
+        .optional(),
+
+    coping_not_worked: z
+        .union([
+            z.string().trim(),
+            z.array(z.string().trim()),
+        ])
+        .optional(),
 });
+
 // DTO type for user registration
 export type RegisterDTO = z.infer<typeof RegisterSchema>;
 
-/**--------------
-🔑 Login schema
------------------**/
+/**---------------------
+    🔑 Login schema
+------------------------**/
 export const LoginSchema = z.object({
     email: z.string().email(),
     password: z.string().min(1, "Password is required"),
 });
+
 // DTO type for user login
 export type LoginDTO = z.infer<typeof LoginSchema>;
 
