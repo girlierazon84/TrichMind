@@ -74,9 +74,10 @@ const Wrapper = styled.div<{ $risk: "low" | "medium" | "high" }>`
     align-items: center;
     text-align: center;
 
+    perspective: 900px;
     width: 100%;
     max-width: 960px;
-    margin: 0 auto 2rem;
+    margin: 2rem 0 0 0;;
 
     padding: 1.8rem 1rem;
     background: ${({ theme }) => theme.colors.card_bg};
