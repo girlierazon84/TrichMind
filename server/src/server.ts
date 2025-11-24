@@ -64,7 +64,7 @@ app.use(express.json());
 // ✅ API Routes
 // -----------------------------
 app.use("/api/alerts", alertRoutes);                 // 🔔 Alerts (relapse risk)
-app.use("/api/auth", authRoutes);                    // 🔐 Authentication
+app.use("/api/auth", authRoutes);                    // 🔐 Authentication (+ /me)
 app.use("/api/health", healthRoutes);                // 🩺 Health logs
 app.use("/api/journal", journalRoutes);              // 📔 Journals
 app.use("/api/logs", loggerRoutes);                  // 🪵 Logger
