@@ -28,17 +28,6 @@ const cardEnter = keyframes`
   }
 `;
 
-const pillEnter = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
-
 /**-------------------
     Styled Components
 ----------------------*/
@@ -50,27 +39,9 @@ const Card = styled.div`
   border-radius: ${({ theme }) => theme.radius.lg};
   box-shadow: ${({ theme }) => theme.colors.card_shadow};
   margin: ${({ theme }) => theme.spacing(4)} 0;
-
-  position: relative;
-  overflow: hidden;
-
   animation: ${cardEnter} 0.45s ease-out;
   transform-style: preserve-3d;
   transition: transform 0.22s ease-out, box-shadow 0.22s ease-out;
-
-  /* subtle gradient edge for more "3D" feel */
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: radial-gradient(
-      circle at 0 0,
-      rgba(255, 255, 255, 0.12),
-      transparent 55%
-    );
-    opacity: 0.9;
-  }
 
   &:hover {
     transform: translateY(-4px) scale(1.01);
@@ -103,7 +74,7 @@ const PillRow = styled.div`
   justify-content: flex-start;
 `;
 
-const PillButton = styled.button<{ $type: "worked" | "notWorked"; $index: number }>`
+const PillButton = styled.button<{ $type: "worked" | "notWorked" }>`
   border: none;
   border-radius: 9999px;
   padding: 0.45rem 0.95rem;
@@ -120,10 +91,6 @@ const PillButton = styled.button<{ $type: "worked" | "notWorked"; $index: number
     background-color 0.2s ease-out,
     transform 0.16s ease-out,
     box-shadow 0.2s ease-out;
-
-  animation: ${pillEnter} 0.35s ease-out;
-  animation-delay: ${({ $index }) => $index * 60}ms;
-  animation-fill-mode: both;
 
   &:hover {
     background-color: ${({ $type }) =>
@@ -172,11 +139,10 @@ export const CopingStrategiesCard: React.FC<CopingStrategiesCardProps> = ({
 
       {hasAny ? (
         <PillRow>
-          {resolvedWorked.map((name, index) => (
+          {resolvedWorked.map((name) => (
             <PillButton
               key={`worked-${name}`}
               $type="worked"
-              $index={index}
               onClick={() => onToggle?.(name, "worked")}
             >
               <img src={checkIcon} alt="Effective strategy" />
@@ -184,11 +150,10 @@ export const CopingStrategiesCard: React.FC<CopingStrategiesCardProps> = ({
             </PillButton>
           ))}
 
-          {resolvedNotWorked.map((name, index) => (
+          {resolvedNotWorked.map((name) => (
             <PillButton
               key={`notWorked-${name}`}
               $type="notWorked"
-              $index={resolvedWorked.length + index}
               onClick={() => onToggle?.(name, "notWorked")}
             >
               <img src={failedIcon} alt="Less effective strategy" />
