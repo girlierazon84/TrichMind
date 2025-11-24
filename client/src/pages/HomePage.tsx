@@ -29,13 +29,11 @@ export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 
 export interface MeResponse {
     user?: {
-        // Core fields
         email: string;
         displayName?: string;
         avatarUrl?: string;
         date_of_birth?: string;
 
-        // Raw fields from registration – might or might not be present
         age?: number;
         age_of_onset?: number;
         years_since_onset?: number;
@@ -46,14 +44,12 @@ export interface MeResponse {
         how_long_stopped_days?: number;
         emotion?: string;
 
-        // Optional encoded / derived fields
         pulling_frequency_encoded?: number;
         awareness_level_encoded?: number;
         how_long_stopped_days_est?: number;
         successfully_stopped_encoded?: number;
         emotion_intensity_sum?: number;
 
-        // Coping strategies from backend
         coping_worked?: string[];
         coping_not_worked?: string[];
     };
@@ -90,7 +86,6 @@ const Header = styled.header`
     }
 `;
 
-// User Menu / Avatar Styles
 const UserMenuWrapper = styled.div`
     position: relative;
 `;
@@ -176,7 +171,7 @@ const WelcomeText = styled.h2`
     color: ${({ theme }) => theme.colors.text_primary};
 `;
 
-// Skeleton + Welcome modal styled components (no shimmer/animations)
+// Skeletons
 const SkeletonCircle = styled.div`
     width: 40px;
     height: 40px;
@@ -313,7 +308,6 @@ export const HomePage: React.FC = () => {
         const loadDashboard = async () => {
             setLoading(true);
             try {
-                // 1) Fetch user (for avatar, name, coping strategies)
                 const meRes = await axiosClient.get<MeResponse>("/api/auth/me");
                 if (cancelled) return;
 
@@ -322,18 +316,12 @@ export const HomePage: React.FC = () => {
 
                 if (!u) throw new Error("Missing user");
 
-                // Avatar
-                if (u.avatarUrl) {
-                    setAvatarUrl(u.avatarUrl as string);
-                } else {
-                    setAvatarUrl(null);
-                }
+                setAvatarUrl(u.avatarUrl ?? null);
 
                 // Coping strategies → hook (also syncs localStorage)
-                // If backend arrays are undefined/null, hook keeps existing values (e.g. from localStorage)
                 setFromBackend(u.coping_worked, u.coping_not_worked);
 
-                // 2) Load last prediction from localStorage
+                // last prediction
                 try {
                     const stored = localStorage.getItem("tm_last_prediction");
                     if (stored) {
@@ -346,12 +334,8 @@ export const HomePage: React.FC = () => {
                         const band = (parsed.risk_bucket ?? "medium").toUpperCase() as RiskLevel;
                         setBucket(band);
 
-                        if (parsed.risk_code) {
-                            setRiskCode(parsed.risk_code);
-                        }
-                        if (parsed.model_version) {
-                            setModelVersion(parsed.model_version);
-                        }
+                        if (parsed.risk_code) setRiskCode(parsed.risk_code);
+                        if (parsed.model_version) setModelVersion(parsed.model_version);
                     } else {
                         console.warn(
                             "[Dashboard] No stored prediction found (tm_last_prediction); using defaults"
@@ -369,14 +353,11 @@ export const HomePage: React.FC = () => {
                     navigate("/login");
                 }
             } finally {
-                if (!cancelled) {
-                    setLoading(false);
-                }
+                if (!cancelled) setLoading(false);
             }
         };
 
         void loadDashboard();
-
         return () => {
             cancelled = true;
         };
@@ -433,10 +414,7 @@ export const HomePage: React.FC = () => {
 
     const headerAvatar = avatarUrl || UserIcon;
 
-    console.log(
-        "[Dashboard] Final predictionData passed to RiskResultCard →",
-        predictionData
-    );
+    console.log("[Dashboard] Final predictionData →", predictionData);
     console.log("[Dashboard] Coping strategies in HomePage →", {
         copingWorked,
         copingNotWorked,
@@ -452,16 +430,11 @@ export const HomePage: React.FC = () => {
 
                     <UserMenuWrapper ref={menuRef}>
                         <AvatarButton onClick={toggleMenu}>
-                            <AvatarImage
-                                src={headerAvatar}
-                                alt="User avatar"
-                            />
+                            <AvatarImage src={headerAvatar} alt="User avatar" />
                         </AvatarButton>
 
                         <DropdownMenu open={menuOpen}>
-                            <MenuItem onClick={() => navigate("/profile")}>
-                                Profile
-                            </MenuItem>
+                            <MenuItem onClick={() => navigate("/profile")}>Profile</MenuItem>
 
                             <MenuItem
                                 onClick={() => {
@@ -511,10 +484,9 @@ export const HomePage: React.FC = () => {
                             Welcome back, {user?.displayName || "TrichMind friend"} 💜
                         </WelcomeTitle>
                         <WelcomeBody>
-                            Your dashboard has been refreshed with your latest relapse
-                            risk prediction and progress data. Take a slow breath,
-                            notice how you feel, and move through the tools at your own
-                            pace.
+                            Your dashboard has been refreshed with your latest relapse risk
+                            prediction and progress data. Take a slow breath, notice how you
+                            feel, and move through the tools at your own pace.
                         </WelcomeBody>
                         <ThemeButton onClick={() => setShowWelcome(false)}>
                             Let&apos;s begin
