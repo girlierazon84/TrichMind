@@ -28,9 +28,7 @@ const TableWrapper = styled.div`
 
 const HeaderRow = styled.div`
     display: flex;
-    align-items: center;
     gap: 0.6rem;
-    margin-bottom: 1rem;
 `;
 
 const Icon = styled.img`
@@ -57,13 +55,13 @@ const GridRow = styled.div`
 `;
 
 const DayLabel = styled.div`
-    font-size: 0.9rem;
+    font-size: 0.75rem;
     color: ${({ theme }) => theme.colors.text_secondary};
 `;
 
 const RiskValue = styled.div<{ score: number }>`
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 0.75rem;
     color: ${({ score, theme }) =>
         score > 70
             ? theme.colors.high_risk
