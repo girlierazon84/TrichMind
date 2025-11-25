@@ -111,7 +111,7 @@ const TRIGGER_OPTIONS: {
     { key: "Stress", label: "Stress", emoji: "🔥" },
     { key: "Boredom", label: "Boredom", emoji: "💤" },
     { key: "Anxiety", label: "Anxiety", emoji: "😟" },
-    { key: "Fatigue", label: "Tired / Low energy", emoji: "😴" },
+    { key: "Fatigue", label: "Tired / low energy", emoji: "😴" },
     {
         key: "BodyFocus",
         label: "Body focus (skin, hair, scalp…)",
@@ -208,7 +208,7 @@ const SectionTitleRow = styled.div`
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.35rem;
 `;
 
 const SectionTitle = styled.h3`
@@ -218,9 +218,24 @@ const SectionTitle = styled.h3`
 `;
 
 const SectionSub = styled.p`
-    margin: 0 0 0.6rem;
-    font-size: 0.75rem;
+    margin: 0 0 0.45rem;
+    font-size: 0.74rem;
     color: ${(props) => props.theme.colors.text_secondary};
+`;
+
+// Small “hint” line for optional microcopy
+const SectionHint = styled.p`
+    margin: 0 0 0.35rem;
+    font-size: 0.7rem;
+    color: ${(props) => props.theme.colors.text_secondary};
+    opacity: 0.9;
+`;
+
+// Thin divider to visually soften long content
+const SoftDivider = styled.hr`
+    border: none;
+    border-top: 1px dashed rgba(0, 0, 0, 0.06);
+    margin: 0.7rem 0 0.5rem;
 `;
 
 // Specific label for the select to satisfy a11y rules
@@ -242,7 +257,7 @@ const PromptSelect = styled.select`
     font-size: 0.85rem;
     background: #f6fbfc;
     color: ${(props) => props.theme.colors.text_primary};
-    margin-bottom: 0.7rem;
+    margin-bottom: 0.6rem;
     outline: none;
 
     &:focus {
@@ -253,7 +268,7 @@ const PromptSelect = styled.select`
 
 const TextArea = styled.textarea`
     width: 100%;
-    min-height: 120px;
+    min-height: 110px;
     border-radius: 14px;
     border: 1px solid ${(props) => props.theme.colors.fourthly};
     padding: 0.65rem 0.8rem;
@@ -277,15 +292,15 @@ const TextArea = styled.textarea`
 const MoodRow = styled.div`
     display: flex;
     flex-wrap: wrap;
-    gap: 0.75rem;
-    margin: 0.4rem 0 0.6rem;
+    gap: 0.55rem;
+    margin: 0.3rem 0 0.4rem;
 `;
 
 const MoodOption = styled.label<{ $active: boolean }>`
     display: flex;
     align-items: center;
     gap: 0.35rem;
-    padding: 0.35rem 0.6rem;
+    padding: 0.3rem 0.55rem;
     border-radius: 999px;
     border: 1px solid
         ${(props) =>
@@ -309,15 +324,15 @@ const MoodOption = styled.label<{ $active: boolean }>`
 const TriggerRow = styled.div`
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin: 0.35rem 0 0.4rem;
+    gap: 0.45rem;
+    margin: 0.3rem 0 0.3rem;
 `;
 
 const TriggerChip = styled.button<{ $active: boolean }>`
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    padding: 0.3rem 0.6rem;
+    padding: 0.28rem 0.6rem;
     border-radius: 999px;
     border: 1px solid
         ${({ $active, theme }) =>
@@ -359,7 +374,7 @@ const SliderLabelRow = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.2rem;
 
     span:first-child {
         font-size: 0.8rem;
@@ -379,7 +394,7 @@ const RangeInput = styled.input.attrs({ type: "range" })`
     border-radius: 999px;
     background: #ffd9df;
     outline: none;
-    margin: 0.25rem 0 0.3rem;
+    margin: 0.2rem 0 0.25rem;
 
     &::-webkit-slider-thumb {
         appearance: none;
@@ -406,7 +421,7 @@ const TickRow = styled.div`
     justify-content: space-between;
     font-size: 0.7rem;
     color: ${(props) => props.theme.colors.text_secondary};
-    margin-top: 0.1rem;
+    margin-top: 0.05rem;
 `;
 
 // ---- Buttons / Meta ----
@@ -474,8 +489,8 @@ const EmptyState = styled.p`
 
 // Chart container
 const TrendChartWrapper = styled.div`
-    margin-top: 0.75rem;
-    height: 140px;
+    margin-top: 0.6rem;
+    height: 130px;
 
     .recharts-cartesian-axis-tick-value {
         font-size: 0.6rem;
@@ -641,6 +656,9 @@ export const JournalPage: React.FC = () => {
         [entries]
     );
 
+    // limit past entries shown to avoid overwhelm
+    const recentEntries = entries.slice(0, 5);
+
     return (
         <PageWrapper>
             <Content>
@@ -650,7 +668,7 @@ export const JournalPage: React.FC = () => {
                         <HeaderTitleGroup>
                             <HeaderTitle>Journal</HeaderTitle>
                             <HeaderSubtitle>
-                                Check in on your mood, triggers, urges, and reflections.
+                                Gentle check-ins for mood, triggers and urges.
                             </HeaderSubtitle>
                         </HeaderTitleGroup>
                     </HeaderLeft>
@@ -663,12 +681,12 @@ export const JournalPage: React.FC = () => {
                 {/* Today’s Check-in & Reflection */}
                 <Card>
                     <SectionTitleRow>
-                        <SectionTitle>Today&apos;s Check-in</SectionTitle>
+                        <SectionTitle>Today&apos;s check-in</SectionTitle>
                     </SectionTitleRow>
-                    <SectionSub>
-                        A quick daily snapshot to help you and TrichMind learn your
-                        patterns over time.
-                    </SectionSub>
+                    <SectionHint>
+                        You don&apos;t have to fill in everything – just what feels
+                        helpful today.
+                    </SectionHint>
 
                     <DateRow>
                         <img src={CalendarClockIcon} alt="Date & time" />
@@ -676,13 +694,11 @@ export const JournalPage: React.FC = () => {
                     </DateRow>
 
                     {/* 1. Mood */}
+                    <SoftDivider />
                     <SectionTitleRow>
-                        <SectionTitle>1. Mood right now</SectionTitle>
+                        <SectionTitle>Mood</SectionTitle>
                     </SectionTitleRow>
-                    <SectionSub>
-                        Choose the mood that fits best. This helps link feelings with
-                        urge levels.
-                    </SectionSub>
+                    <SectionSub>Tap the mood that fits you best right now.</SectionSub>
 
                     <MoodRow>
                         {MOOD_OPTIONS.map((opt) => (
@@ -702,13 +718,13 @@ export const JournalPage: React.FC = () => {
                         ))}
                     </MoodRow>
 
-                    {/* 2. Triggers before / around urges */}
+                    {/* 2. Triggers */}
+                    <SoftDivider />
                     <SectionTitleRow>
-                        <SectionTitle>2. What may be triggering the urge?</SectionTitle>
+                        <SectionTitle>Possible triggers</SectionTitle>
                     </SectionTitleRow>
                     <SectionSub>
-                        Pick one or more that fit. This helps your future Insights and
-                        relapse-risk model.
+                        If you notice anything around the urge, you can mark it here.
                     </SectionSub>
 
                     <TriggerRow>
@@ -732,19 +748,21 @@ export const JournalPage: React.FC = () => {
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                                 setTriggerNotes(e.target.value)
                             }
-                            placeholder="Briefly describe what was going on (optional)…"
+                            placeholder="Add a short note (optional)…"
                             aria-label="Describe other trigger"
                         />
                     )}
 
                     {/* 3. Urge intensity */}
-                    <SectionTitleRow style={{ marginTop: "0.7rem" }}>
-                        <SectionTitle>3. Urge intensity (0–10)</SectionTitle>
+                    <SoftDivider />
+                    <SectionTitleRow>
+                        <SectionTitle>Urge level</SectionTitle>
                     </SectionTitleRow>
+                    <SectionSub>How strong is the urge to pull right now?</SectionSub>
 
                     <SliderLabelRow>
-                        <span>How strong is the urge to pull right now?</span>
-                        <span>{urgeIntensity}</span>
+                        <span>Current urge</span>
+                        <span>{urgeIntensity}/10</span>
                     </SliderLabelRow>
                     <RangeInput
                         min={0}
@@ -766,15 +784,15 @@ export const JournalPage: React.FC = () => {
                         <span>10</span>
                     </TickRow>
 
-                    {/* 4. Guided reflection */}
-                    <SectionTitleRow style={{ marginTop: "0.9rem" }}>
+                    {/* 4. Short reflection */}
+                    <SoftDivider />
+                    <SectionTitleRow>
                         <PromptLabel htmlFor="journal-prompt-select">
-                            4. Guided reflection
+                            Short note (optional)
                         </PromptLabel>
                     </SectionTitleRow>
                     <SectionSub>
-                        Choose a prompt or keep the current one, then write whatever feels
-                        most helpful.
+                        Pick a prompt if you like, or just write a few lines.
                     </SectionSub>
 
                     <PromptSelect
@@ -798,7 +816,7 @@ export const JournalPage: React.FC = () => {
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                             setText(e.target.value)
                         }
-                        placeholder="Type your thoughts here… You can describe what happened, how you coped, or what you’d like to try next time."
+                        placeholder="Write as little or as much as you want. This space is just for you."
                         title="Journal reflection"
                     />
 
@@ -811,22 +829,22 @@ export const JournalPage: React.FC = () => {
                 {/* Past Entries Card */}
                 <Card>
                     <SectionTitleRow>
-                        <SectionTitle>Past Entries</SectionTitle>
+                        <SectionTitle>Recent entries</SectionTitle>
                     </SectionTitleRow>
                     <SectionSub>
-                        Look back on how your mood, triggers and urges have been shifting
-                        over time.
+                        A quick view of your latest check-ins. Older entries are still
+                        used in your Insights.
                     </SectionSub>
 
                     {entriesLoading ? (
                         <EmptyState>Loading past entries…</EmptyState>
-                    ) : entries.length === 0 ? (
+                    ) : recentEntries.length === 0 ? (
                         <EmptyState>
-                            No entries yet. Save a journal entry to see your history here.
+                            No entries yet. When you save a check-in, it will appear here.
                         </EmptyState>
                     ) : (
                         <LogsList>
-                            {entries.map((e) => {
+                            {recentEntries.map((e) => {
                                 const triggerLabel =
                                     e.preUrgeTriggers && e.preUrgeTriggers.length > 0
                                         ? ` • Triggers: ${e.preUrgeTriggers.join(", ")}`
@@ -855,17 +873,16 @@ export const JournalPage: React.FC = () => {
                 {/* Trend Insights Card (separate, under Past Entries) */}
                 <Card>
                     <SectionTitleRow>
-                        <SectionTitle>Trend Insights</SectionTitle>
+                        <SectionTitle>Trend insights</SectionTitle>
                     </SectionTitleRow>
                     <SectionSub>
-                        Visual overview of how your urge intensity has been changing over
-                        your last few entries. These patterns will also feed your relapse
-                        risk model.
+                        A gentle snapshot of how your urge levels have changed across
+                        recent entries.
                     </SectionSub>
 
                     {trendData.length < 2 ? (
                         <EmptyState>
-                            Add a few more entries to see your urge intensity trend here.
+                            After a few more check-ins, you’ll see your urge trend here.
                         </EmptyState>
                     ) : (
                         <TrendChartWrapper>
