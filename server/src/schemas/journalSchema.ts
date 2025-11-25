@@ -29,6 +29,7 @@ export type MoodName = (typeof PRE_URGE_MOODS)[number];
 export const JournalCreateSchema = z.object({
     prompt: z.string().trim().optional(),
     text: z.string().trim().default(""),
+
     // categorical mood before/around pulling
     mood: z.enum(PRE_URGE_MOODS).optional(),
 
@@ -39,6 +40,18 @@ export const JournalCreateSchema = z.object({
 
     // overall urge intensity before/after pulling
     urgeIntensity: z.coerce.number().min(0).max(10).optional(),
+
+    // 🔹 NEW: structured pre-urge triggers from JournalPage chips
+    preUrgeTriggers: z
+        .array(z.string().trim().min(1))
+        .optional(),
+
+    // 🔹 NEW: optional free-text notes about triggers
+    preUrgeTriggerNotes: z
+        .string()
+        .trim()
+        .max(1000)
+        .optional(),
 });
 
 // Type for creating journal entries
