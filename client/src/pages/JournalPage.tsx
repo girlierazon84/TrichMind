@@ -31,7 +31,20 @@ interface JournalEntryView {
     mood?: string;
     urgeIntensity?: number;
     createdAt: string;
+
+    // new, structured trigger info (optional while backend catches up)
+    preUrgeTriggers?: string[];
+    preUrgeTriggerNotes?: string;
 }
+
+// Extend API type with extra numeric features used for ML
+type JournalEntryWithMetrics = JournalEntry & {
+    preUrgeTriggers?: string[];
+    preUrgeTriggerNotes?: string;
+    stress?: number;
+    calm?: number;
+    happy?: number;
+};
 
 // Canonical mood set (must match backend PRE_URGE_MOODS + "Bored")
 type MoodName =
@@ -78,8 +91,38 @@ const STRESS_MOODS: MoodName[] = [
 const CALM_MOODS: MoodName[] = ["Calm", "Tired", "Neutral"];
 const HAPPY_MOODS: MoodName[] = ["Happy", "Proud", "Hopeful"];
 
+// ---- Trigger tags (simple, structured pre-urge triggers) ----
+type TriggerKey =
+    | "Stress"
+    | "Boredom"
+    | "Anxiety"
+    | "Fatigue"
+    | "BodyFocus"
+    | "ScreenTime"
+    | "Social"
+    | "Other";
+
+const TRIGGER_OPTIONS: {
+    key: TriggerKey;
+    label: string;
+    emoji: string;
+    helper?: string;
+}[] = [
+    { key: "Stress", label: "Stress", emoji: "🔥" },
+    { key: "Boredom", label: "Boredom", emoji: "💤" },
+    { key: "Anxiety", label: "Anxiety", emoji: "😟" },
+    { key: "Fatigue", label: "Tired / Low energy", emoji: "😴" },
+    {
+        key: "BodyFocus",
+        label: "Body focus (skin, hair, scalp…)",
+        emoji: "🪞",
+    },
+    { key: "ScreenTime", label: "Screen time / scrolling", emoji: "📱" },
+    { key: "Social", label: "Social situations", emoji: "💬" },
+    { key: "Other", label: "Something else", emoji: "✏️" },
+];
+
 // ---------- Styled Components ----------
-// (unchanged from your last version – keeping full layout)
 
 const PageWrapper = styled.main`
     width: 100%;
@@ -181,7 +224,9 @@ const SectionSub = styled.p`
 `;
 
 // Specific label for the select to satisfy a11y rules
-const PromptLabel = styled.label`
+const PromptLabel = styled.label.attrs({
+    id: "journal-prompt-label",
+})`
     font-size: 0.9rem;
     margin: 0;
     color: ${(props) => props.theme.colors.text_primary};
@@ -257,6 +302,55 @@ const MoodOption = styled.label<{ $active: boolean }>`
 
     input {
         display: none;
+    }
+`;
+
+// ---- Triggers ----
+const TriggerRow = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.35rem 0 0.4rem;
+`;
+
+const TriggerChip = styled.button<{ $active: boolean }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid
+        ${({ $active, theme }) =>
+            $active ? theme.colors.primary : "rgba(0,0,0,0.08)"};
+    background: ${({ $active }) =>
+        $active ? "rgba(0,196,204,0.1)" : "rgba(255,255,255,0.95)"};
+    font-size: 0.75rem;
+    cursor: pointer;
+    outline: none;
+
+    span.emoji {
+        font-size: 0.95rem;
+    }
+`;
+
+const TriggerNoteInput = styled.input`
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid ${(props) => props.theme.colors.fourthly};
+    padding: 0.45rem 0.7rem;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    background: #f6fbfc;
+    color: ${(props) => props.theme.colors.text_primary};
+
+    &::placeholder {
+        color: ${(props) => props.theme.colors.text_secondary};
+    }
+
+    &:focus {
+        border-color: ${(props) => props.theme.colors.primary};
+        box-shadow: 0 0 0 2px rgba(0, 196, 204, 0.15);
+        outline: none;
     }
 `;
 
@@ -413,6 +507,9 @@ export const JournalPage: React.FC = () => {
     const [mood, setMood] = useState<MoodName>("");
     const [urgeIntensity, setUrgeIntensity] = useState<number>(5);
 
+    const [selectedTriggers, setSelectedTriggers] = useState<TriggerKey[]>([]);
+    const [triggerNotes, setTriggerNotes] = useState<string>("");
+
     const [saving, setSaving] = useState(false);
     const [entries, setEntries] = useState<JournalEntryView[]>([]);
     const [entriesLoading, setEntriesLoading] = useState(false);
@@ -449,8 +546,14 @@ export const JournalPage: React.FC = () => {
         void fetchEntries();
     }, [isAuthenticated]);
 
+    const toggleTrigger = (key: TriggerKey) => {
+        setSelectedTriggers((prev) =>
+            prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+        );
+    };
+
     const handleSave = async () => {
-        if (!text.trim() && !mood && !prompt) {
+        if (!text.trim() && !mood && !prompt && selectedTriggers.length === 0) {
             // nothing meaningful to save
             return;
         }
@@ -458,11 +561,22 @@ export const JournalPage: React.FC = () => {
         try {
             setSaving(true);
 
-            const payload: JournalEntry = {
+            // map trigger keys -> human labels for storage / ML
+            const preUrgeTriggers =
+                selectedTriggers.length > 0
+                    ? selectedTriggers.map(
+                          (k) =>
+                              TRIGGER_OPTIONS.find((opt) => opt.key === k)?.label || k
+                      )
+                    : undefined;
+
+            const payload: JournalEntryWithMetrics = {
                 text,
                 prompt,
                 mood: mood || undefined,
                 urgeIntensity,
+                preUrgeTriggers,
+                preUrgeTriggerNotes: triggerNotes.trim() || undefined,
             };
 
             // Map mood to numeric fields for analytics
@@ -481,6 +595,8 @@ export const JournalPage: React.FC = () => {
             // Reset fields (keep same prompt for faster journaling)
             setText("");
             setUrgeIntensity(5);
+            setSelectedTriggers([]);
+            setTriggerNotes("");
         } catch {
             // errors handled in hook/toast
         } finally {
@@ -534,7 +650,7 @@ export const JournalPage: React.FC = () => {
                         <HeaderTitleGroup>
                             <HeaderTitle>Journal</HeaderTitle>
                             <HeaderSubtitle>
-                                Reflect, write, and track your mental journey.
+                                Check in on your mood, triggers, urges, and reflections.
                             </HeaderSubtitle>
                         </HeaderTitleGroup>
                     </HeaderLeft>
@@ -544,50 +660,29 @@ export const JournalPage: React.FC = () => {
                     </AvatarButton>
                 </Header>
 
-                {/* Daily Prompt + Entry Card */}
+                {/* Today’s Check-in & Reflection */}
                 <Card>
                     <SectionTitleRow>
-                        <PromptLabel htmlFor="journal-prompt-select">
-                            Daily Prompt
-                        </PromptLabel>
+                        <SectionTitle>Today&apos;s Check-in</SectionTitle>
                     </SectionTitleRow>
+                    <SectionSub>
+                        A quick daily snapshot to help you and TrichMind learn your
+                        patterns over time.
+                    </SectionSub>
+
                     <DateRow>
                         <img src={CalendarClockIcon} alt="Date & time" />
                         <span>{todayLabel}</span>
                     </DateRow>
 
-                    <PromptSelect
-                        id="journal-prompt-select"
-                        value={prompt}
-                        title="Daily journal prompt"
-                        aria-label="Daily journal prompt"
-                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                            setPrompt(e.target.value)
-                        }
-                    >
-                        {PROMPTS.map((p) => (
-                            <option key={p} value={p}>
-                                {p}
-                            </option>
-                        ))}
-                    </PromptSelect>
-
+                    {/* 1. Mood */}
                     <SectionTitleRow>
-                        <SectionTitle>Write your reflection</SectionTitle>
+                        <SectionTitle>1. Mood right now</SectionTitle>
                     </SectionTitleRow>
-
-                    <TextArea
-                        value={text}
-                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                            setText(e.target.value)
-                        }
-                        placeholder="Type your thoughts here..."
-                        title="Journal reflection"
-                    />
-
-                    <SectionTitleRow style={{ marginTop: "0.7rem" }}>
-                        <SectionTitle>Mood</SectionTitle>
-                    </SectionTitleRow>
+                    <SectionSub>
+                        Choose the mood that fits best. This helps link feelings with
+                        urge levels.
+                    </SectionSub>
 
                     <MoodRow>
                         {MOOD_OPTIONS.map((opt) => (
@@ -607,8 +702,48 @@ export const JournalPage: React.FC = () => {
                         ))}
                     </MoodRow>
 
+                    {/* 2. Triggers before / around urges */}
+                    <SectionTitleRow>
+                        <SectionTitle>2. What may be triggering the urge?</SectionTitle>
+                    </SectionTitleRow>
+                    <SectionSub>
+                        Pick one or more that fit. This helps your future Insights and
+                        relapse-risk model.
+                    </SectionSub>
+
+                    <TriggerRow>
+                        {TRIGGER_OPTIONS.map((opt) => (
+                            <TriggerChip
+                                key={opt.key}
+                                type="button"
+                                $active={selectedTriggers.includes(opt.key)}
+                                onClick={() => toggleTrigger(opt.key)}
+                                aria-pressed={selectedTriggers.includes(opt.key)}
+                            >
+                                <span className="emoji">{opt.emoji}</span>
+                                <span>{opt.label}</span>
+                            </TriggerChip>
+                        ))}
+                    </TriggerRow>
+
+                    {selectedTriggers.includes("Other") && (
+                        <TriggerNoteInput
+                            value={triggerNotes}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                setTriggerNotes(e.target.value)
+                            }
+                            placeholder="Briefly describe what was going on (optional)…"
+                            aria-label="Describe other trigger"
+                        />
+                    )}
+
+                    {/* 3. Urge intensity */}
+                    <SectionTitleRow style={{ marginTop: "0.7rem" }}>
+                        <SectionTitle>3. Urge intensity (0–10)</SectionTitle>
+                    </SectionTitleRow>
+
                     <SliderLabelRow>
-                        <span>Urge Intensity</span>
+                        <span>How strong is the urge to pull right now?</span>
                         <span>{urgeIntensity}</span>
                     </SliderLabelRow>
                     <RangeInput
@@ -631,9 +766,45 @@ export const JournalPage: React.FC = () => {
                         <span>10</span>
                     </TickRow>
 
+                    {/* 4. Guided reflection */}
+                    <SectionTitleRow style={{ marginTop: "0.9rem" }}>
+                        <PromptLabel htmlFor="journal-prompt-select">
+                            4. Guided reflection
+                        </PromptLabel>
+                    </SectionTitleRow>
+                    <SectionSub>
+                        Choose a prompt or keep the current one, then write whatever feels
+                        most helpful.
+                    </SectionSub>
+
+                    <PromptSelect
+                        id="journal-prompt-select"
+                        value={prompt}
+                        title="Daily journal prompt"
+                        aria-labelledby="journal-prompt-label"
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                            setPrompt(e.target.value)
+                        }
+                    >
+                        {PROMPTS.map((p) => (
+                            <option key={p} value={p}>
+                                {p}
+                            </option>
+                        ))}
+                    </PromptSelect>
+
+                    <TextArea
+                        value={text}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                            setText(e.target.value)
+                        }
+                        placeholder="Type your thoughts here… You can describe what happened, how you coped, or what you’d like to try next time."
+                        title="Journal reflection"
+                    />
+
                     <SaveButton onClick={handleSave} disabled={saving || loading}>
                         <img src={SaveIcon} alt="Save" />
-                        {saving ? "Saving..." : "Save Journal Entry"}
+                        {saving ? "Saving..." : "Save today’s check-in"}
                     </SaveButton>
                 </Card>
 
@@ -643,8 +814,8 @@ export const JournalPage: React.FC = () => {
                         <SectionTitle>Past Entries</SectionTitle>
                     </SectionTitleRow>
                     <SectionSub>
-                        Your saved reflections appear here, so you can look back on what
-                        you’ve been feeling and how you’ve been coping.
+                        Look back on how your mood, triggers and urges have been shifting
+                        over time.
                     </SectionSub>
 
                     {entriesLoading ? (
@@ -655,18 +826,28 @@ export const JournalPage: React.FC = () => {
                         </EmptyState>
                     ) : (
                         <LogsList>
-                            {entries.map((e) => (
-                                <LogItem key={e._id}>
-                                    <LogDate>📝 {formatDateTime(e.createdAt)}</LogDate>
-                                    <LogMeta>
-                                        {e.mood ? ` • Mood: ${e.mood}` : ""}{" "}
-                                        {typeof e.urgeIntensity === "number"
-                                            ? ` • Urge: ${e.urgeIntensity}/10`
-                                            : ""}
-                                        {e.prompt ? ` • ${e.prompt}` : ""}
-                                    </LogMeta>
-                                </LogItem>
-                            ))}
+                            {entries.map((e) => {
+                                const triggerLabel =
+                                    e.preUrgeTriggers && e.preUrgeTriggers.length > 0
+                                        ? ` • Triggers: ${e.preUrgeTriggers.join(", ")}`
+                                        : "";
+                                const notesLabel = e.preUrgeTriggerNotes
+                                    ? ` • Notes: ${e.preUrgeTriggerNotes}`
+                                    : "";
+                                return (
+                                    <LogItem key={e._id}>
+                                        <LogDate>📝 {formatDateTime(e.createdAt)}</LogDate>
+                                        <LogMeta>
+                                            {e.mood ? ` • Mood: ${e.mood}` : ""}{" "}
+                                            {typeof e.urgeIntensity === "number"
+                                                ? ` • Urge: ${e.urgeIntensity}/10`
+                                                : ""}
+                                            {triggerLabel}
+                                            {notesLabel}
+                                        </LogMeta>
+                                    </LogItem>
+                                );
+                            })}
                         </LogsList>
                     )}
                 </Card>
@@ -678,7 +859,8 @@ export const JournalPage: React.FC = () => {
                     </SectionTitleRow>
                     <SectionSub>
                         Visual overview of how your urge intensity has been changing over
-                        your last few entries.
+                        your last few entries. These patterns will also feed your relapse
+                        risk model.
                     </SectionSub>
 
                     {trendData.length < 2 ? (
