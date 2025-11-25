@@ -5,12 +5,14 @@ import { NavLink } from "react-router-dom";
 import styled from "styled-components";
 
 // Icons
-import homeIcon from "../assets/icons/home.png";
-import healthIcon from "../assets/icons/health.png";
-import journalIcon from "../assets/icons/journal.png";
-import triggersIcon from "../assets/icons/triggers.png";
-import trichGameIcon from "../assets/icons/trichgame.png";
-import trichBotIcon from "../assets/icons/trichbot.png";
+import {
+    HomeIcon,
+    HealthIcon,
+    JournalIcon,
+    TriggersInsightsIcon,
+    TrichGameIcon,
+    TrichBotIcon,
+} from "../assets/icons";
 
 /**------------------------------------
     Bottom Navigation Bar Component
@@ -134,12 +136,12 @@ type NavConfig = { to: string; icon: string; label: string };
 
 // Immutable array of navigation items
 const navItems: ReadonlyArray<NavConfig> = [
-    { to: "/", icon: homeIcon, label: "Home" },
-    { to: "/health", icon: healthIcon, label: "Health" },
-    { to: "/journal", icon: journalIcon, label: "Journal" },
-    { to: "/triggersinsights", icon: triggersIcon, label: "Triggers" },
-    { to: "/trichgame", icon: trichGameIcon, label: "Game" },
-    { to: "/trichbot", icon: trichBotIcon, label: "TrichBot" },
+    { to: "/", icon: HomeIcon, label: "Home" },
+    { to: "/journal", icon: JournalIcon, label: "Journal" },
+    { to: "/health", icon: HealthIcon, label: "Health" },
+    { to: "/triggersinsights", icon: TriggersInsightsIcon, label: "Insights" },
+    { to: "/trichgame", icon: TrichGameIcon, label: "TrichGame" },
+    { to: "/trichbot", icon: TrichBotIcon, label: "TrichBot" },
 ] as const;
 
 // BottomNav Component
