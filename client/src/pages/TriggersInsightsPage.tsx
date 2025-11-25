@@ -28,6 +28,8 @@ interface UrgeTrendPoint {
 interface TriggerView {
     name: string;
     frequency: number;
+    /** 0 = oldest, 1 = most recently seen */
+    recencyScore: number;
 }
 
 type RiskLabel = "Low" | "Moderate" | "High";
@@ -41,6 +43,7 @@ interface RiskSummary {
 // JournalEntry extended with triggers field (optional – but now backed by BE)
 interface JournalWithTriggers extends JournalEntry {
     preUrgeTriggers?: string[];
+    createdAt?: string;
 }
 
 // ---------- Styled Components ----------
@@ -248,12 +251,20 @@ const WordCloudWrapper = styled.div`
     gap: 0.4rem;
 `;
 
-const Word = styled.span<{ $scale: number }>`
+const Word = styled.span<{ $scale: number; $color: string }>`
     font-weight: 700;
-    color: ${({ theme }) => theme.colors.primary};
+    color: ${({ $color }) => $color};
     opacity: ${({ $scale }) => 0.4 + $scale * 0.6};
     font-size: ${({ $scale }) => 0.7 + $scale * 0.9}rem;
 `;
+
+// Helper to color-code triggers by recency
+const getTriggerColor = (recencyScore: number): string => {
+    // older → cooler / muted, recent → warm / vivid
+    if (recencyScore < 0.33) return "#78909C"; // blue-grey (older)
+    if (recencyScore < 0.66) return "#26A69A"; // teal (recent-ish)
+    return "#EC407A"; // pink (very recent / current)
+};
 
 // ---------------- Component ----------------
 
@@ -294,15 +305,18 @@ export const TriggersInsightsPage: React.FC = () => {
                 const withUrgeAndDate = entries.filter(
                     (e): e is JournalEntry & { createdAt: string } =>
                         typeof e.urgeIntensity === "number" &&
-                        typeof e.createdAt === "string"
+                        typeof (e as JournalEntry & { createdAt?: string }).createdAt ===
+                            "string"
                 );
 
-                // 1. Urge trend points
+                // 1. Urge trend points (chronological)
                 const points: UrgeTrendPoint[] = withUrgeAndDate
                     .slice()
                     .reverse()
                     .map((e) => ({
-                        label: new Date(e.createdAt).toLocaleDateString(undefined, {
+                        label: new Date(
+                            (e as JournalEntry & { createdAt: string }).createdAt
+                        ).toLocaleDateString(undefined, {
                             month: "short",
                             day: "numeric",
                         }),
@@ -311,24 +325,74 @@ export const TriggersInsightsPage: React.FC = () => {
                 setTrendData(points);
 
                 // 2. Aggregate triggers from preUrgeTriggers arrays
-                const triggerCounts = new Map<string, number>();
+                type TriggerAgg = { count: number; lastSeen: number };
+
+                const triggerCounts = new Map<string, TriggerAgg>();
 
                 (entries as JournalWithTriggers[]).forEach((entry) => {
-                    const triggers = entry.preUrgeTriggers;
-                    if (Array.isArray(triggers)) {
-                        triggers.forEach((name) => {
-                            const trimmed = name?.trim();
-                            if (!trimmed) return;
-                            triggerCounts.set(
-                                trimmed,
-                                (triggerCounts.get(trimmed) ?? 0) + 1
-                            );
-                        });
+                    const { preUrgeTriggers, createdAt } = entry;
+                    if (!Array.isArray(preUrgeTriggers)) return;
+
+                    let ts = 0;
+                    if (typeof createdAt === "string") {
+                        const d = new Date(createdAt);
+                        const time = d.getTime();
+                        if (!Number.isNaN(time)) {
+                            ts = time;
+                        }
                     }
+
+                    preUrgeTriggers.forEach((rawName) => {
+                        const name = rawName?.trim();
+                        if (!name) return;
+
+                        const existing = triggerCounts.get(name);
+                        if (!existing) {
+                            triggerCounts.set(name, { count: 1, lastSeen: ts });
+                        } else {
+                            const newCount = existing.count + 1;
+                            const newLastSeen =
+                                ts > existing.lastSeen ? ts : existing.lastSeen;
+                            triggerCounts.set(name, {
+                                count: newCount,
+                                lastSeen: newLastSeen,
+                            });
+                        }
+                    });
                 });
 
-                const aggregated: TriggerView[] = Array.from(triggerCounts.entries())
-                    .map(([name, frequency]) => ({ name, frequency }))
+                const allAgg = Array.from(triggerCounts.entries());
+
+                // Normalize recency into 0..1
+                let minLastSeen = Infinity;
+                let maxLastSeen = -Infinity;
+
+                allAgg.forEach(([, value]) => {
+                    if (value.lastSeen < minLastSeen) minLastSeen = value.lastSeen;
+                    if (value.lastSeen > maxLastSeen) maxLastSeen = value.lastSeen;
+                });
+
+                const range =
+                    maxLastSeen > minLastSeen
+                        ? maxLastSeen - minLastSeen
+                        : 0;
+
+                const aggregated: TriggerView[] = allAgg
+                    .map(([name, value]) => {
+                        const { count, lastSeen } = value;
+                        let recencyScore = 0.5;
+
+                        if (range > 0 && lastSeen > 0) {
+                            recencyScore = (lastSeen - minLastSeen) / range;
+                        }
+
+                        return {
+                            name,
+                            frequency: count,
+                            recencyScore,
+                        };
+                    })
+                    // Sort by frequency (top triggers first)
                     .sort((a, b) => b.frequency - a.frequency);
 
                 setTriggersAggregated(aggregated);
@@ -556,8 +620,8 @@ export const TriggersInsightsPage: React.FC = () => {
                         <SectionTitle>Trigger word cloud</SectionTitle>
                     </SectionTitleRow>
                     <SectionSub>
-                        Bigger, bolder words = triggers that show up more often in your
-                        logs.
+                        Bigger, bolder words = triggers that show up more often, especially
+                        if they’ve appeared recently.
                     </SectionSub>
 
                     {topTriggers.length === 0 ? (
@@ -568,13 +632,19 @@ export const TriggersInsightsPage: React.FC = () => {
                     ) : (
                         <WordCloudWrapper>
                             {topTriggers.map((t) => {
-                                const base = t.frequency;
-                                const scale =
-                                    maxFrequency > 0 ? base / maxFrequency : 0.5;
+                                const freqScore =
+                                    maxFrequency > 0 ? t.frequency / maxFrequency : 0;
+                                // Combine frequency + recency for size
+                                const sizeScore =
+                                    0.6 * freqScore + 0.4 * t.recencyScore;
+                                const scale = 0.3 + sizeScore * 0.7;
+                                const color = getTriggerColor(t.recencyScore);
+
                                 return (
                                     <Word
                                         key={t.name}
-                                        $scale={0.3 + scale * 0.7}
+                                        $scale={scale}
+                                        $color={color}
                                     >
                                         {t.name}
                                     </Word>
