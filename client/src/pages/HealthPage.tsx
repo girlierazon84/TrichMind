@@ -98,6 +98,39 @@ const Card = styled.section`
     margin-bottom: 1.1rem;
 `;
 
+const SectionTitleRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.35rem;
+`;
+
+const SectionTitle = styled.h3`
+    font-size: 0.9rem;
+    margin: 0;
+    color: ${({ theme }) => theme.colors.text_primary};
+`;
+
+const SectionSub = styled.p`
+    margin: 0 0 0.45rem;
+    font-size: 0.75rem;
+    color: ${({ theme }) => theme.colors.text_secondary};
+`;
+
+const SectionHint = styled.p`
+    margin: 0 0 0.4rem;
+    font-size: 0.7rem;
+    color: ${({ theme }) => theme.colors.text_secondary};
+    opacity: 0.9;
+`;
+
+// Gentle divider to break sections inside the card
+const SoftDivider = styled.hr`
+    border: none;
+    border-top: 1px dashed rgba(0, 0, 0, 0.06);
+    margin: 0.6rem 0 0.5rem;
+`;
+
 const SliderLabelRow = styled.div`
     display: flex;
     justify-content: space-between;
@@ -154,26 +187,7 @@ const TickRow = styled.div`
 
 const SaveButton = styled(ThemeButton)`
     width: 100%;
-    margin-top: 0.4rem;
-`;
-
-const SectionTitleRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    margin-bottom: 0.4rem;
-`;
-
-const SectionTitle = styled.h3`
-    font-size: 0.9rem;
-    margin: 0;
-    color: ${({ theme }) => theme.colors.text_primary};
-`;
-
-const SectionSub = styled.p`
-    margin: 0 0 0.4rem;
-    font-size: 0.75rem;
-    color: ${({ theme }) => theme.colors.text_secondary};
+    margin-top: 0.5rem;
 `;
 
 // ---- Recent Logs ----
@@ -336,17 +350,25 @@ export const HealthPage: React.FC = () => {
                 {/* Daily Health Check-in Card */}
                 <Card>
                     <SectionTitleRow>
-                        <SectionTitle>Daily Health Check-in</SectionTitle>
+                        <SectionTitle>Daily health check-in</SectionTitle>
                     </SectionTitleRow>
                     <SectionSub>
-                        Track sleep, stress and movement today. Later you can also add
-                        meds, body check-ins and symptom notes, so TrichMind can better
-                        understand how your health and urges connect.
+                        A quick snapshot of how your body is doing today.
                     </SectionSub>
+                    <SectionHint>
+                        No need for perfection — just a rough sense of sleep, stress and
+                        movement is already helpful.
+                    </SectionHint>
 
                     {/* Sleep */}
+                    <SoftDivider />
+                    <SectionTitleRow>
+                        <SectionTitle>Sleep</SectionTitle>
+                    </SectionTitleRow>
+                    <SectionSub>How many hours did you sleep last night?</SectionSub>
+
                     <SliderLabelRow>
-                        <span>Sleep hours (last night)</span>
+                        <span>Sleep hours</span>
                         <span>{sleepHours} h</span>
                     </SliderLabelRow>
                     <RangeInput
@@ -368,6 +390,12 @@ export const HealthPage: React.FC = () => {
                     </TickRow>
 
                     {/* Stress */}
+                    <SoftDivider />
+                    <SectionTitleRow>
+                        <SectionTitle>Stress</SectionTitle>
+                    </SectionTitleRow>
+                    <SectionSub>How tense or calm have you felt today?</SectionSub>
+
                     <SliderLabelRow>
                         <span>Stress level</span>
                         <span>{stressLevel}/10</span>
@@ -391,6 +419,14 @@ export const HealthPage: React.FC = () => {
                     </TickRow>
 
                     {/* Exercise */}
+                    <SoftDivider />
+                    <SectionTitleRow>
+                        <SectionTitle>Movement</SectionTitle>
+                    </SectionTitleRow>
+                    <SectionSub>
+                        Any movement counts — walking, stretching, workouts, dancing.
+                    </SectionSub>
+
                     <SliderLabelRow>
                         <span>Exercise minutes</span>
                         <span>{exerciseMinutes} min</span>
@@ -432,7 +468,8 @@ export const HealthPage: React.FC = () => {
                         <EmptyState>Loading recent logs…</EmptyState>
                     ) : logs.length === 0 ? (
                         <EmptyState>
-                            No logs yet. Save your first health entry to see it here.
+                            No logs yet. When you save a health check-in, it will appear
+                            here.
                         </EmptyState>
                     ) : (
                         <LogsList>
@@ -441,8 +478,8 @@ export const HealthPage: React.FC = () => {
                                     <LogDate>📅 {formatDate(log.date)}</LogDate>
                                     <LogMeta>
                                         • 😴 {log.sleepHours}h • 😰 Stress{" "}
-                                        {log.stressLevel}/10 • 🏃‍♀️ {log.exerciseMinutes}
-                                        min
+                                        {log.stressLevel}/10 • 🏃‍♀️{" "}
+                                        {log.exerciseMinutes}min
                                     </LogMeta>
                                 </LogItem>
                             ))}
