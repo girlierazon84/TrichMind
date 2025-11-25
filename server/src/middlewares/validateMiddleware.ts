@@ -28,7 +28,23 @@ export function validate(schema: ZodSchema, part: Part = "body") {
             });
         }
 
-        (req as any)[part] = result.data;
+        // ✨ Important bit:
+        // - req.body and req.params are safe to reassign
+        // - req.query is a read-only getter in this stack → mutate instead
+        if (part === "query") {
+            const target = (req.query ?? {}) as Record<string, unknown>;
+
+            // Clear existing keys
+            Object.keys(target).forEach((key) => {
+                delete target[key];
+            });
+
+            // Copy validated values into the same object
+            Object.assign(target, result.data);
+        } else {
+            (req as any)[part] = result.data;
+        }
+
         next();
     };
 }
