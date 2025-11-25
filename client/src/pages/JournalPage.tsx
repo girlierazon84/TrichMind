@@ -1,12 +1,729 @@
 // client/src/pages/JournalPage.tsx
 
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import styled from "styled-components";
+import { useAuth, useJournal } from "@/hooks";
+import { journalApi, type JournalEntry } from "@/services";
+import { ThemeButton } from "@/components";
 
-export const JournalPage = () => {
-    return (
-        <div>
-            <h1>Journal Page</h1>
-        </div>
-    );
+import {
+    UserIcon,
+    MyJournalIcon,
+    CalendarClockIcon,
+    SaveIcon,
+} from "@/assets/icons";
+
+import {
+    ResponsiveContainer,
+    LineChart,
+    Line,
+    XAxis,
+    Tooltip,
+    CartesianGrid,
+} from "recharts";
+
+// ---------- Types ----------
+interface JournalEntryView {
+    _id: string;
+    prompt?: string;
+    text: string;
+    mood?: string;
+    urgeIntensity?: number;
+    createdAt: string;
 }
+
+// Canonical mood set (must match backend PRE_URGE_MOODS + "Bored")
+type MoodName =
+    | "Sad"
+    | "Anxious"
+    | "Stressed"
+    | "Overwhelmed"
+    | "Angry"
+    | "Neutral"
+    | "Calm"
+    | "Tired"
+    | "Hopeful"
+    | "Happy"
+    | "Proud"
+    | "Bored"
+    | "";
+
+// Mood options for UI + analytics
+const MOOD_OPTIONS: { value: MoodName; label: string; emoji: string }[] = [
+    { value: "Sad", label: "Sad", emoji: "😢" },
+    { value: "Anxious", label: "Anxious", emoji: "😰" },
+    { value: "Stressed", label: "Stressed", emoji: "😣" },
+    { value: "Overwhelmed", label: "Overwhelmed", emoji: "😵" },
+    { value: "Angry", label: "Angry", emoji: "😡" },
+    { value: "Neutral", label: "Neutral", emoji: "😐" },
+    { value: "Calm", label: "Calm", emoji: "😌" },
+    { value: "Tired", label: "Tired", emoji: "😴" },
+    { value: "Bored", label: "Bored", emoji: "🥱" },
+    { value: "Hopeful", label: "Hopeful", emoji: "🌱" },
+    { value: "Happy", label: "Happy", emoji: "😊" },
+    { value: "Proud", label: "Proud", emoji: "🏅" },
+];
+
+// Cluster moods into broader groups for numeric features
+const STRESS_MOODS: MoodName[] = [
+    "Sad",
+    "Anxious",
+    "Stressed",
+    "Overwhelmed",
+    "Angry",
+    "Bored", // boredom is a key pre-pulling state
+];
+
+const CALM_MOODS: MoodName[] = ["Calm", "Tired", "Neutral"];
+const HAPPY_MOODS: MoodName[] = ["Happy", "Proud", "Hopeful"];
+
+// ---------- Styled Components ----------
+// (unchanged from your last version – keeping full layout)
+
+const PageWrapper = styled.main`
+    width: 100%;
+    min-height: 100vh;
+    padding: 1.25rem 1.2rem 100px;
+    background: linear-gradient(
+        180deg,
+        #e2f4f7 0%,
+        #e6f7f7 120px,
+        ${(props) => props.theme.colors.page_bg || "#f4fbfc"} 300px
+    );
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+`;
+
+const Content = styled.div`
+    width: 100%;
+    max-width: 960px;
+`;
+
+const Header = styled.header`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+`;
+
+const HeaderLeft = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+`;
+
+const HeaderIcon = styled.img`
+    width: 32px;
+    height: 32px;
+`;
+
+const HeaderTitleGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+`;
+
+const HeaderTitle = styled.h1`
+    font-size: 1.1rem;
+    margin: 0;
+    color: ${(props) => props.theme.colors.text_primary};
+    font-weight: 700;
+`;
+
+const HeaderSubtitle = styled.span`
+    font-size: 0.75rem;
+    color: ${(props) => props.theme.colors.text_secondary};
+`;
+
+const AvatarButton = styled.button`
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+`;
+
+const AvatarImage = styled.img`
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+`;
+
+// ---- Cards ----
+const Card = styled.section`
+    background: ${(props) => props.theme.colors.card_bg};
+    border-radius: 18px;
+    padding: 1.1rem 1rem 1.2rem;
+    box-shadow: 0 10px 28px rgba(13, 98, 117, 0.35);
+    margin-bottom: 1.1rem;
+`;
+
+const SectionTitleRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.4rem;
+`;
+
+const SectionTitle = styled.h3`
+    font-size: 0.9rem;
+    margin: 0;
+    color: ${(props) => props.theme.colors.text_primary};
+`;
+
+const SectionSub = styled.p`
+    margin: 0 0 0.6rem;
+    font-size: 0.75rem;
+    color: ${(props) => props.theme.colors.text_secondary};
+`;
+
+// Specific label for the select to satisfy a11y rules
+const PromptLabel = styled.label`
+    font-size: 0.9rem;
+    margin: 0;
+    color: ${(props) => props.theme.colors.text_primary};
+    font-weight: 600;
+`;
+
+// ---- Prompt + Text ----
+const PromptSelect = styled.select`
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid ${(props) => props.theme.colors.fourthly};
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    background: #f6fbfc;
+    color: ${(props) => props.theme.colors.text_primary};
+    margin-bottom: 0.7rem;
+    outline: none;
+
+    &:focus {
+        border-color: ${(props) => props.theme.colors.primary};
+        box-shadow: 0 0 0 2px rgba(0, 196, 204, 0.15);
+    }
+`;
+
+const TextArea = styled.textarea`
+    width: 100%;
+    min-height: 120px;
+    border-radius: 14px;
+    border: 1px solid ${(props) => props.theme.colors.fourthly};
+    padding: 0.65rem 0.8rem;
+    font-size: 0.85rem;
+    resize: vertical;
+    background: #f6fbfc;
+    color: ${(props) => props.theme.colors.text_primary};
+    outline: none;
+
+    &::placeholder {
+        color: ${(props) => props.theme.colors.text_secondary};
+    }
+
+    &:focus {
+        border-color: ${(props) => props.theme.colors.primary};
+        box-shadow: 0 0 0 2px rgba(0, 196, 204, 0.15);
+    }
+`;
+
+// ---- Mood ----
+const MoodRow = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin: 0.4rem 0 0.6rem;
+`;
+
+const MoodOption = styled.label<{ $active: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid
+        ${(props) =>
+            props.$active ? props.theme.colors.primary : "rgba(0,0,0,0.06)"};
+    background: ${(props) =>
+        props.$active ? "rgba(0,196,204,0.1)" : "rgba(255,255,255,0.9)"};
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    span.emoji {
+        font-size: 1rem;
+    }
+
+    input {
+        display: none;
+    }
+`;
+
+// ---- Urge Slider ----
+const SliderLabelRow = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.25rem;
+
+    span:first-child {
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    span:last-child {
+        font-size: 0.75rem;
+        color: ${(props) => props.theme.colors.text_secondary};
+    }
+`;
+
+const RangeInput = styled.input.attrs({ type: "range" })`
+    width: 100%;
+    appearance: none;
+    height: 8px;
+    border-radius: 999px;
+    background: #ffd9df;
+    outline: none;
+    margin: 0.25rem 0 0.3rem;
+
+    &::-webkit-slider-thumb {
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #ff5b7d;
+        cursor: pointer;
+        box-shadow: 0 0 0 4px rgba(255, 91, 125, 0.25);
+    }
+
+    &::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #ff5b7d;
+        cursor: pointer;
+        box-shadow: 0 0 0 4px rgba(255, 91, 125, 0.25);
+    }
+`;
+
+const TickRow = styled.div`
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: ${(props) => props.theme.colors.text_secondary};
+    margin-top: 0.1rem;
+`;
+
+// ---- Buttons / Meta ----
+const SaveButton = styled(ThemeButton)`
+    width: 100%;
+    margin-top: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+
+    img {
+        width: 18px;
+        height: 18px;
+    }
+`;
+
+const DateRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    color: ${(props) => props.theme.colors.text_secondary};
+    margin-bottom: 0.3rem;
+
+    img {
+        width: 16px;
+        height: 16px;
+    }
+`;
+
+// ---- Past entries ----
+const LogsList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 0.4rem;
+`;
+
+const LogItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.55rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+    font-size: 0.75rem;
+`;
+
+const LogDate = styled.span`
+    white-space: nowrap;
+    font-weight: 600;
+`;
+
+const LogMeta = styled.span`
+    color: ${(props) => props.theme.colors.text_secondary};
+`;
+
+const EmptyState = styled.p`
+    font-size: 0.8rem;
+    color: ${(props) => props.theme.colors.text_secondary};
+    margin: 0.2rem 0 0.8rem;
+`;
+
+// Chart container
+const TrendChartWrapper = styled.div`
+    margin-top: 0.75rem;
+    height: 140px;
+
+    .recharts-cartesian-axis-tick-value {
+        font-size: 0.6rem;
+    }
+`;
+
+// ---------- Prompts ----------
+const PROMPTS: string[] = [
+    "What triggered my urges today?",
+    "How did I feel before and after pulling?",
+    "What thoughts showed up right before the urge?",
+    "What was happening around me when I felt the urge?",
+    "What helped me cope well today?",
+    "What can I try next time an urge shows up?",
+    "What is one small win I’m proud of today?",
+    "Which body sensations did I notice before/after pulling?",
+    "Who or what made me feel supported today?",
+    "What is one kind thing I can say to myself right now?",
+    "If I could talk to my future self, what would I want them to know?",
+];
+
+export const JournalPage: React.FC = () => {
+    const navigate = useNavigate();
+    const { user, isAuthenticated } = useAuth();
+    const { create, loading } = useJournal();
+
+    const [prompt, setPrompt] = useState<string>(PROMPTS[0]);
+    const [text, setText] = useState<string>("");
+    const [mood, setMood] = useState<MoodName>("");
+    const [urgeIntensity, setUrgeIntensity] = useState<number>(5);
+
+    const [saving, setSaving] = useState(false);
+    const [entries, setEntries] = useState<JournalEntryView[]>([]);
+    const [entriesLoading, setEntriesLoading] = useState(false);
+
+    const headerAvatar = UserIcon; // later swap for user.avatarUrl
+
+    // Redirect guests to login
+    useEffect(() => {
+        if (!isAuthenticated) {
+            navigate("/login");
+        }
+    }, [isAuthenticated, navigate]);
+
+    // Load recent entries from backend
+    const fetchEntries = async () => {
+        try {
+            setEntriesLoading(true);
+            const res = await journalApi.list({
+                page: 1,
+                limit: 7,
+                sort: "-createdAt",
+            });
+            const items = (res?.entries ?? []) as JournalEntryView[];
+            setEntries(items);
+        } catch (e) {
+            console.error("[JournalPage] Failed to load entries", e);
+        } finally {
+            setEntriesLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        void fetchEntries();
+    }, [isAuthenticated]);
+
+    const handleSave = async () => {
+        if (!text.trim() && !mood && !prompt) {
+            // nothing meaningful to save
+            return;
+        }
+
+        try {
+            setSaving(true);
+
+            const payload: JournalEntry = {
+                text,
+                prompt,
+                mood: mood || undefined,
+                urgeIntensity,
+            };
+
+            // Map mood to numeric fields for analytics
+            if (mood && STRESS_MOODS.includes(mood)) {
+                payload.stress = urgeIntensity;
+            } else if (mood && CALM_MOODS.includes(mood)) {
+                payload.calm = urgeIntensity;
+            } else if (mood && HAPPY_MOODS.includes(mood)) {
+                payload.happy = urgeIntensity;
+            }
+
+            // Create entry via API, then always refetch from backend
+            await create(payload);
+            await fetchEntries();
+
+            // Reset fields (keep same prompt for faster journaling)
+            setText("");
+            setUrgeIntensity(5);
+        } catch {
+            // errors handled in hook/toast
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const formatDateTime = (iso: string) =>
+        new Date(iso).toLocaleString(undefined, {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+
+    const todayLabel = useMemo(
+        () =>
+            new Date().toLocaleDateString(undefined, {
+                weekday: "short",
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+            }),
+        []
+    );
+
+    const trendData = useMemo(
+        () =>
+            [...entries]
+                .filter((e) => typeof e.urgeIntensity === "number")
+                .slice()
+                .reverse()
+                .map((e, idx) => ({
+                    id: idx,
+                    label: new Date(e.createdAt).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                    }),
+                    urgeIntensity: e.urgeIntensity ?? 0,
+                })),
+        [entries]
+    );
+
+    return (
+        <PageWrapper>
+            <Content>
+                <Header>
+                    <HeaderLeft>
+                        <HeaderIcon src={MyJournalIcon} alt="Journal icon" />
+                        <HeaderTitleGroup>
+                            <HeaderTitle>Journal</HeaderTitle>
+                            <HeaderSubtitle>
+                                Reflect, write, and track your mental journey.
+                            </HeaderSubtitle>
+                        </HeaderTitleGroup>
+                    </HeaderLeft>
+
+                    <AvatarButton onClick={() => navigate("/profile")}>
+                        <AvatarImage src={headerAvatar} alt={user?.email || "Profile"} />
+                    </AvatarButton>
+                </Header>
+
+                {/* Daily Prompt + Entry Card */}
+                <Card>
+                    <SectionTitleRow>
+                        <PromptLabel htmlFor="journal-prompt-select">
+                            Daily Prompt
+                        </PromptLabel>
+                    </SectionTitleRow>
+                    <DateRow>
+                        <img src={CalendarClockIcon} alt="Date & time" />
+                        <span>{todayLabel}</span>
+                    </DateRow>
+
+                    <PromptSelect
+                        id="journal-prompt-select"
+                        value={prompt}
+                        title="Daily journal prompt"
+                        aria-label="Daily journal prompt"
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                            setPrompt(e.target.value)
+                        }
+                    >
+                        {PROMPTS.map((p) => (
+                            <option key={p} value={p}>
+                                {p}
+                            </option>
+                        ))}
+                    </PromptSelect>
+
+                    <SectionTitleRow>
+                        <SectionTitle>Write your reflection</SectionTitle>
+                    </SectionTitleRow>
+
+                    <TextArea
+                        value={text}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                            setText(e.target.value)
+                        }
+                        placeholder="Type your thoughts here..."
+                        title="Journal reflection"
+                    />
+
+                    <SectionTitleRow style={{ marginTop: "0.7rem" }}>
+                        <SectionTitle>Mood</SectionTitle>
+                    </SectionTitleRow>
+
+                    <MoodRow>
+                        {MOOD_OPTIONS.map((opt) => (
+                            <MoodOption key={opt.value} $active={mood === opt.value}>
+                                <input
+                                    type="radio"
+                                    name="mood"
+                                    value={opt.value}
+                                    checked={mood === opt.value}
+                                    onChange={() => setMood(opt.value)}
+                                    title={`${opt.label} mood`}
+                                    aria-label={`${opt.label} mood`}
+                                />
+                                <span className="emoji">{opt.emoji}</span>
+                                <span>{opt.label}</span>
+                            </MoodOption>
+                        ))}
+                    </MoodRow>
+
+                    <SliderLabelRow>
+                        <span>Urge Intensity</span>
+                        <span>{urgeIntensity}</span>
+                    </SliderLabelRow>
+                    <RangeInput
+                        min={0}
+                        max={10}
+                        step={1}
+                        value={urgeIntensity}
+                        aria-label="Urge intensity slider"
+                        title="Urge intensity slider"
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            setUrgeIntensity(Number(e.target.value))
+                        }
+                    />
+                    <TickRow>
+                        <span>0</span>
+                        <span>2</span>
+                        <span>4</span>
+                        <span>6</span>
+                        <span>8</span>
+                        <span>10</span>
+                    </TickRow>
+
+                    <SaveButton onClick={handleSave} disabled={saving || loading}>
+                        <img src={SaveIcon} alt="Save" />
+                        {saving ? "Saving..." : "Save Journal Entry"}
+                    </SaveButton>
+                </Card>
+
+                {/* Past Entries Card */}
+                <Card>
+                    <SectionTitleRow>
+                        <SectionTitle>Past Entries</SectionTitle>
+                    </SectionTitleRow>
+                    <SectionSub>
+                        Your saved reflections appear here, so you can look back on what
+                        you’ve been feeling and how you’ve been coping.
+                    </SectionSub>
+
+                    {entriesLoading ? (
+                        <EmptyState>Loading past entries…</EmptyState>
+                    ) : entries.length === 0 ? (
+                        <EmptyState>
+                            No entries yet. Save a journal entry to see your history here.
+                        </EmptyState>
+                    ) : (
+                        <LogsList>
+                            {entries.map((e) => (
+                                <LogItem key={e._id}>
+                                    <LogDate>📝 {formatDateTime(e.createdAt)}</LogDate>
+                                    <LogMeta>
+                                        {e.mood ? ` • Mood: ${e.mood}` : ""}{" "}
+                                        {typeof e.urgeIntensity === "number"
+                                            ? ` • Urge: ${e.urgeIntensity}/10`
+                                            : ""}
+                                        {e.prompt ? ` • ${e.prompt}` : ""}
+                                    </LogMeta>
+                                </LogItem>
+                            ))}
+                        </LogsList>
+                    )}
+                </Card>
+
+                {/* Trend Insights Card (separate, under Past Entries) */}
+                <Card>
+                    <SectionTitleRow>
+                        <SectionTitle>Trend Insights</SectionTitle>
+                    </SectionTitleRow>
+                    <SectionSub>
+                        Visual overview of how your urge intensity has been changing over
+                        your last few entries.
+                    </SectionSub>
+
+                    {trendData.length < 2 ? (
+                        <EmptyState>
+                            Add a few more entries to see your urge intensity trend here.
+                        </EmptyState>
+                    ) : (
+                        <TrendChartWrapper>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart
+                                    data={trendData}
+                                    margin={{
+                                        top: 10,
+                                        right: 10,
+                                        left: -10,
+                                        bottom: 0,
+                                    }}
+                                >
+                                    <CartesianGrid strokeDasharray="2 2" stroke="#dde" />
+                                    <XAxis dataKey="label" tickMargin={4} />
+                                    <Tooltip
+                                        formatter={(v: number) => [`${v}/10`, "Urge"]}
+                                        labelFormatter={(label: string) => label}
+                                        contentStyle={{
+                                            borderRadius: 8,
+                                            fontSize: "0.75rem",
+                                        }}
+                                        labelStyle={{ fontSize: "0.75rem" }}
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="urgeIntensity"
+                                        stroke="#ff5b7d"
+                                        strokeWidth={2}
+                                        dot={{ r: 2 }}
+                                        isAnimationActive={false}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </TrendChartWrapper>
+                    )}
+                </Card>
+            </Content>
+        </PageWrapper>
+    );
+};
 
 export default JournalPage;
