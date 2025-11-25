@@ -22,6 +22,10 @@ export interface IJournalEntry extends Document {
     // overall urge intensity before / after pulling
     urgeIntensity?: number; // 0..10
 
+    // 🔹 NEW: structured triggers + notes
+    preUrgeTriggers?: string[];
+    preUrgeTriggerNotes?: string;
+
     createdAt: Date;
     updatedAt: Date;
 }
@@ -46,6 +50,18 @@ const JournalEntrySchema = new Schema<IJournalEntry>(
 
         // overall urge intensity
         urgeIntensity: { type: Number, min: 0, max: 10 },
+
+        // 🔹 NEW: structured triggers from JournalPage
+        preUrgeTriggers: {
+            type: [String],
+            default: [],
+        },
+
+        // 🔹 NEW: optional notes
+        preUrgeTriggerNotes: {
+            type: String,
+            trim: true,
+        },
     },
     { timestamps: true }
 );
@@ -54,6 +70,9 @@ const JournalEntrySchema = new Schema<IJournalEntry>(
 JournalEntrySchema.index({ userId: 1, createdAt: -1 });
 
 // ✅ Named export — no default export
-export const JournalEntry = model<IJournalEntry>("JournalEntry", JournalEntrySchema);
+export const JournalEntry = model<IJournalEntry>(
+    "JournalEntry",
+    JournalEntrySchema
+);
 
 export default JournalEntry;
