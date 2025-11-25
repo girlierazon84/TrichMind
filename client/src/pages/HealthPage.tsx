@@ -252,8 +252,6 @@ export const HealthPage: React.FC = () => {
     const fetchLogs = async () => {
         try {
             setLogsLoading(true);
-            // You can add explicit params if you like:
-            // const res = await list({ page: 1, limit: 5 });
             const res = await list();
             const items = (res?.logs ?? []) as HealthLogView[];
             saveLogsToStorage(items.slice(0, 5)); // keep latest 5
@@ -325,7 +323,7 @@ export const HealthPage: React.FC = () => {
                         <HeaderTitleGroup>
                             <HeaderTitle>Health</HeaderTitle>
                             <HeaderSubtitle>
-                                Track stress, sleep and exercise.
+                                Sleep, meds, body check-ins & symptom logs.
                             </HeaderSubtitle>
                         </HeaderTitleGroup>
                     </HeaderLeft>
@@ -335,11 +333,20 @@ export const HealthPage: React.FC = () => {
                     </AvatarButton>
                 </Header>
 
-                {/* Sliders Card */}
+                {/* Daily Health Check-in Card */}
                 <Card>
+                    <SectionTitleRow>
+                        <SectionTitle>Daily Health Check-in</SectionTitle>
+                    </SectionTitleRow>
+                    <SectionSub>
+                        Track sleep, stress and movement today. Later you can also add
+                        meds, body check-ins and symptom notes, so TrichMind can better
+                        understand how your health and urges connect.
+                    </SectionSub>
+
                     {/* Sleep */}
                     <SliderLabelRow>
-                        <span>Sleep Hours</span>
+                        <span>Sleep hours (last night)</span>
                         <span>{sleepHours} h</span>
                     </SliderLabelRow>
                     <RangeInput
@@ -362,7 +369,7 @@ export const HealthPage: React.FC = () => {
 
                     {/* Stress */}
                     <SliderLabelRow>
-                        <span>Stress Level</span>
+                        <span>Stress level</span>
                         <span>{stressLevel}/10</span>
                     </SliderLabelRow>
                     <RangeInput
@@ -385,7 +392,7 @@ export const HealthPage: React.FC = () => {
 
                     {/* Exercise */}
                     <SliderLabelRow>
-                        <span>Exercise Minutes</span>
+                        <span>Exercise minutes</span>
                         <span>{exerciseMinutes} min</span>
                     </SliderLabelRow>
                     <RangeInput
@@ -407,18 +414,18 @@ export const HealthPage: React.FC = () => {
                     </TickRow>
 
                     <SaveButton onClick={handleSave} disabled={saving || loading}>
-                        {saving ? "Saving..." : "Save Log"}
+                        {saving ? "Saving..." : "Save health log"}
                     </SaveButton>
                 </Card>
 
                 {/* Recent Logs */}
                 <Card>
                     <SectionTitleRow>
-                        <SectionTitle>Recent Logs</SectionTitle>
+                        <SectionTitle>Recent health logs</SectionTitle>
                     </SectionTitleRow>
                     <SectionSub>
-                        These entries help personalize your relapse risk and wellness
-                        insights on your TrichMind dashboard.
+                        These logs help personalize relapse-risk estimates and wellness
+                        insights on your Overview screen.
                     </SectionSub>
 
                     {logsLoading ? (
@@ -433,8 +440,9 @@ export const HealthPage: React.FC = () => {
                                 <LogItem key={log._id}>
                                     <LogDate>📅 {formatDate(log.date)}</LogDate>
                                     <LogMeta>
-                                        • 😴 {log.sleepHours}h • 😰 Stress {log.stressLevel}/10 • 🏃‍♀️{" "}
-                                        {log.exerciseMinutes}min
+                                        • 😴 {log.sleepHours}h • 😰 Stress{" "}
+                                        {log.stressLevel}/10 • 🏃‍♀️ {log.exerciseMinutes}
+                                        min
                                     </LogMeta>
                                 </LogItem>
                             ))}
@@ -442,7 +450,7 @@ export const HealthPage: React.FC = () => {
                     )}
                 </Card>
 
-                {/* No RiskTrendChart here – it's shown only on HomePage */}
+                {/* No RiskTrendChart here – it's shown only on OverviewPage */}
             </Content>
         </PageWrapper>
     );
