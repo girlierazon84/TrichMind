@@ -19,6 +19,7 @@ import {
 // ---------- Types ----------
 
 type ChallengeMode = "focus_tap" | "picky_pad" | "grounding" | "breathing";
+type UrgeLevel = "low" | "medium" | "high";
 
 interface FocusTapState {
     taps: number;
@@ -35,6 +36,22 @@ interface SessionPoint {
     score: number;
 }
 
+// ---------- Fun feedback text ----------
+
+const FOCUS_MESSAGES = [
+    "Nice! Tap-tap-tap away from the urge 💪",
+    "Your hands are busy in a good way ✨",
+    "Each tap is a tiny ‘no thanks’ to pulling.",
+    "You’re building a focus shield 🛡️",
+];
+
+const PICKY_MESSAGES = [
+    "Pluck the dot, not the hair 🎯",
+    "Safe picky fun—keep going!",
+    "Those dots don’t stand a chance 😄",
+    "Great! You picked a safe target.",
+];
+
 // ---------- Styled Components ----------
 
 const PageWrapper = styled.main`
@@ -45,7 +62,7 @@ const PageWrapper = styled.main`
         180deg,
         #e2f4f7 0%,
         #e6f7f7 120px,
-        ${({ theme }) => theme.colors.page_bg || "#f4fbfc"} 300px
+        ${({ theme }) => theme.colors.page_bg || "#f4fbfc"} 320px
     );
     display: flex;
     flex-direction: column;
@@ -161,8 +178,44 @@ const StatusValue = styled.span`
     font-size: 0.85rem;
 `;
 
+// Urge badge
+const UrgeBadge = styled.span<{ $level: UrgeLevel }>`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.16rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #ffffff;
+    background: ${({ $level }) =>
+        $level === "low"
+            ? "linear-gradient(90deg, #43c6ac, #87e8b1)"
+            : $level === "medium"
+            ? "linear-gradient(90deg, #ffd66b, #ffae5b)"
+            : "linear-gradient(90deg, #ff6b81, #ff9aa2)"};
+`;
+
+// Feedback pill
+const FeedbackPill = styled.div`
+    margin-top: 0.45rem;
+    padding: 0.4rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    background: linear-gradient(90deg, #e3f8ff, #f4e7ff);
+    color: #275776;
+`;
+
 // Urge slider
 const UrgeSliderWrapper = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 0.3rem;
+`;
+
+const UrgeSliderRow = styled.div`
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -194,6 +247,16 @@ const ChallengeChip = styled.button<{ $active: boolean }>`
     align-items: center;
     justify-content: center;
     cursor: pointer;
+`;
+
+// Current challenge tag
+const ModeTag = styled.span`
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(0, 179, 196, 0.08);
+    color: #00808e;
+    font-weight: 600;
 `;
 
 // Focus Tap
@@ -306,6 +369,7 @@ export const TrichGamePage: React.FC = () => {
     const [currentUrge, setCurrentUrge] = useState<number>(3);
     const [points, setPoints] = useState<number>(0);
     const [streak, setStreak] = useState<number>(0);
+    const [feedback, setFeedback] = useState<string | null>(null);
 
     const [focusTap, setFocusTap] = useState<FocusTapState>({
         taps: 0,
@@ -344,6 +408,7 @@ export const TrichGamePage: React.FC = () => {
                 plucked: false,
             }))
         );
+        setFeedback(null);
         setActiveSessionId(undefined);
     };
 
@@ -378,6 +443,10 @@ export const TrichGamePage: React.FC = () => {
             taps: prev.taps + 1,
         }));
         setPoints((p) => p + 1);
+
+        const msg =
+            FOCUS_MESSAGES[Math.floor(Math.random() * FOCUS_MESSAGES.length)];
+        setFeedback(msg);
     };
 
     // ---- Picky Pad handlers ----
@@ -391,6 +460,10 @@ export const TrichGamePage: React.FC = () => {
             )
         );
         setPoints((p) => p + 1);
+
+        const msg =
+            PICKY_MESSAGES[Math.floor(Math.random() * PICKY_MESSAGES.length)];
+        setFeedback(msg);
     };
 
     // Finish / log session
@@ -427,6 +500,11 @@ export const TrichGamePage: React.FC = () => {
 
         setStreak(newStreak);
         setCurrentUrge(finalUrge);
+        setFeedback(
+            didResist
+                ? "You rode out that wave. That’s a real win. 🌊"
+                : "You logged it honestly—that’s brave and helpful for next time. 💚"
+        );
         resetLocalGameState();
     };
 
@@ -461,6 +539,18 @@ export const TrichGamePage: React.FC = () => {
     const focusProgressPct =
         (focusTap.taps / focusTap.target) * 100 || 0;
 
+    const pluckedCount = hairDots.filter((d) => d.plucked).length;
+
+    const urgeLevel: UrgeLevel =
+        currentUrge <= 3 ? "low" : currentUrge <= 6 ? "medium" : "high";
+
+    const urgeLabelText =
+        urgeLevel === "low"
+            ? "Safer zone"
+            : urgeLevel === "medium"
+            ? "Warming up"
+            : "Spiky urge";
+
     // While redirecting, render nothing
     if (!isAuthenticated) {
         return null;
@@ -494,27 +584,38 @@ export const TrichGamePage: React.FC = () => {
                     <StatusRow>
                         <StatusItem>
                             <SmallLabel>Urge</SmallLabel>
-                            <StatusValue>{currentUrge} / 10</StatusValue>
+                            <StatusValue>
+                                {currentUrge} / 10{" "}
+                                <UrgeBadge $level={urgeLevel}>{urgeLabelText}</UrgeBadge>
+                            </StatusValue>
                         </StatusItem>
                         <StatusItem>
-                            <SmallLabel>Points</SmallLabel>
+                            <SmallLabel>Points (this visit)</SmallLabel>
                             <StatusValue>{points}</StatusValue>
                         </StatusItem>
                         <StatusItem>
-                            <SmallLabel>Streak</SmallLabel>
+                            <SmallLabel>Resisting streak</SmallLabel>
                             <StatusValue>{streak}</StatusValue>
                         </StatusItem>
                     </StatusRow>
                     <UrgeSliderWrapper>
-                        <SmallLabel>Keep it under 3 to feel safer</SmallLabel>
-                        <UrgeSlider
-                            type="range"
-                            min={0}
-                            max={10}
-                            value={currentUrge}
-                            onChange={(e) => setCurrentUrge(Number(e.target.value))}
-                        />
+                        <SmallLabel>
+                            Slide to match how strong things feel. Keeping it under 3 is a
+                            safer zone.
+                        </SmallLabel>
+                        <UrgeSliderRow>
+                            <SmallLabel>0</SmallLabel>
+                            <UrgeSlider
+                                type="range"
+                                min={0}
+                                max={10}
+                                value={currentUrge}
+                                onChange={(e) => setCurrentUrge(Number(e.target.value))}
+                            />
+                            <SmallLabel>10</SmallLabel>
+                        </UrgeSliderRow>
                     </UrgeSliderWrapper>
+                    {feedback && <FeedbackPill>{feedback}</FeedbackPill>}
                 </Card>
 
                 {/* Challenge selector */}
@@ -524,7 +625,7 @@ export const TrichGamePage: React.FC = () => {
                     </SectionTitleRow>
                     <SectionSub>
                         Pick a quick task that looks doable right now. Each success is a
-                        small win and gently redirects the urge.
+                        tiny win that teaches your hands a new pattern.
                     </SectionSub>
 
                     <ChallengeList>
@@ -568,13 +669,14 @@ export const TrichGamePage: React.FC = () => {
                             {mode === "grounding" && "Grounding (5-4-3-2-1)"}
                             {mode === "breathing" && "Soft breathing focus"}
                         </SectionTitle>
+                        <ModeTag>Current challenge</ModeTag>
                     </SectionTitleRow>
 
                     {mode === "focus_tap" && (
                         <>
                             <SectionSub>
                                 Tap the button quickly to fill the bar. Imagine each tap
-                                sending a tiny “no thanks” to the urge.
+                                sending a tiny “no thanks” to the urge and earning a point.
                             </SectionSub>
                             <SmallLabel>
                                 Taps: {focusTap.taps} / {focusTap.target}
@@ -600,8 +702,12 @@ export const TrichGamePage: React.FC = () => {
                         <>
                             <SectionSub>
                                 Gently “pluck” the colored dots off the pad. This is a safe
-                                sensory substitute—no real hair involved.
+                                sensory substitute—no real hair involved, but your hands
+                                still get that picky feeling.
                             </SectionSub>
+                            <SmallLabel>
+                                Plucked dots: {pluckedCount} / {HAIR_DOT_COUNT}
+                            </SmallLabel>
                             <PickyPadGrid>
                                 {hairDots.map((dot) => (
                                     <PickyDot
@@ -612,22 +718,31 @@ export const TrichGamePage: React.FC = () => {
                                     />
                                 ))}
                             </PickyPadGrid>
+                            <GameButtonRow>
+                                <SecondaryButton
+                                    type="button"
+                                    onClick={() => resetLocalGameState()}
+                                >
+                                    Clear pad
+                                </SecondaryButton>
+                            </GameButtonRow>
                         </>
                     )}
 
                     {mode === "grounding" && (
                         <SectionSub>
-                            Look around and quietly notice: 5 things you can see, 4 you can
-                            touch, 3 you can hear, 2 you can smell, 1 you can taste. You
-                            can log this as a game even without tapping anything.
+                            Slowly notice: 5 things you can see, 4 you can touch, 3 you
+                            can hear, 2 you can smell, 1 you can taste. You can still log
+                            this as a game session even without tapping anything—simply
+                            finish below when you’re done.
                         </SectionSub>
                     )}
 
                     {mode === "breathing" && (
                         <SectionSub>
                             Try a gentle pattern: inhale for 4, hold for 4, exhale for 6.
-                            Repeat a few times while watching your urge number if you’d
-                            like.
+                            Imagine breathing out a little of the urge each time. When
+                            you’re ready, log how it went below.
                         </SectionSub>
                     )}
 
@@ -658,9 +773,9 @@ export const TrichGamePage: React.FC = () => {
                         <SectionTitle>Session Log &amp; Insights</SectionTitle>
                     </SectionTitleRow>
                     <SectionSub>
-                        Each game adds a dot. Higher scores = more taps / safe pad
-                        plucks. You can export this to share with a therapist or keep for
-                        yourself.
+                        Each game adds a point on the chart. Higher scores = more taps or
+                        safe pad plucks. You can export this to share with a therapist or
+                        just keep as your own progress arcade.
                     </SectionSub>
 
                     {sessionChartData.length === 0 ? (
