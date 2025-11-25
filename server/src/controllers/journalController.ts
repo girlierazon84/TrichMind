@@ -17,6 +17,7 @@ export const createJournal = asyncHandler(
         const userId = req.auth?.userId!;
         const data = req.body as JournalCreateDTO;
 
+        // data now includes: preUrgeTriggers, preUrgeTriggerNotes, etc.
         const entry = await journalService.create(userId, data);
 
         await loggerService.logInfo("Journal entry created", {
@@ -41,6 +42,8 @@ export const listJournals = asyncHandler(
             userId,
             count: entries.length,
         });
+
+        // entries now include preUrgeTriggers, preUrgeTriggerNotes when present
         res.json({ ok: true, count: entries.length, entries });
     }
 );
