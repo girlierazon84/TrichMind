@@ -10,3 +10,5 @@ export * from "./predictService";
 export * from "./alertService";
 export * from "./summaryService";
 export * from "./loggerService";
+export * from "./relapseOverview.service";
+export * from "./mlClients";
