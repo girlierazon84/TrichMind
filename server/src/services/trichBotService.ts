@@ -81,11 +81,24 @@ export const botService = {
         // Measure start time
         const started = Date.now();
 
-        // Call OpenAI Responses API
-        const response = await openai.responses.create({
-            model: DEFAULT_MODEL,
-            input: buildMessages(prompt, intent),
-        });
+        // Call OpenAI Responses API (with safer error handling)
+        let response;
+        try {
+            response = await openai.responses.create({
+                model: DEFAULT_MODEL,
+                input: buildMessages(prompt, intent),
+            });
+        } catch (err: any) {
+            // Avoid leaking the raw key in logs
+            console.error("[TrichBot] OpenAI error", {
+                status: err?.status,
+                code: err?.code,
+                message: err?.message,
+            });
+
+            // Throw a generic error that the UI can show nicely
+            throw new Error("TrichBot AI backend is not available right now.");
+        }
 
         // Extract text and tips
         const text = extractText(response);
