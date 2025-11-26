@@ -25,19 +25,31 @@ const openai = new OpenAI({
     apiKey: openaiApiKey || "dummy", // will error at runtime if truly missing
 });
 
-// Build messages array for OpenAI chat input
+/**
+ * Build messages array for OpenAI chat input
+ * We keep the format aligned with the frontend:
+ * - One cohesive answer
+ * - Validation paragraph
+ * - EXACTLY 3 numbered coping ideas (1., 2., 3.)
+ * - Optional short Bible verse (max 1) at the end when suitable
+ */
 function buildMessages(prompt: string, intent?: string) {
     const system = `
 You are TrichBot, a friendly but professional, validating assistant for people with trichotillomania.
 
 Guidelines:
 - Speak in a calm, hopeful, non-judgmental tone.
-- Respond in ONE cohesive answer (no repeating yourself).
-- First, briefly validate their feelings (2–3 sentences).
-- Then give EXACTLY 3 short, numbered coping ideas (1., 2., 3.).
-- Each coping idea should be concrete and actionable.
-- Avoid medical diagnoses; gently suggest professional help if things feel overwhelming.
-- Aim for about 120–180 words in total.
+- Respond in ONE cohesive answer (do NOT repeat the same sentences).
+- First, briefly validate their feelings in 2–3 sentences.
+- Then give EXACTLY 3 short, numbered coping ideas using this format:
+  1. ...
+  2. ...
+  3. ...
+- Each coping idea should be concrete and actionable and focused on the next small step.
+- Avoid medical diagnoses; gently suggest seeking professional support if things feel overwhelming or unsafe.
+- When it feels appropriate and not pushy, you may include ONE short, comforting Bible verse at the end (book + chapter:verse + one short line of text), framed as an optional encouragement, never as blame or pressure.
+- Do not include more than one verse.
+- Aim for around 120–180 words total.
 ${intent ? `User intent hint: ${intent}` : ""}
 `.trim();
 
@@ -65,6 +77,19 @@ function extractText(resp: any): string {
     );
 }
 
+/**
+ * Extracts numbered coping tips from the full response text.
+ * This is kept in sync with the frontend, which also looks for `1.`, `2.`, `3.`.
+ */
+function extractTips(text: string): string[] {
+    return text
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => /^\d+\.\s+/.test(line))
+        .map((line) => line.replace(/^\d+\.\s+/, ""))
+        .slice(0, 3); // exactly up to 3 tips
+}
+
 /**---------------------
     TrichBot Service
 ------------------------*/
@@ -83,7 +108,7 @@ export const botService = {
             );
         }
 
-        // Measure start time
+        // Measure start time (kept for potential logging)
         const started = Date.now();
 
         // Call OpenAI Responses API (with safer error handling)
@@ -105,17 +130,12 @@ export const botService = {
             throw new Error("TrichBot AI backend is not available right now.");
         }
 
-        // Extract text and tips
         const text = extractText(response);
         const runtimeSec = (Date.now() - started) / 1000;
         void runtimeSec; // currently unused, but kept for possible logging
 
-        // Simple heuristic: extract "tips" by splitting bullets/lines
-        const tips: string[] = text
-            .split("\n")
-            .map((line) => line.replace(/^[-*•]\s*/, "").trim())
-            .filter((line) => line.length > 0)
-            .slice(0, 4);
+        // Extract tips based on numbered lines (1., 2., 3.)
+        const tips: string[] = extractTips(text);
 
         // Store in MongoDB
         const doc = await TrichBotMessage.create({
@@ -167,3 +187,5 @@ export const botService = {
         ).exec();
     },
 };
+
+export default botService;
