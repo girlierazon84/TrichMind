@@ -112,6 +112,11 @@ const SmallLabel = styled.span`
     color: ${({ theme }) => theme.colors.text_secondary};
 `;
 
+const SmallLabelBlock = styled(SmallLabel)`
+    display: block;
+    margin-top: 0.3rem;
+`;
+
 // Chat layout
 const ChatList = styled.div`
     max-height: 360px;
@@ -155,19 +160,23 @@ const MessageBubble = styled.div<{ $role: "user" | "bot" }>`
         $role === "bot" ? "1px solid rgba(0,0,0,0.05)" : "none"};
 `;
 
-const TipsRow = styled.div`
-    margin-top: 0.3rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
+// Bot text pieces
+const BotIntroText = styled.p<{ $hasTips: boolean }>`
+    margin: 0;
+    margin-bottom: ${({ $hasTips }) => ($hasTips ? "0.45rem" : "0")};
 `;
 
-const TipChip = styled.span`
-    padding: 0.2rem 0.45rem;
-    border-radius: 999px;
-    font-size: 0.7rem;
-    background: linear-gradient(90deg, #ffe4f1, #e3f7ff);
-    color: #304c63;
+const BotTipsList = styled.ol`
+    padding-left: 1.1rem;
+    margin: 0;
+`;
+
+const BotTipsListItem = styled.li`
+    margin-bottom: 0.25rem;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
 `;
 
 // Save conversation
@@ -227,11 +236,16 @@ const SendButton = styled.button`
     height: 38px;
     border-radius: 999px;
     border: none;
-    background: ${({ theme }) => theme.colors.primary};
+    background: transparent; /* 🔹 transparent, only arrow visible */
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: default;
+    }
 `;
 
 const SendIconImg = styled.img`
@@ -250,6 +264,32 @@ const ErrorLabel = styled(SmallLabel)`
     margin-top: 0.35rem;
     color: #b3261e;
 `;
+
+// -------- helper: keep bot reply in ONE bubble --------
+function splitBotResponse(text: string): { intro: string; tips: string[] } {
+    const lines = text
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
+
+    const introParts: string[] = [];
+    const tips: string[] = [];
+
+    for (const line of lines) {
+        if (/^\d+\.\s+/.test(line)) {
+            tips.push(line.replace(/^\d+\.\s+/, ""));
+        } else {
+            introParts.push(line);
+        }
+    }
+
+    const intro = introParts.join(" ");
+
+    return {
+        intro,
+        tips: tips.slice(0, 3), // max 3 tips
+    };
+}
 
 // ---------------- Component ----------------
 
@@ -320,6 +360,16 @@ export const TrichBotPage: React.FC = () => {
         void handleSend();
     };
 
+    const handleKeyDown = (
+        e: React.KeyboardEvent<HTMLTextAreaElement>
+    ): void => {
+        // Enter = send, Shift+Enter = new line
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            void handleSend();
+        }
+    };
+
     const handleSaveConversation = () => {
         if (!messages || messages.length === 0) return;
 
@@ -384,34 +434,48 @@ export const TrichBotPage: React.FC = () => {
                     )}
 
                     <ChatList>
-                        {messages.map((m) => (
-                            <React.Fragment key={m._id ?? `${m.createdAt}-${m.prompt}`}>
-                                {/* User prompt */}
-                                <MessageRow $role="user">
-                                    <MessageBubble $role="user">{m.prompt}</MessageBubble>
-                                    <AvatarBubble src={headerAvatar} alt="You" />
-                                </MessageRow>
+                        {messages.map((m) => {
+                            const key = m._id ?? `${m.createdAt}-${m.prompt}`;
+                            const { intro, tips } = splitBotResponse(m.response || "");
 
-                                {/* Bot response */}
-                                {m.response && (
-                                    <MessageRow $role="bot">
-                                        <AvatarBubble src={TrichBotIcon} alt="TrichBot" />
-                                        <div>
-                                            <MessageBubble $role="bot">
-                                                {m.response}
-                                            </MessageBubble>
-                                            {m.tips && m.tips.length > 0 && (
-                                                <TipsRow>
-                                                    {m.tips.map((tip, idx) => (
-                                                        <TipChip key={idx}>{tip}</TipChip>
-                                                    ))}
-                                                </TipsRow>
-                                            )}
-                                        </div>
+                            return (
+                                <React.Fragment key={key}>
+                                    {/* User prompt */}
+                                    <MessageRow $role="user">
+                                        <MessageBubble $role="user">
+                                            {m.prompt}
+                                        </MessageBubble>
+                                        <AvatarBubble src={headerAvatar} alt="You" />
                                     </MessageRow>
-                                )}
-                            </React.Fragment>
-                        ))}
+
+                                    {/* Bot response – single cohesive bubble */}
+                                    {m.response && (
+                                        <MessageRow $role="bot">
+                                            <AvatarBubble
+                                                src={TrichBotIcon}
+                                                alt="TrichBot"
+                                            />
+                                            <MessageBubble $role="bot">
+                                                <BotIntroText $hasTips={tips.length > 0}>
+                                                    {intro}
+                                                </BotIntroText>
+
+                                                {tips.length > 0 && (
+                                                    <BotTipsList>
+                                                        {tips.map((tip, idx) => (
+                                                            <BotTipsListItem key={idx}>
+                                                                {tip}
+                                                            </BotTipsListItem>
+                                                        ))}
+                                                    </BotTipsList>
+                                                )}
+                                            </MessageBubble>
+                                        </MessageRow>
+                                    )}
+                                </React.Fragment>
+                            );
+                        })}
+
                         {loading && (
                             <MessageRow $role="bot">
                                 <AvatarBubble src={TrichBotIcon} alt="TrichBot" />
@@ -448,6 +512,7 @@ export const TrichBotPage: React.FC = () => {
                         <TextInput
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={handleKeyDown}   // 🔹 Enter-to-send
                             placeholder="Type your message…"
                         />
                         <SendButton type="submit" disabled={loading || !input.trim()}>
@@ -455,9 +520,9 @@ export const TrichBotPage: React.FC = () => {
                         </SendButton>
                     </InputRow>
                     {loading && (
-                        <SmallLabel style={{ display: "block", marginTop: "0.3rem" }}>
+                        <SmallLabelBlock>
                             TrichBot is responding…
-                        </SmallLabel>
+                        </SmallLabelBlock>
                     )}
                     {botError && <ErrorLabel>{botError}</ErrorLabel>}
                 </Card>
