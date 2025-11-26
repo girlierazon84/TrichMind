@@ -89,8 +89,8 @@ const Avatar = styled.img`
   width: 116px;
   height: 116px;
   border-radius: 50%;
-  object-fit: cover;
-  object-position: center 20%; /* nudge framing slightly upward */
+  object-fit: cover;          /* center by default */
+  /* removed object-position offset so the face isn't pushed up */
 `;
 
 const EditAvatarButton = styled.label`
@@ -367,8 +367,15 @@ export const ProfilePage: React.FC = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const w = avatarSource.width * zoom;
-    const h = avatarSource.height * zoom;
+    const imgW = avatarSource.width;
+    const imgH = avatarSource.height;
+
+    // Base scale so the smaller side fits the canvas (cover-style, centred)
+    const baseScale = size / Math.min(imgW, imgH);
+    const effectiveZoom = baseScale * zoom;
+
+    const w = imgW * effectiveZoom;
+    const h = imgH * effectiveZoom;
     const x = (size - w) / 2;
     const y = (size - h) / 2;
 
