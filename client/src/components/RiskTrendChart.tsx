@@ -52,7 +52,7 @@ const ChartWrapper = styled.div`
 
     @media (min-width: 480px) {
         height: 240px;
-        padding: ${({ theme }) => theme.spacing(3)} ${({ theme }) => theme.spacing(4)};
+        padding: ${({ theme }) => theme.spacing(3)} ${({ theme }) => theme.spacing(4)}; 
     }
 
     @media (min-width: 768px) {
@@ -102,24 +102,36 @@ const Message = styled.p`
 `;
 
 // -------------------------------------------------------
-// 🔮 RiskTrendChart – USER HISTORY ONLY (no demo / no ML)
+// 🔮 RiskTrendChart – can use injected history OR hook
 // -------------------------------------------------------
-export const RiskTrendChart: React.FC = () => {
+interface Props {
+    history?: HistoryPoint[];   // optional injected data
+}
+
+export const RiskTrendChart: React.FC<Props> = ({ history }) => {
     const theme = useTheme();
-    const { data: history, loading, error } = useRiskTrendChart();
+    const {
+        data: fetchedHistory,
+        loading,
+        error,
+    } = useRiskTrendChart();
+
+    // Prefer prop if provided (from overview endpoint)
+    const baseHistory = history ?? fetchedHistory;
 
     const chartData = useMemo(
         () =>
-            (history ?? []).map((item: HistoryPoint) => ({
+            (baseHistory ?? []).map((item: HistoryPoint) => ({
                 date: item.date,
                 // backend stores 0–1, chart wants 0–100
                 risk_score: item.score * 100,
             })),
-        [history]
+        [baseHistory]
     );
 
-    if (loading) return <Message>Loading your trend data…</Message>;
-    if (error) return <ErrorText>⚠️ Failed to load your risk history.</ErrorText>;
+    if (!history && loading) return <Message>Loading your trend data…</Message>;
+    if (!history && error)
+        return <ErrorText>⚠️ Failed to load your risk history.</ErrorText>;
     if (!chartData.length)
         return (
             <Message>
