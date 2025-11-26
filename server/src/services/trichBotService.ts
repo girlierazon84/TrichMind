@@ -18,6 +18,9 @@ const ENV_OPENAI = ENV_AUTO as typeof ENV_AUTO & {
 
 // OpenAI configuration
 const openaiApiKey = ENV_OPENAI.OPENAI_API_KEY ?? process.env.OPENAI_API_KEY;
+
+// ✅ Use a real, supported default model
+// You can override this in .env with OPENAI_MODEL=gpt-4.1-mini or OPENAI_MODEL=gpt-5
 const DEFAULT_MODEL = ENV_OPENAI.OPENAI_MODEL || "gpt-4.1-mini";
 
 // Initialise OpenAI client (we guard missing key in createMessage)
@@ -26,32 +29,83 @@ const openai = new OpenAI({
 });
 
 /**
- * Build messages array for OpenAI chat input
- * We keep the format aligned with the frontend:
- * - One cohesive answer
- * - Validation paragraph
- * - EXACTLY 3 numbered coping ideas (1., 2., 3.)
- * - Optional short Bible verse (max 1) at the end when suitable
+ * Simple heuristic: is this message just a greeting / intro?
+ * Example: "hi", "hello", "hey", "who are you?", "what do you do?"
+ */
+function isGreetingMessage(prompt: string): boolean {
+    const trimmed = prompt.trim();
+    const lower = trimmed.toLowerCase();
+
+    const shortGreeting =
+        trimmed.length <= 20 &&
+        /^(hi|hello|hey|hej|hola|hallo|hei)[!.? ]*$/i.test(lower);
+
+    const introQuestion =
+        /who are you|what do you do|what are you/i.test(lower);
+
+    return shortGreeting || introQuestion;
+}
+
+/**
+ * Build messages array for OpenAI chat input.
+ *
+ * Behaviour rules:
+ * - If the user clearly talks about urges / distress / difficulties:
+ *    • Validate feelings (2–3 sentences).
+ *    • Then give up to 3 numbered coping ideas (1., 2., 3.).
+ *    • Optionally add ONE short comforting Bible verse at the end.
+ *
+ * - If the user only greets or asks who you are (e.g. “hi”, “hello”, “who are you?”):
+ *    • Respond briefly and naturally (2–4 sentences).
+ *    • Introduce TrichBot and invite them to share what they’re going through.
+ *    • Do NOT include numbered coping ideas or Bible verses in that case.
  */
 function buildMessages(prompt: string, intent?: string) {
-    const system = `
+    const greeting = isGreetingMessage(prompt);
+
+    const distressSystem = `
 You are TrichBot, a friendly but professional, validating assistant for people with trichotillomania.
 
-Guidelines:
+Tone & style:
 - Speak in a calm, hopeful, non-judgmental tone.
+- Sound warm, authentic, and grounded – not scripted or robotic.
 - Respond in ONE cohesive answer (do NOT repeat the same sentences).
+
+When the user shares urges, distress, or difficulties:
 - First, briefly validate their feelings in 2–3 sentences.
-- Then give EXACTLY 3 short, numbered coping ideas using this format:
+- Then give up to 3 short, numbered coping ideas using this exact format:
   1. ...
   2. ...
   3. ...
-- Each coping idea should be concrete and actionable and focused on the next small step.
-- Avoid medical diagnoses; gently suggest seeking professional support if things feel overwhelming or unsafe.
-- When it feels appropriate and not pushy, you may include ONE short, comforting Bible verse at the end (book + chapter:verse + one short line of text), framed as an optional encouragement, never as blame or pressure.
-- Do not include more than one verse.
-- Aim for around 120–180 words total.
-${intent ? `User intent hint: ${intent}` : ""}
+- Each coping idea must be concrete, realistic, and focused on the next small step.
+- Avoid medical diagnoses; gently suggest seeking professional or crisis support if things feel overwhelming or unsafe.
+- When it feels appropriate and not pushy, you may include ONE short, comforting Bible verse at the very end:
+  • Include the book + chapter:verse + one short line of text.
+  • Frame it as optional encouragement, never as blame or pressure.
+  • Do not include more than one verse.
+- Aim for around 120–180 words in total.
 `.trim();
+
+    const greetingSystem = `
+You are TrichBot, a friendly but professional, validating assistant for people with trichotillomania.
+
+For simple greetings or intro questions (for example: "hi", "hello", "who are you?", "what do you do?"):
+- Reply briefly in about 2–4 sentences.
+- Greet the user and introduce yourself as TrichBot.
+- Explain in simple language how you can support them with urges, feelings, and coping ideas.
+- Invite them to share more when they feel ready.
+- Do NOT include numbered coping ideas in this case.
+- Do NOT include any Bible verse in this case.
+- Keep the tone light, welcoming, and reassuring.
+`.trim();
+
+    // Choose system message based on whether this looks like a greeting
+    let system = greeting ? greetingSystem : distressSystem;
+
+    // Only add intent hint when it's not a pure greeting
+    if (intent && !greeting) {
+        system += `\n\nUser intent hint: ${intent}`;
+    }
 
     return [
         { role: "system" as const, content: system },
@@ -61,7 +115,7 @@ ${intent ? `User intent hint: ${intent}` : ""}
 
 // Extract text response from OpenAI response object
 function extractText(resp: any): string {
-    // For OpenAI Responses API (GPT-4.1 family):
+    // For OpenAI Responses API (GPT-4.1 / GPT-5 family):
     const first = resp.output?.[0];
     if (first && "content" in first) {
         const textPart = first.content?.find((p: any) => p.type === "output_text");
@@ -79,7 +133,11 @@ function extractText(resp: any): string {
 
 /**
  * Extracts numbered coping tips from the full response text.
- * This is kept in sync with the frontend, which also looks for `1.`, `2.`, `3.`.
+ *
+ * - Looks for lines starting with "1. ", "2. ", etc.
+ * - Returns up to 3 tips.
+ * - For simple greetings (no numbered lines), this will return an empty array,
+ *   which is fine – the frontend will then just show the intro text only.
  */
 function extractTips(text: string): string[] {
     return text
@@ -87,7 +145,7 @@ function extractTips(text: string): string[] {
         .map((line) => line.trim())
         .filter((line) => /^\d+\.\s+/.test(line))
         .map((line) => line.replace(/^\d+\.\s+/, ""))
-        .slice(0, 3); // exactly up to 3 tips
+        .slice(0, 3);
 }
 
 /**---------------------
@@ -132,7 +190,7 @@ export const botService = {
 
         const text = extractText(response);
         const runtimeSec = (Date.now() - started) / 1000;
-        void runtimeSec; // currently unused, but kept for possible logging
+        void runtimeSec; // placeholder for future logging
 
         // Extract tips based on numbered lines (1., 2., 3.)
         const tips: string[] = extractTips(text);
