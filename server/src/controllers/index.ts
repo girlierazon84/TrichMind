@@ -10,3 +10,4 @@ export * from "./trichBotController";
 export * from "./trichGameController";
 export * from "./triggersInsightsController";
 export * from "./getRiskTrendController";
+export * from "./relapseOverviewController";
