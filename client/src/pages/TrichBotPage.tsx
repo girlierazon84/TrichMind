@@ -360,9 +360,7 @@ export const TrichBotPage: React.FC = () => {
         void handleSend();
     };
 
-    const handleKeyDown = (
-        e: React.KeyboardEvent<HTMLTextAreaElement>
-    ): void => {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
         // Enter = send, Shift+Enter = new line
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
@@ -456,9 +454,13 @@ export const TrichBotPage: React.FC = () => {
                                                 alt="TrichBot"
                                             />
                                             <MessageBubble $role="bot">
-                                                <BotIntroText $hasTips={tips.length > 0}>
-                                                    {intro}
-                                                </BotIntroText>
+                                                {/* Render intro as HTML so <strong><em>verse</em></strong> is styled */}
+                                                <BotIntroText
+                                                    $hasTips={tips.length > 0}
+                                                    dangerouslySetInnerHTML={{
+                                                        __html: intro,
+                                                    }}
+                                                />
 
                                                 {tips.length > 0 && (
                                                     <BotTipsList>
@@ -512,7 +514,7 @@ export const TrichBotPage: React.FC = () => {
                         <TextInput
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={handleKeyDown}   // 🔹 Enter-to-send
+                            onKeyDown={handleKeyDown} // 🔹 Enter-to-send
                             placeholder="Type your message…"
                         />
                         <SendButton type="submit" disabled={loading || !input.trim()}>
@@ -520,9 +522,7 @@ export const TrichBotPage: React.FC = () => {
                         </SendButton>
                     </InputRow>
                     {loading && (
-                        <SmallLabelBlock>
-                            TrichBot is responding…
-                        </SmallLabelBlock>
+                        <SmallLabelBlock>TrichBot is responding…</SmallLabelBlock>
                     )}
                     {botError && <ErrorLabel>{botError}</ErrorLabel>}
                 </Card>
