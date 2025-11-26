@@ -1,10 +1,6 @@
 // client/src/hooks/useAuth.ts
 
-import {
-    useState,
-    useEffect,
-    useCallback
-} from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
     axiosClient,
     authApi,
@@ -21,6 +17,7 @@ interface User {
     id: string;
     email: string;
     displayName?: string;
+    avatarUrl?: string;
 }
 
 /**------------------------
@@ -41,15 +38,19 @@ export const useAuth = () => {
     const [loading, setLoading] = useState(false);
     const { log, warn, error: logError } = useLogger(false);
 
-    // normalize user object
+    // normalize user object (handles various shapes: {user: {...}}, {...})
     const normalizeUser = useCallback((raw: unknown): User => {
         const obj = raw as Record<string, unknown>;
         const u = (obj.user as Record<string, unknown>) ?? obj;
 
         return {
             id: (u._id as string) ?? (u.id as string),
-            email: u.email as string,
+            email: (u.email as string) || "",
             displayName: u.displayName as string | undefined,
+            // support both camelCase and snake_case just in case
+            avatarUrl:
+                (u.avatarUrl as string | undefined) ||
+                (u.avatar_url as string | undefined),
         };
     }, []);
 
@@ -80,19 +81,16 @@ export const useAuth = () => {
         log("User logged out");
     }, [log, updateAuthHeader]);
 
-    // load user
+    // load user from /api/auth/me
     const loadUser = useCallback(async () => {
         if (!token) return;
 
         try {
             updateAuthHeader(token);
 
-            // Fetch user profile
             const profile = await authApi.me();
-            // Normalize and store user
             const normalized = normalizeUser(profile);
 
-            // Update state and localStorage
             setUser(normalized);
             localStorage.setItem("user", JSON.stringify(normalized));
         } catch (err: unknown) {
@@ -111,7 +109,7 @@ export const useAuth = () => {
         if (token) void loadUser();
     }, [token, loadUser]);
 
-    // store auth
+    // store auth from login/register
     const storeAuth = useCallback(
         (res: AuthResponse): User => {
             // Access token
@@ -124,7 +122,6 @@ export const useAuth = () => {
                 localStorage.setItem("refresh_token", res.refreshToken);
             }
 
-            // Normalize and store user
             const normalized = normalizeUser(res.user);
             setUser(normalized);
             localStorage.setItem("user", JSON.stringify(normalized));
@@ -174,13 +171,16 @@ export const useAuth = () => {
         newPassword: string;
     }): Promise<{ message: string }> => authApi.resetPassword(data);
 
-    // refresh user
+    // refresh user (e.g. after profile/avatar update)
     const refreshUser = async () => {
         if (!token) return;
 
         try {
-            const { user } = await userApi.getProfile();
-            setUser(user);
+            const { user: rawUser } = await userApi.getProfile();
+            const normalized = normalizeUser(rawUser);
+
+            setUser(normalized);
+            localStorage.setItem("user", JSON.stringify(normalized));
         } catch (err) {
             console.error("Failed to refresh user:", err);
         }
