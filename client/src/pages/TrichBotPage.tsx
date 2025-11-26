@@ -150,6 +150,7 @@ const MessageBubble = styled.div<{ $role: "user" | "bot" }>`
     font-size: 0.8rem;
     line-height: 1.4;
     white-space: pre-wrap;
+    text-align: justify;
 
     background: ${({ $role }) =>
         $role === "user" ? "#00b3c4" : "rgba(255,255,255,0.96)"};
