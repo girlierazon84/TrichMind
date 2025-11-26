@@ -53,7 +53,8 @@ function isGreetingMessage(prompt: string): boolean {
  * - If the user clearly talks about urges / distress / difficulties:
  *    • Validate feelings (2–3 sentences).
  *    • Then give up to 3 numbered coping ideas (1., 2., 3.).
- *    • Optionally add ONE short comforting Bible verse at the end.
+ *    • Optionally add ONE short comforting Bible verse at the end,
+ *      wrapped in <verse>...</verse> so the backend can emphasise it.
  *
  * - If the user only greets or asks who you are (e.g. “hi”, “hello”, “who are you?”):
  *    • Respond briefly and naturally (2–4 sentences).
@@ -74,15 +75,18 @@ Tone & style:
 When the user shares urges, distress, or difficulties:
 - First, briefly validate their feelings in 2–3 sentences.
 - Then give up to 3 short, numbered coping ideas using this exact format:
-  1. ...
-  2. ...
-  3. ...
+    1. ...
+    2. ...
+    3. ...
 - Each coping idea must be concrete, realistic, and focused on the next small step.
 - Avoid medical diagnoses; gently suggest seeking professional or crisis support if things feel overwhelming or unsafe.
 - When it feels appropriate and not pushy, you may include ONE short, comforting Bible verse at the very end:
-  • Include the book + chapter:verse + one short line of text.
-  • Frame it as optional encouragement, never as blame or pressure.
-  • Do not include more than one verse.
+    • Wrap the entire verse in <verse> and </verse> tags like this (without extra text around it):
+        <verse>Psalm 34:18 – "The Lord is close to the brokenhearted and saves those who are crushed in spirit."</verse>
+    • Do NOT add your own Markdown like ** or _ around the verse.
+    • Include the book + chapter:verse + one short line of text.
+    • Frame it as optional encouragement, never as blame or pressure.
+    • Do not include more than one verse.
 - Aim for around 120–180 words in total.
 `.trim();
 
@@ -129,6 +133,29 @@ function extractText(resp: any): string {
         resp.output_text?.[0]?.content?.[0]?.text ||
         "I'm here for you. 💚"
     );
+}
+
+/**
+ * Post-process text to emphasise any verse:
+ * 1) If wrapped in <verse>...</verse>, convert to <strong><em>...</em></strong>.
+ * 2) If the model still returns **_..._**, convert that to <strong><em>...</em></strong>.
+ */
+function emphasiseBibleVerse(text: string): string {
+    let output = text;
+
+    // Handle <verse>...</verse> tags first
+    output = output.replace(
+        /<verse>\s*([\s\S]*?)\s*<\/verse>/i,
+        "<strong><em>$1</em></strong>"
+    );
+
+    // Also handle any existing markdown-style **_..._**
+    output = output.replace(
+        /\*\*_(.+?)_\*\*/g,
+        "<strong><em>$1</em></strong>"
+    );
+
+    return output;
 }
 
 /**
@@ -188,9 +215,13 @@ export const botService = {
             throw new Error("TrichBot AI backend is not available right now.");
         }
 
-        const text = extractText(response);
+        // Raw text from OpenAI
+        const rawText = extractText(response);
         const runtimeSec = (Date.now() - started) / 1000;
         void runtimeSec; // placeholder for future logging
+
+        // Emphasise any verse (convert to <strong><em>...</em></strong>)
+        const text = emphasiseBibleVerse(rawText);
 
         // Extract tips based on numbered lines (1., 2., 3.)
         const tips: string[] = extractTips(text);
