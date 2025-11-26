@@ -17,7 +17,11 @@ import {
     RiskTrendChart,
     ThemeButton,
 } from "@/components";
-import { useAuth, useCopingStrategies } from "@/hooks";
+import {
+    useAuth,
+    useCopingStrategies,
+    useRelapseOverview,
+} from "@/hooks";
 import { AppLogo } from "@/assets/images";
 import { UserIcon } from "@/assets/icons";
 import type { PredictionResponse } from "@/types/ml";
@@ -225,6 +229,12 @@ const WelcomeBody = styled.p`
     line-height: 1.5;
 `;
 
+// ✅ replaces inline style for overview error message
+const OverviewErrorText = styled.p`
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+`;
+
 /**--------------
     Component
 -----------------*/
@@ -237,6 +247,13 @@ export const HomePage: React.FC = () => {
         setFromBackend,
         toggleStrategy,
     } = useCopingStrategies();
+
+    // overview hook
+    const {
+        data: overview,
+        loading: overviewLoading,
+        error: overviewError,
+    } = useRelapseOverview();
 
     const [riskScore, setRiskScore] = useState(0);
     const [confidence, setConfidence] = useState(0);
@@ -288,7 +305,7 @@ export const HomePage: React.FC = () => {
         }
     }, [isAuthenticated]);
 
-    // Load dashboard: user info + last prediction from localStorage
+    // Load user info + fallback last prediction (localStorage)
     useEffect(() => {
         if (!isAuthenticated) {
             setLoading(false);
@@ -310,10 +327,10 @@ export const HomePage: React.FC = () => {
 
                 setAvatarUrl(u.avatarUrl ?? null);
 
-                // Coping strategies → hook (also syncs localStorage)
+                // Coping strategies → hook
                 setFromBackend(u.coping_worked, u.coping_not_worked);
 
-                // last prediction
+                // Fallback: last prediction from localStorage
                 try {
                     const stored = localStorage.getItem("tm_last_prediction");
                     if (stored) {
@@ -355,6 +372,18 @@ export const HomePage: React.FC = () => {
         };
     }, [isAuthenticated, navigate, setFromBackend]);
 
+    // If overview endpoint returns a relapseSummary, prefer that over localStorage
+    useEffect(() => {
+        if (!overview || !overview.relapseSummary) return;
+        const rs = overview.relapseSummary;
+
+        setRiskScore(rs.risk_score);
+        setConfidence(rs.confidence);
+        setBucket(rs.risk_bucket.toUpperCase() as RiskLevel);
+        setModelVersion(rs.model_version ?? "live");
+        setRiskCode("auto"); // you can change this to something meaningful
+    }, [overview]);
+
     const quote = useMemo(() => {
         switch (bucket) {
             case "LOW":
@@ -368,14 +397,13 @@ export const HomePage: React.FC = () => {
 
     if (!isAuthenticated) return null;
 
-    if (loading) {
+    if (loading || overviewLoading) {
         return (
             <PageWrapper>
                 <Header>
                     <img src={AppLogo} className="app_logo" alt="TrichMind Logo" />
                     <SkeletonCircle />
                 </Header>
-
                 <SkeletonCard>
                     <SkeletonBar $width="60%" $height="20px" />
                     <SkeletonSpacer $height="16px" />
@@ -383,7 +411,6 @@ export const HomePage: React.FC = () => {
                     <SkeletonSpacer $height="10px" />
                     <SkeletonBar $width="90%" $height="12px" />
                 </SkeletonCard>
-
                 <SkeletonCard>
                     <SkeletonBar $width="50%" $height="16px" />
                     <SkeletonSpacer $height="14px" />
@@ -411,6 +438,8 @@ export const HomePage: React.FC = () => {
         copingWorked,
         copingNotWorked,
     });
+
+    const historyFromOverview = overview?.riskHistory ?? [];
 
     return (
         <>
@@ -450,6 +479,13 @@ export const HomePage: React.FC = () => {
                         quote={quote}
                         compact={isMobile}
                     />
+
+                    {overviewError && (
+                        <OverviewErrorText>
+                            (We couldn&apos;t refresh your automatic overview just now, so
+                            we&apos;re showing your last saved prediction.)
+                        </OverviewErrorText>
+                    )}
                 </Section>
 
                 <Section>
@@ -465,7 +501,7 @@ export const HomePage: React.FC = () => {
                 </Section>
 
                 <Section>
-                    <RiskTrendChart />
+                    <RiskTrendChart history={historyFromOverview} />
                 </Section>
             </PageWrapper>
 
