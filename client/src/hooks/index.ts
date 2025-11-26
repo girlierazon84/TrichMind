@@ -9,6 +9,7 @@ export * from "./useSoberStreak";
 export * from "./useCopingStrategies";
 export * from "./useRiskTrendChart";
 export * from "./usePredictedRiskTrend";
+export * from "./useRelapseOverview";
 
 export * from "./useUser";
 export * from "./useLogger";
