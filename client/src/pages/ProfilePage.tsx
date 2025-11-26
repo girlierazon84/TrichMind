@@ -90,6 +90,7 @@ const Avatar = styled.img`
   height: 116px;
   border-radius: 50%;
   object-fit: cover;
+  object-position: center 20%; /* nudge framing slightly upward */
 `;
 
 const EditAvatarButton = styled.label`
@@ -297,7 +298,6 @@ export const ProfilePage: React.FC = () => {
         setAvatarPreview(user.avatarUrl || UserIcon);
 
         // Seed coping strategies hook from backend values
-        // If backend arrays are undefined/null, hook keeps its current (localStorage) state
         setFromBackend(user.coping_worked, user.coping_not_worked);
       })
       .finally(() => setLoading(false));
@@ -355,12 +355,12 @@ export const ProfilePage: React.FC = () => {
     img.src = URL.createObjectURL(file);
   };
 
-  // Save avatar crop into avatarUrl (as base64)
+  // Save avatar crop into avatarUrl (as smaller JPEG base64)
   const applyAvatarCrop = () => {
     if (!avatarSource) return;
 
     const canvas = document.createElement("canvas");
-    const size = 260;
+    const size = 220; // enough for 116px avatar and keeps payload small
     canvas.width = size;
     canvas.height = size;
 
@@ -375,10 +375,10 @@ export const ProfilePage: React.FC = () => {
     ctx.beginPath();
     ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
     ctx.clip();
-
     ctx.drawImage(avatarSource, x, y, w, h);
 
-    const url = canvas.toDataURL("image/png");
+    // JPEG with moderate quality → smaller than PNG
+    const url = canvas.toDataURL("image/jpeg", 0.85);
     setAvatarPreview(url);
     setProfile((p) => (p ? { ...p, avatarUrl: url } : p));
     setShowCropper(false);
