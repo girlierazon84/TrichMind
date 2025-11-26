@@ -20,6 +20,7 @@ import triggersInsightsRoutes from "./routes/triggersInsightsRoutes";
 import trichBotRoutes from "./routes/trichBotRoutes";
 import trichGameRoutes from "./routes/trichGameRoutes";
 import loggerRoutes from "./routes/loggerRoutes";
+import relapseOverviewRoutes from "./routes/relapseOverviewRoutes";
 
 // -------------------------
 // Initialize Express App
@@ -87,6 +88,7 @@ app.use("/api/trichbot", trichBotRoutes); // 💬 TrichMind Chatbot logs
 app.use("/api/games", trichGameRoutes); // 🎮 Game sessions
 app.use("/api/triggers", triggersInsightsRoutes); // ⚡ Triggers insights
 app.use("/api/users", userRoutes); // 👤 User info
+app.use("/api/overview", relapseOverviewRoutes); // 📊 Relapse Overview
 
 // -----------------------------
 // ✅ 404 + Error Handlers
