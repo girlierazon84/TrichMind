@@ -2,10 +2,9 @@
 
 import express from "express";
 import cors from "cors";
-import { connectMongo } from "./config";
+import { connectMongo, ENV_AUTO } from "./config";
 import { notFound, errorHandler } from "./middlewares";
 import { logger, startWeeklySummaryScheduler } from "./utils";
-import { ENV_AUTO } from "./config";
 
 // -----------------
 // Route Imports
@@ -58,22 +57,36 @@ app.use(
     })
 );
 
-app.use(express.json());
+// -----------------------------
+// ✅ Body parsers with higher limit (for avatar base64 etc.)
+// -----------------------------
+app.use(
+    express.json({
+        limit: "5mb", // allow profile payloads with base64 avatar
+    })
+);
+
+app.use(
+    express.urlencoded({
+        extended: true,
+        limit: "5mb",
+    })
+);
 
 // -----------------------------
 // ✅ API Routes
 // -----------------------------
-app.use("/api/alerts", alertRoutes);                 // 🔔 Alerts (relapse risk)
-app.use("/api/auth", authRoutes);                    // 🔐 Authentication (+ /me)
-app.use("/api/health", healthRoutes);                // 🩺 Health logs
-app.use("/api/journal", journalRoutes);              // 📔 Journals
-app.use("/api/logs", loggerRoutes);                  // 🪵 Logger
-app.use("/api/ml", predictRoutes);                   // 🤖 ML Predictions
-app.use("/api/summary", summaryRoutes);              // 🗓 Weekly summaries
-app.use("/api/trichbot", trichBotRoutes);            // 💬 TrichMind Chatbot logs
-app.use("/api/games", trichGameRoutes);              // 🎮 Game sessions
-app.use("/api/triggers", triggersInsightsRoutes);    // ⚡ Triggers insights
-app.use("/api/users", userRoutes);                   // 👤 User info
+app.use("/api/alerts", alertRoutes); // 🔔 Alerts (relapse risk)
+app.use("/api/auth", authRoutes); // 🔐 Authentication (+ /me)
+app.use("/api/health", healthRoutes); // 🩺 Health logs
+app.use("/api/journal", journalRoutes); // 📔 Journals
+app.use("/api/logs", loggerRoutes); // 🪵 Logger
+app.use("/api/ml", predictRoutes); // 🤖 ML Predictions
+app.use("/api/summary", summaryRoutes); // 🗓 Weekly summaries
+app.use("/api/trichbot", trichBotRoutes); // 💬 TrichMind Chatbot logs
+app.use("/api/games", trichGameRoutes); // 🎮 Game sessions
+app.use("/api/triggers", triggersInsightsRoutes); // ⚡ Triggers insights
+app.use("/api/users", userRoutes); // 👤 User info
 
 // -----------------------------
 // ✅ 404 + Error Handlers
