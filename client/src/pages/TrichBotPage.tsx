@@ -345,6 +345,12 @@ export const TrichBotPage: React.FC = () => {
         (user && (user as unknown as { avatarUrl?: string }).avatarUrl) ||
         UserIcon;
 
+    // A per-user key so clearing is specific to this account
+    const clearKey =
+        (user && "email" in user && user.email) ?
+            `tm_trichbot_cleared_${(user as { email: string }).email}` :
+            "tm_trichbot_cleared";
+
     // Redirect guests to login
     useEffect(() => {
         if (!isAuthenticated) {
@@ -352,9 +358,16 @@ export const TrichBotPage: React.FC = () => {
         }
     }, [isAuthenticated, navigate]);
 
-    // Load previous bot messages
+    // Load previous bot messages, *unless* user has cleared chat
     useEffect(() => {
         if (!isAuthenticated) return;
+
+        const clearedFlag = clearKey ? localStorage.getItem(clearKey) : null;
+        if (clearedFlag === "1") {
+            // User chose to keep chat clear – don't fetch history
+            setMessages([]);
+            return;
+        }
 
         const loadHistory = async () => {
             try {
@@ -370,7 +383,7 @@ export const TrichBotPage: React.FC = () => {
         };
 
         void loadHistory();
-    }, [isAuthenticated]);
+    }, [isAuthenticated, clearKey]);
 
     const handleSend = async () => {
         if (!input.trim() || !isAuthenticated) return;
@@ -381,6 +394,9 @@ export const TrichBotPage: React.FC = () => {
 
         try {
             const msg = await sendMessage(prompt, "urge_support");
+
+            // As soon as the user sends a new message, we consider this a fresh conversation.
+            // We keep the cleared flag, but still show new messages.
             setMessages((prev) => [...prev, msg]);
         } catch (err) {
             console.error("TrichBot send error:", err);
@@ -462,16 +478,19 @@ export const TrichBotPage: React.FC = () => {
         }
     };
 
-    // 🧹 Clear conversation from the screen (for when the user is done)
+    // 🧹 Clear conversation from the screen (and keep it cleared across logins)
     const handleClearConversation = () => {
         if (!messages || messages.length === 0) return;
 
         const confirmed = window.confirm(
-            "Clear this chat from your screen?\n\nThis won’t delete anything from your account history, but it will empty this conversation view."
+            "Clear this chat from your screen?\n\nThis won’t delete anything from the server, but it will empty this conversation view and keep it clear next time you log in."
         );
         if (!confirmed) return;
 
         setMessages([]);
+        if (clearKey) {
+            localStorage.setItem(clearKey, "1");
+        }
     };
 
     if (!isAuthenticated) {
