@@ -102,8 +102,13 @@ const HeaderTitle = styled.h1`
 `;
 
 const HeaderSubtitle = styled.span`
-    font-size: 0.75rem;
+    font-size: 0.55rem;
     color: ${({ theme }) => theme.colors.text_secondary};
+    line-height: 0;
+
+    .p-one, .p-two {
+        display: block;
+    }
 `;
 
 const AvatarButton = styled.button`
@@ -298,7 +303,6 @@ const PickyDot = styled.button<{ $plucked: boolean }>`
             ? css`${pop} 160ms ease-out`
             : css`${wiggle} 1500ms ease-in-out infinite`};
 
-    /* Little "hair tuft" that disappears when plucked */
     &::before {
         content: "";
         position: absolute;
@@ -368,7 +372,10 @@ export const TrichGamePage: React.FC = () => {
     const [pickyClears, setPickyClears] = useState<number>(0);
     const [pickyMessage, setPickyMessage] = useState<string | null>(null);
 
-    const headerAvatar = UserIcon;
+    // 🔄 Cohesive avatar handling (same pattern as TrichBotPage)
+    const headerAvatar =
+        (user && (user as unknown as { avatarUrl?: string }).avatarUrl) ||
+        UserIcon;
 
     // Redirect guests to login
     useEffect(() => {
@@ -481,7 +488,7 @@ export const TrichGamePage: React.FC = () => {
         await completeSession(id, {
             score,
             streak: newStreak,
-            durationSeconds: Math.max(1, score), // rough proxy
+            durationSeconds: Math.max(1, score),
             completed: true,
             endedAt: new Date().toISOString(),
             metadata: {
@@ -533,7 +540,6 @@ export const TrichGamePage: React.FC = () => {
 
     const pluckedCount = hairDots.filter((d) => d.plucked).length;
 
-    // While redirecting, render nothing
     if (!isAuthenticated) {
         return null;
     }
@@ -547,8 +553,12 @@ export const TrichGamePage: React.FC = () => {
                         <HeaderTitleGroup>
                             <HeaderTitle>TrichGame — Beat the Urge</HeaderTitle>
                             <HeaderSubtitle>
-                                Short, safe micro-challenges that keep your hands busy and
-                                gently lower your urge meter.
+                                <p className="p-one">
+                                    Short, safe micro-challenges that keep your hands busy &
+                                </p>
+                                <p className="p-two">
+                                    gently lower your urge meter.
+                                </p>
                             </HeaderSubtitle>
                         </HeaderTitleGroup>
                     </HeaderLeft>
@@ -764,7 +774,7 @@ export const TrichGamePage: React.FC = () => {
                                     <CartesianGrid strokeDasharray="2 2" stroke="#dde" />
                                     <XAxis dataKey="label" tickMargin={4} />
                                     <Tooltip
-                                        formatter={(v: number) => [`${v}`, "Score"]}  
+                                        formatter={(v: number) => [`${v}`, "Score"]}
                                         labelFormatter={(label: string) => label}
                                         contentStyle={{
                                             borderRadius: 8,
