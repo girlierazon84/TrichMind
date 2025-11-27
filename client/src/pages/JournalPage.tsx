@@ -31,13 +31,10 @@ interface JournalEntryView {
     mood?: string;
     urgeIntensity?: number;
     createdAt: string;
-
-    // new, structured trigger info (optional while backend catches up)
     preUrgeTriggers?: string[];
     preUrgeTriggerNotes?: string;
 }
 
-// Extend API type with extra numeric features used for ML
 type JournalEntryWithMetrics = JournalEntry & {
     preUrgeTriggers?: string[];
     preUrgeTriggerNotes?: string;
@@ -46,7 +43,6 @@ type JournalEntryWithMetrics = JournalEntry & {
     happy?: number;
 };
 
-// Canonical mood set (must match backend PRE_URGE_MOODS + "Bored")
 type MoodName =
     | "Sad"
     | "Anxious"
@@ -62,7 +58,7 @@ type MoodName =
     | "Bored"
     | "";
 
-// Mood options for UI + analytics
+// Mood options
 const MOOD_OPTIONS: { value: MoodName; label: string; emoji: string }[] = [
     { value: "Sad", label: "Sad", emoji: "😢" },
     { value: "Anxious", label: "Anxious", emoji: "😰" },
@@ -78,20 +74,18 @@ const MOOD_OPTIONS: { value: MoodName; label: string; emoji: string }[] = [
     { value: "Proud", label: "Proud", emoji: "🏅" },
 ];
 
-// Cluster moods into broader groups for numeric features
 const STRESS_MOODS: MoodName[] = [
     "Sad",
     "Anxious",
     "Stressed",
     "Overwhelmed",
     "Angry",
-    "Bored", // boredom is a key pre-pulling state
+    "Bored",
 ];
 
 const CALM_MOODS: MoodName[] = ["Calm", "Tired", "Neutral"];
 const HAPPY_MOODS: MoodName[] = ["Happy", "Proud", "Hopeful"];
 
-// ---- Trigger tags (simple, structured pre-urge triggers) ----
 type TriggerKey =
     | "Stress"
     | "Boredom"
@@ -175,7 +169,7 @@ const HeaderTitle = styled.h1`
 `;
 
 const HeaderSubtitle = styled.span`
-    font-size: 0.75rem;
+    font-size: 0.55rem;
     color: ${(props) => props.theme.colors.text_secondary};
 `;
 
@@ -223,7 +217,6 @@ const SectionSub = styled.p`
     color: ${(props) => props.theme.colors.text_secondary};
 `;
 
-// Small “hint” line for optional microcopy
 const SectionHint = styled.p`
     margin: 0 0 0.35rem;
     font-size: 0.7rem;
@@ -231,14 +224,12 @@ const SectionHint = styled.p`
     opacity: 0.9;
 `;
 
-// Thin divider to visually soften long content
 const SoftDivider = styled.hr`
     border: none;
     border-top: 1px dashed rgba(0, 0, 0, 0.06);
     margin: 0.7rem 0 0.5rem;
 `;
 
-// Specific label for the select to satisfy a11y rules
 const PromptLabel = styled.label.attrs({
     id: "journal-prompt-label",
 })`
@@ -487,7 +478,6 @@ const EmptyState = styled.p`
     margin: 0.2rem 0 0.8rem;
 `;
 
-// Chart container
 const TrendChartWrapper = styled.div`
     margin-top: 0.6rem;
     height: 130px;
@@ -529,7 +519,10 @@ export const JournalPage: React.FC = () => {
     const [entries, setEntries] = useState<JournalEntryView[]>([]);
     const [entriesLoading, setEntriesLoading] = useState(false);
 
-    const headerAvatar = UserIcon; // later swap for user.avatarUrl
+    // 🔄 Cohesive avatar handling
+    const headerAvatar =
+        (user && (user as unknown as { avatarUrl?: string }).avatarUrl) ||
+        UserIcon;
 
     // Redirect guests to login
     useEffect(() => {
@@ -538,7 +531,6 @@ export const JournalPage: React.FC = () => {
         }
     }, [isAuthenticated, navigate]);
 
-    // Load recent entries from backend
     const fetchEntries = async () => {
         try {
             setEntriesLoading(true);
@@ -569,14 +561,12 @@ export const JournalPage: React.FC = () => {
 
     const handleSave = async () => {
         if (!text.trim() && !mood && !prompt && selectedTriggers.length === 0) {
-            // nothing meaningful to save
             return;
         }
 
         try {
             setSaving(true);
 
-            // map trigger keys -> human labels for storage / ML
             const preUrgeTriggers =
                 selectedTriggers.length > 0
                     ? selectedTriggers.map(
@@ -594,7 +584,6 @@ export const JournalPage: React.FC = () => {
                 preUrgeTriggerNotes: triggerNotes.trim() || undefined,
             };
 
-            // Map mood to numeric fields for analytics
             if (mood && STRESS_MOODS.includes(mood)) {
                 payload.stress = urgeIntensity;
             } else if (mood && CALM_MOODS.includes(mood)) {
@@ -603,17 +592,15 @@ export const JournalPage: React.FC = () => {
                 payload.happy = urgeIntensity;
             }
 
-            // Create entry via API, then always refetch from backend
             await create(payload);
             await fetchEntries();
 
-            // Reset fields (keep same prompt for faster journaling)
             setText("");
             setUrgeIntensity(5);
             setSelectedTriggers([]);
             setTriggerNotes("");
         } catch {
-            // errors handled in hook/toast
+            // handled by hook/toast
         } finally {
             setSaving(false);
         }
@@ -656,8 +643,11 @@ export const JournalPage: React.FC = () => {
         [entries]
     );
 
-    // limit past entries shown to avoid overwhelm
     const recentEntries = entries.slice(0, 5);
+
+    if (!isAuthenticated) {
+        return null;
+    }
 
     return (
         <PageWrapper>
@@ -693,7 +683,7 @@ export const JournalPage: React.FC = () => {
                         <span>{todayLabel}</span>
                     </DateRow>
 
-                    {/* 1. Mood */}
+                    {/* Mood */}
                     <SoftDivider />
                     <SectionTitleRow>
                         <SectionTitle>Mood</SectionTitle>
@@ -718,7 +708,7 @@ export const JournalPage: React.FC = () => {
                         ))}
                     </MoodRow>
 
-                    {/* 2. Triggers */}
+                    {/* Triggers */}
                     <SoftDivider />
                     <SectionTitleRow>
                         <SectionTitle>Possible triggers</SectionTitle>
@@ -753,7 +743,7 @@ export const JournalPage: React.FC = () => {
                         />
                     )}
 
-                    {/* 3. Urge intensity */}
+                    {/* Urge level */}
                     <SoftDivider />
                     <SectionTitleRow>
                         <SectionTitle>Urge level</SectionTitle>
@@ -784,7 +774,7 @@ export const JournalPage: React.FC = () => {
                         <span>10</span>
                     </TickRow>
 
-                    {/* 4. Short reflection */}
+                    {/* Short reflection */}
                     <SoftDivider />
                     <SectionTitleRow>
                         <PromptLabel htmlFor="journal-prompt-select">
@@ -826,7 +816,7 @@ export const JournalPage: React.FC = () => {
                     </SaveButton>
                 </Card>
 
-                {/* Past Entries Card */}
+                {/* Past Entries */}
                 <Card>
                     <SectionTitleRow>
                         <SectionTitle>Recent entries</SectionTitle>
@@ -870,7 +860,7 @@ export const JournalPage: React.FC = () => {
                     )}
                 </Card>
 
-                {/* Trend Insights Card (separate, under Past Entries) */}
+                {/* Trend Insights */}
                 <Card>
                     <SectionTitleRow>
                         <SectionTitle>Trend insights</SectionTitle>
