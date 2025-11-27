@@ -7,7 +7,7 @@ import {
     predictRelapseRisk,
     type RelapseFeatures,
     type MlRelapseResponse,
-} from "./mlClients";
+} from "../services";
 
 // Tunable thresholds for "enough data"
 const MIN_JOURNAL_FOR_RISK = 5;
@@ -193,15 +193,17 @@ export async function getRelapseOverviewForUser(
     userId: Types.ObjectId | string
 ): Promise<RelapseOverviewResult> {
     // 1) Load recent data
-    const [journal, health, userDoc] = await Promise.all([
+    const [journalRaw, healthRaw, userDocRaw] = await Promise.all([
         JournalEntry.find({ user: userId })
             .sort({ createdAt: -1 })
             .limit(50)
-            .lean<JournalLean[]>(),
+            .lean()
+            .exec(),
         HealthLog.find({ user: userId })
             .sort({ date: -1 })
             .limit(30)
-            .lean<HealthLean[]>(),
+            .lean()
+            .exec(),
         User.findById(userId)
             .select(
                 [
@@ -218,20 +220,25 @@ export async function getRelapseOverviewForUser(
                     "coping_not_worked",
                 ].join(" ")
             )
-            .lean<UserProfileLean | null>(),
+            .lean()
+            .exec(),
     ]);
+
+    const journal = (journalRaw ?? []) as JournalLean[];
+    const health = (healthRaw ?? []) as HealthLean[];
+    const userDoc = (userDocRaw ?? null) as UserProfileLean | null;
 
     const journalCount = journal.length;
     const healthCount = health.length;
 
-    // 2) Sober streak
+    // 2) Sober streak (placeholder)
     const streak = await getSoberStreakForUser(userId);
 
     // Do we have profile features for ML?
     const features = userDoc ? buildProfileFeatures(userDoc) : null;
     const hasProfileFeatures = !!features;
 
-    // You can still require journal & health minima
+    // Require both profile + a minimum of journal/health data
     const enoughData =
         hasProfileFeatures &&
         journalCount >= MIN_JOURNAL_FOR_RISK &&
@@ -247,11 +254,9 @@ export async function getRelapseOverviewForUser(
         try {
             mlResp = await predictRelapseRisk(features);
         } catch (err: any) {
-            // 🔧 Single-argument call to satisfy TS typing
+            const msg = err?.message ?? String(err);
             logger.warn(
-                `⚠️ ML relapse-risk service failed, using heuristic. Error: ${
-                    err?.message ?? String(err)
-                }`
+                `⚠️ ML relapse-risk service failed, using heuristic: ${msg}`
             );
         }
 
