@@ -146,39 +146,48 @@ function computeHeuristicRisk(
     user: UserProfileLean,
     journal: JournalLean[]
 ): RelapseSummary {
+    // Severity (0–10): default 0
     const severity =
         typeof user.pulling_severity === "number"
             ? user.pulling_severity
-            : 5;
-
-    const daysStopped =
-        typeof user.how_long_stopped_days === "number"
-            ? user.how_long_stopped_days
             : 0;
 
+    // Days stopped: default 0
+    const daysStopped =
+        typeof (user as any).how_long_stopped_days_est === "number"
+            ? (user as any).how_long_stopped_days_est
+            : 0;
+
+    // Urge intensities from journal entries
     const urges: number[] = journal
         .filter((j) => typeof j.urgeIntensity === "number")
         .map((j) => j.urgeIntensity as number);
 
+    // Average urge intensity from recent journal (0–10): default 0
     const avgUrge =
         urges.length > 0
             ? urges.reduce((sum, v) => sum + v, 0) / urges.length
             : 0;
 
+    // Severity normalized to 0–1
     const severityNorm = Math.min(Math.max(severity / 10, 0), 1);
+    // Average urge normalized to 0–1
     const avgUrgeNorm = Math.min(Math.max(avgUrge / 10, 0), 1);
 
     // If they've been stopped longer, gently reduce risk
     const stoppedBuffer = Math.min(daysStopped / 60, 1); // cap after ~2 months
     const stoppedPenalty = stoppedBuffer * 0.3;
 
+    // Combine into overall risk score (0–1)
     let riskScore = severityNorm * 0.5 + avgUrgeNorm * 0.5 - stoppedPenalty;
     riskScore = Math.min(Math.max(riskScore, 0), 1);
 
+    // Bucketize risk score into categories
     let bucket: "low" | "medium" | "high" = "low";
     if (riskScore >= 0.66) bucket = "high";
     else if (riskScore >= 0.33) bucket = "medium";
 
+    // Confidence increases with amount of journal data (up to 10 entries)
     const confidence = 0.5 + 0.5 * Math.min(urges.length / 10, 1);
 
     return {
@@ -189,21 +198,29 @@ function computeHeuristicRisk(
     };
 }
 
+/**---------------------------------------------------
+    Main service: get relapse overview for a user.
+------------------------------------------------------*/
 export async function getRelapseOverviewForUser(
     userId: Types.ObjectId | string
 ): Promise<RelapseOverviewResult> {
     // 1) Load recent data
     const [journalRaw, healthRaw, userDocRaw] = await Promise.all([
-        JournalEntry.find({ user: userId })
+        // JournalEntry has `userId`
+        JournalEntry.find({ userId })
             .sort({ createdAt: -1 })
             .limit(50)
             .lean()
             .exec(),
-        HealthLog.find({ user: userId })
+
+        // HealthLog has `userId`
+        HealthLog.find({ userId })
             .sort({ date: -1 })
             .limit(30)
             .lean()
             .exec(),
+
+        // User fields that actually exist in UserModel
         User.findById(userId)
             .select(
                 [
@@ -211,10 +228,7 @@ export async function getRelapseOverviewForUser(
                     "age_of_onset",
                     "years_since_onset",
                     "pulling_severity",
-                    "pulling_frequency",
-                    "pulling_awareness",
-                    "successfully_stopped",
-                    "how_long_stopped_days",
+                    "how_long_stopped_days_est", // <- this is your real field
                     "emotion",
                     "coping_worked",
                     "coping_not_worked",
@@ -224,10 +238,12 @@ export async function getRelapseOverviewForUser(
             .exec(),
     ]);
 
+    // Cast to lean types
     const journal = (journalRaw ?? []) as JournalLean[];
     const health = (healthRaw ?? []) as HealthLean[];
     const userDoc = (userDocRaw ?? null) as UserProfileLean | null;
 
+    // Counts for data availability
     const journalCount = journal.length;
     const healthCount = health.length;
 
@@ -244,9 +260,11 @@ export async function getRelapseOverviewForUser(
         journalCount >= MIN_JOURNAL_FOR_RISK &&
         healthCount >= MIN_HEALTH_FOR_RISK;
 
+    // 3) Compute relapse risk summary + history
     let relapseSummary: RelapseSummary | null = null;
     let riskHistory: RiskHistoryPoint[] = [];
 
+    // Compute relapse risk summary and history if enough data is available
     if (enoughData && features) {
         // Try ML service first; fall back to heuristic on error
         let mlResp: MlRelapseResponse | null = null;
