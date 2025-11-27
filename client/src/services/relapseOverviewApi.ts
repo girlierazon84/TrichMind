@@ -3,15 +3,13 @@
 import { axiosClient } from "@/services";
 import { withLogging } from "@/utils/withLogging";
 
-/**----------------------------
-    Risk level from backend
--------------------------------*/
+/** Risk level from backend */
 export type RiskLevel = "low" | "medium" | "high";
 
 export interface RelapseSummary {
     risk_bucket: RiskLevel;
-    risk_score: number; // 0–1
-    confidence: number; // 0–1
+    risk_score: number;    // 0–1
+    confidence: number;    // 0–1
     model_version?: string;
 }
 
@@ -35,27 +33,24 @@ export interface RelapseOverviewResponse {
     };
 }
 
-/**-------------------------------
-    Raw API call (no logging).
-----------------------------------*/
-async function rawFetchOverview(
+/** Raw fetch (no logging) */
+async function _fetchOverview(
     signal?: AbortSignal
 ): Promise<RelapseOverviewResponse> {
     const res = await axiosClient.get<RelapseOverviewResponse>(
-        "/api/summary/overview",
+        "/api/overview/relapse",
         { signal }
     );
     return res.data;
 }
 
-/**---------------------------------------------------------
-    Small API wrapper for the relapse overview endpoint,
-    wrapped with unified logging.
-------------------------------------------------------------*/
+/**
+ * Wrapped with logging so every overview fetch is logged to backend.
+ */
 export const relapseOverviewApi = {
-    fetchOverview: withLogging(rawFetchOverview, {
-        category: "ml", // or "summary" / "analytics" if you prefer
-        action: "relapse_overview",
-        showToast: false, // no toasts for background dashboard fetch
+    fetchOverview: withLogging(_fetchOverview, {
+        category: "summary",
+        action: "relapse_overview_fetch",
+        showToast: false,
     }),
 };
