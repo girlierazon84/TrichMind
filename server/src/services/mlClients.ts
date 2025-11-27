@@ -1,52 +1,75 @@
 // server/src/services/mlClient.ts
 
 import axios from "axios";
-
-const ML_BASE_URL =
-    process.env.ML_BASE_URL ||
-    process.env.ML_API_URL ||
-    "http://localhost:8000";
+import { ENV_AUTO } from "../config";
+import { logger } from "../utils";
 
 /**
- * Exact feature shape used by your relapse-risk predictor model.
+ * Features expected by your relapse-risk model.
+ * Mirrors your FE description:
+ *  - age
+ *  - age_of_onset
+ *  - years_since_onset?
+ *  - pulling_severity
+ *  - pulling_frequency
+ *  - pulling_awareness
+ *  - successfully_stopped
+ *  - how_long_stopped_days
+ *  - emotion
  */
 export interface RelapseFeatures {
     age: number;
     age_of_onset: number;
-    years_since_onset?: number | null;
+    years_since_onset?: number;
 
     pulling_severity: number;
-    pulling_frequency: string;          // NOT encoded
-    pulling_awareness: string;          // NOT encoded
+    pulling_frequency: string;
+    pulling_awareness: string;
     successfully_stopped: string | boolean;
     how_long_stopped_days: number;
 
     emotion: string;
 }
 
+/** Shape returned by the FastAPI relapse-risk endpoint */
 export interface MlRelapseResponse {
+    risk_score: number;               // 0–1
     risk_bucket: "low" | "medium" | "high";
-    risk_score: number;      // 0–1
-    confidence: number;      // 0–1
+    confidence: number;               // 0–1
     model_version?: string;
-    risk_code?: string;      // include if your FastAPI sends it
 }
 
-const client = axios.create({
+/**
+ * Base URL and path for the ML service.
+ * You can tweak via env:
+ *  - ML_BASE_URL (otherwise fallbacks)
+ *  - ML_RELAPSE_PATH if needed
+ */
+const ML_BASE_URL =
+    ENV_AUTO.ML_BASE_URL ||
+    process.env.ML_BASE_URL ||
+    "http://localhost:8000";
+
+const ML_RELAPSE_PATH =
+    process.env.ML_RELAPSE_PATH || "/predict/relapse-risk";
+
+const mlHttp = axios.create({
     baseURL: ML_BASE_URL,
     timeout: 6000,
 });
 
-/**
- * Call FastAPI relapse-risk endpoint.
- * 🔧 Change `/predict-relapse` to your real path if needed.
- */
 export async function predictRelapseRisk(
     features: RelapseFeatures
 ): Promise<MlRelapseResponse> {
-    const { data } = await client.post<MlRelapseResponse>(
-        "/predict-relapse",
-        features
-    );
-    return data;
+    try {
+        const { data } = await mlHttp.post<MlRelapseResponse>(
+            ML_RELAPSE_PATH,
+            features
+        );
+        return data;
+    } catch (err: any) {
+        const msg = err?.message ?? String(err);
+        logger.error(`❌ ML relapse-risk request failed: ${msg}`);
+        throw err;
+    }
 }
