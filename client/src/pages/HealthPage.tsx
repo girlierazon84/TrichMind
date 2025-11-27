@@ -6,7 +6,7 @@ import styled from "styled-components";
 import { useHealth, useAuth } from "@/hooks";
 import { ThemeButton } from "@/components";
 import { UserIcon, HealthIcon } from "@/assets/icons";
-import { notifyOverviewRefresh } from "@/utils"
+import { notifyOverviewRefresh } from "@/utils";
 
 // ---------------- Types ----------------
 interface HealthLogView {
@@ -69,7 +69,7 @@ const HeaderTitle = styled.h1`
 `;
 
 const HeaderSubtitle = styled.span`
-    font-size: 0.75rem;
+    font-size: 0.55rem;
     color: ${({ theme }) => theme.colors.text_secondary};
 `;
 
@@ -124,7 +124,6 @@ const SectionHint = styled.p`
     opacity: 0.9;
 `;
 
-// Gentle divider to break sections inside the card
 const SoftDivider = styled.hr`
     border: none;
     border-top: 1px dashed rgba(0, 0, 0, 0.06);
@@ -227,24 +226,24 @@ const EmptyState = styled.p`
 export const HealthPage: React.FC = () => {
     const navigate = useNavigate();
 
-    // ⛔ Gate page by auth
     const { user, isAuthenticated } = useAuth();
     const { create, list, loading } = useHealth();
 
     const [sleepHours, setSleepHours] = useState(7);
     const [stressLevel, setStressLevel] = useState(5);
-
-    // 👉 default to a clean 30-minute step (matches labels)
     const [exerciseMinutes, setExerciseMinutes] = useState(30);
 
     const [saving, setSaving] = useState(false);
     const [logs, setLogs] = useState<HealthLogView[]>([]);
     const [logsLoading, setLogsLoading] = useState(false);
 
-    const headerAvatar = UserIcon; // later swap for user?.avatarUrl
+    // 🔄 Cohesive avatar handling
+    const headerAvatar =
+        (user && (user as unknown as { avatarUrl?: string }).avatarUrl) ||
+        UserIcon;
+
     const LS_KEY = "tm_health_logs";
 
-    // Load cached logs from localStorage on mount
     useEffect(() => {
         const cached = localStorage.getItem(LS_KEY);
         if (cached) {
@@ -252,7 +251,7 @@ export const HealthPage: React.FC = () => {
                 const parsed = JSON.parse(cached) as HealthLogView[];
                 setLogs(parsed);
             } catch {
-                // ignore parse errors
+                // ignore
             }
         }
     }, []);
@@ -262,7 +261,7 @@ export const HealthPage: React.FC = () => {
         try {
             localStorage.setItem(LS_KEY, JSON.stringify(items));
         } catch {
-            // ignore storage errors
+            // ignore
         }
     };
 
@@ -271,10 +270,9 @@ export const HealthPage: React.FC = () => {
             setLogsLoading(true);
             const res = await list();
             const items = (res?.logs ?? []) as HealthLogView[];
-            saveLogsToStorage(items.slice(0, 5)); // keep latest 5
+            saveLogsToStorage(items.slice(0, 5));
         } catch (e) {
             console.error("[HealthPage] Failed to load logs", e);
-            // keep whatever is in state/localStorage
         } finally {
             setLogsLoading(false);
         }
@@ -287,7 +285,7 @@ export const HealthPage: React.FC = () => {
         }
     }, [isAuthenticated, navigate]);
 
-    // Load logs once the user is authenticated
+    // Load logs once authenticated
     useEffect(() => {
         if (!isAuthenticated) return;
         void fetchLogs();
@@ -311,10 +309,9 @@ export const HealthPage: React.FC = () => {
                 await fetchLogs();
             }
 
-            // 🔔 let Home/Overview know we have fresh data
             notifyOverviewRefresh("health");
         } catch {
-            // errors already handled in hook/toast
+            // handled by hook/toast
         } finally {
             setSaving(false);
         }
@@ -327,7 +324,6 @@ export const HealthPage: React.FC = () => {
             day: "2-digit",
         });
 
-    // While redirecting, render nothing
     if (!isAuthenticated) {
         return null;
     }
@@ -423,7 +419,7 @@ export const HealthPage: React.FC = () => {
                         <span>10</span>
                     </TickRow>
 
-                    {/* Exercise / Movement */}
+                    {/* Movement */}
                     <SoftDivider />
                     <SectionTitleRow>
                         <SectionTitle>Movement</SectionTitle>
@@ -439,7 +435,7 @@ export const HealthPage: React.FC = () => {
                     <RangeInput
                         min={0}
                         max={180}
-                        step={5}   // 🔥 snap to the same interval as the labels
+                        step={5}
                         value={exerciseMinutes}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                             setExerciseMinutes(Number(e.target.value))
@@ -492,8 +488,6 @@ export const HealthPage: React.FC = () => {
                         </LogsList>
                     )}
                 </Card>
-
-                {/* No RiskTrendChart here – it's shown only on OverviewPage */}
             </Content>
         </PageWrapper>
     );
