@@ -347,9 +347,9 @@ export const TrichBotPage: React.FC = () => {
 
     // A per-user key so clearing is specific to this account
     const clearKey =
-        (user && "email" in user && user.email) ?
-            `tm_trichbot_cleared_${(user as { email: string }).email}` :
-            "tm_trichbot_cleared";
+        (user && "email" in user && user.email)
+            ? `tm_trichbot_cleared_${(user as { email: string }).email}`
+            : "tm_trichbot_cleared";
 
     // Redirect guests to login
     useEffect(() => {
@@ -393,10 +393,12 @@ export const TrichBotPage: React.FC = () => {
         setBotError(null);
 
         try {
-            const msg = await sendMessage(prompt, "urge_support");
+            // 👇 intent explicitly mentions TrichMind + trichotillomania support
+            const msg = await sendMessage(
+                prompt,
+                "trichmind_app_trichotillomania_support"
+            );
 
-            // As soon as the user sends a new message, we consider this a fresh conversation.
-            // We keep the cleared flag, but still show new messages.
             setMessages((prev) => [...prev, msg]);
         } catch (err) {
             console.error("TrichBot send error:", err);
@@ -412,7 +414,9 @@ export const TrichBotPage: React.FC = () => {
         void handleSend();
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
+    const handleKeyDown = (
+        e: React.KeyboardEvent<HTMLTextAreaElement>
+    ): void => {
         // Enter = send, Shift+Enter = new line
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
@@ -497,6 +501,8 @@ export const TrichBotPage: React.FC = () => {
         return null;
     }
 
+    const showIntroBotBubble = messages.length === 0 && !loading;
+
     return (
         <PageWrapper>
             <Content>
@@ -504,10 +510,11 @@ export const TrichBotPage: React.FC = () => {
                     <HeaderLeft>
                         <HeaderIcon src={TrichBotIcon} alt="TrichBot icon" />
                         <HeaderTitleGroup>
-                            <HeaderTitle>TrichBot</HeaderTitle>
+                            <HeaderTitle>TrichBot · TrichMind assistant</HeaderTitle>
                             <HeaderSubtitle>
-                                Your safe space to chat and reflect. This is a supportive
-                                bot, not medical advice.
+                                The in-app companion for people living with
+                                trichotillomania – here to guide you through urges,
+                                tools, and gentle next steps.
                             </HeaderSubtitle>
                         </HeaderTitleGroup>
                     </HeaderLeft>
@@ -521,18 +528,38 @@ export const TrichBotPage: React.FC = () => {
                 <Card>
                     <SectionTitle>Conversation</SectionTitle>
                     <SectionSub>
-                        Share what&apos;s going on. TrichBot will offer gentle support and
-                        a few coping ideas you can try right away.
+                        Share what&apos;s going on. TrichBot can help you reflect on
+                        urges, make sense of your relapse risk, and suggest ways to use
+                        TrichMind features like your dashboard, daily check-ins, coping
+                        strategies and journaling.
                     </SectionSub>
 
-                    {messages.length === 0 && !loading && (
+                    {showIntroBotBubble && (
                         <EmptyState>
                             No conversation yet. Say hello and tell TrichBot what&apos;s
-                            on your mind.
+                            on your mind – or ask how to use TrichMind to support you
+                            today.
                         </EmptyState>
                     )}
 
                     <ChatList>
+                        {showIntroBotBubble && (
+                            <MessageRow $role="bot">
+                                <AvatarBubble src={TrichBotIcon} alt="TrichBot" />
+                                <MessageBubble $role="bot">
+                                    Hi, I&apos;m TrichBot – the assistant inside the
+                                    TrichMind app. I&apos;m here to support you with
+                                    trichotillomania: making sense of your relapse risk,
+                                    tracking small wins, exploring coping strategies and
+                                    using tools like your daily progress card, urge
+                                    check-ins and notes. When you&apos;re ready, tell me a
+                                    bit about what you&apos;re feeling or what&apos;s been
+                                    triggering you, and we&apos;ll take the next step
+                                    together.
+                                </MessageBubble>
+                            </MessageRow>
+                        )}
+
                         {messages.map((m) => {
                             const key = m._id ?? `${m.createdAt}-${m.prompt}`;
                             const { intro, tips } = splitBotResponse(m.response || "");
@@ -618,7 +645,9 @@ export const TrichBotPage: React.FC = () => {
                     <SectionTitle>Type your message…</SectionTitle>
                     <SectionSub>
                         You can talk about urges, stress, wins, or questions about
-                        trichotillomania. TrichBot will respond with ideas, not judgment.
+                        trichotillomania, or ask how to use TrichMind tools (like your
+                        risk dashboard, daily progress, or coping cards). TrichBot will
+                        respond with ideas, not judgment.
                     </SectionSub>
 
                     <InputRow onSubmit={handleSubmit}>
