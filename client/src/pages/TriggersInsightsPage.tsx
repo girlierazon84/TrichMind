@@ -40,7 +40,6 @@ interface RiskSummary {
     explanation: string;
 }
 
-// JournalEntry extended with triggers field (optional – but now backed by BE)
 interface JournalWithTriggers extends JournalEntry {
     preUrgeTriggers?: string[];
     createdAt?: string;
@@ -99,7 +98,7 @@ const HeaderTitle = styled.h1`
 `;
 
 const HeaderSubtitle = styled.span`
-    font-size: 0.75rem;
+    font-size: 0.55rem;
     color: ${({ theme }) => theme.colors.text_secondary};
 `;
 
@@ -260,10 +259,9 @@ const Word = styled.span<{ $scale: number; $color: string }>`
 
 // Helper to color-code triggers by recency
 const getTriggerColor = (recencyScore: number): string => {
-    // older → cooler / muted, recent → warm / vivid
-    if (recencyScore < 0.33) return "#78909C"; // blue-grey (older)
-    if (recencyScore < 0.66) return "#26A69A"; // teal (recent-ish)
-    return "#EC407A"; // pink (very recent / current)
+    if (recencyScore < 0.33) return "#78909C"; // older
+    if (recencyScore < 0.66) return "#26A69A"; // recent-ish
+    return "#EC407A"; // very recent
 };
 
 // ---------------- Component ----------------
@@ -276,7 +274,10 @@ export const TriggersInsightsPage: React.FC = () => {
     const [triggersAggregated, setTriggersAggregated] = useState<TriggerView[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
 
-    const headerAvatar = UserIcon;
+    // 🔄 Cohesive avatar handling
+    const headerAvatar =
+        (user && (user as unknown as { avatarUrl?: string }).avatarUrl) ||
+        UserIcon;
 
     // Redirect guests to login
     useEffect(() => {
@@ -301,7 +302,6 @@ export const TriggersInsightsPage: React.FC = () => {
 
                 const entries = (res?.entries ?? []) as JournalEntry[];
 
-                // Filter out entries that actually have an urge + createdAt
                 const withUrgeAndDate = entries.filter(
                     (e): e is JournalEntry & { createdAt: string } =>
                         typeof e.urgeIntensity === "number" &&
@@ -309,7 +309,7 @@ export const TriggersInsightsPage: React.FC = () => {
                             "string"
                 );
 
-                // 1. Urge trend points (chronological)
+                // 1. Urge trend points
                 const points: UrgeTrendPoint[] = withUrgeAndDate
                     .slice()
                     .reverse()
@@ -324,7 +324,7 @@ export const TriggersInsightsPage: React.FC = () => {
                     }));
                 setTrendData(points);
 
-                // 2. Aggregate triggers from preUrgeTriggers arrays
+                // 2. Aggregate triggers
                 type TriggerAgg = { count: number; lastSeen: number };
 
                 const triggerCounts = new Map<string, TriggerAgg>();
@@ -337,9 +337,7 @@ export const TriggersInsightsPage: React.FC = () => {
                     if (typeof createdAt === "string") {
                         const d = new Date(createdAt);
                         const time = d.getTime();
-                        if (!Number.isNaN(time)) {
-                            ts = time;
-                        }
+                        if (!Number.isNaN(time)) ts = time;
                     }
 
                     preUrgeTriggers.forEach((rawName) => {
@@ -363,7 +361,6 @@ export const TriggersInsightsPage: React.FC = () => {
 
                 const allAgg = Array.from(triggerCounts.entries());
 
-                // Normalize recency into 0..1
                 let minLastSeen = Infinity;
                 let maxLastSeen = -Infinity;
 
@@ -373,9 +370,7 @@ export const TriggersInsightsPage: React.FC = () => {
                 });
 
                 const range =
-                    maxLastSeen > minLastSeen
-                        ? maxLastSeen - minLastSeen
-                        : 0;
+                    maxLastSeen > minLastSeen ? maxLastSeen - minLastSeen : 0;
 
                 const aggregated: TriggerView[] = allAgg
                     .map(([name, value]) => {
@@ -392,12 +387,11 @@ export const TriggersInsightsPage: React.FC = () => {
                             recencyScore,
                         };
                     })
-                    // Sort by frequency (top triggers first)
                     .sort((a, b) => b.frequency - a.frequency);
 
                 setTriggersAggregated(aggregated);
             } catch {
-                // quietly fail; UI will show empty states
+                // quietly fail
             } finally {
                 setLoading(false);
             }
@@ -420,7 +414,6 @@ export const TriggersInsightsPage: React.FC = () => {
         [topTriggers]
     );
 
-    // --- Relapse-risk preview (front-end heuristic, not medical advice) ---
     const riskSummary: RiskSummary | null = useMemo(() => {
         if (trendData.length === 0 && topTriggers.length === 0) {
             return null;
@@ -462,7 +455,6 @@ export const TriggersInsightsPage: React.FC = () => {
         return { score, label, explanation };
     }, [trendData, topTriggers]);
 
-    // While redirecting, render nothing
     if (!isAuthenticated) {
         return null;
     }
@@ -544,7 +536,7 @@ export const TriggersInsightsPage: React.FC = () => {
                     )}
                 </Card>
 
-                {/* Relapse-risk preview card (front-end heuristic) */}
+                {/* Relapse-risk preview card */}
                 <Card>
                     <SectionTitleRow>
                         <SectionTitle>Relapse-risk preview</SectionTitle>
@@ -614,7 +606,7 @@ export const TriggersInsightsPage: React.FC = () => {
                     )}
                 </Card>
 
-                {/* Word cloud / quick visual */}
+                {/* Word cloud */}
                 <Card>
                     <SectionTitleRow>
                         <SectionTitle>Trigger word cloud</SectionTitle>
@@ -634,7 +626,6 @@ export const TriggersInsightsPage: React.FC = () => {
                             {topTriggers.map((t) => {
                                 const freqScore =
                                     maxFrequency > 0 ? t.frequency / maxFrequency : 0;
-                                // Combine frequency + recency for size
                                 const sizeScore =
                                     0.6 * freqScore + 0.4 * t.recencyScore;
                                 const scale = 0.3 + sizeScore * 0.7;
