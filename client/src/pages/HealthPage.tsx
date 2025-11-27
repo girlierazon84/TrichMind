@@ -5,8 +5,8 @@ import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { useHealth, useAuth } from "@/hooks";
 import { ThemeButton } from "@/components";
-import { UserIcon } from "@/assets/icons";
-import healthIcon from "@/assets/icons/health.png";
+import { UserIcon, HealthIcon } from "@/assets/icons";
+import { notifyOverviewRefresh } from "@/utils"
 
 // ---------------- Types ----------------
 interface HealthLogView {
@@ -303,15 +303,16 @@ export const HealthPage: React.FC = () => {
                 exerciseMinutes,
             });
 
-            // Optimistic update using backend response
             const created = (res?.log ?? null) as HealthLogView | null;
             if (created && created._id) {
                 const next = [created, ...logs].slice(0, 5);
                 saveLogsToStorage(next);
             } else {
-                // fallback: hard refresh from backend
                 await fetchLogs();
             }
+
+            // 🔔 let Home/Overview know we have fresh data
+            notifyOverviewRefresh("health");
         } catch {
             // errors already handled in hook/toast
         } finally {
@@ -336,7 +337,7 @@ export const HealthPage: React.FC = () => {
             <Content>
                 <Header>
                     <HeaderLeft>
-                        <HeaderIcon src={healthIcon} alt="Health icon" />
+                        <HeaderIcon src={HealthIcon} alt="Health icon" />
                         <HeaderTitleGroup>
                             <HeaderTitle>Health</HeaderTitle>
                             <HeaderSubtitle>
