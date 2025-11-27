@@ -163,8 +163,55 @@ const Section = styled.section`
 const WelcomeText = styled.h2`
     font-size: 1.65rem;
     text-align: center;
-    margin-bottom: ${({ theme }) => theme.spacing(4)};
+    margin-bottom: ${({ theme }) => theme.spacing(3)};
     color: ${({ theme }) => theme.colors.text_primary};
+`;
+
+// ✅ overview status row
+const OverviewStatusRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: ${({ theme }) => theme.spacing(3)};
+    flex-wrap: wrap;
+    justify-content: center;
+
+    @media (max-width: 768px) {
+        align-items: flex-start;
+    }
+`;
+
+const StatusPill = styled.span<{ $variant?: "ok" | "warning" }>`
+    padding: 0.2rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    background: ${({ $variant }) =>
+        $variant === "warning"
+            ? "rgba(255, 173, 120, 0.18)"
+            : "rgba(120, 255, 190, 0.18)"};
+    color: ${({ theme, $variant }) =>
+        $variant === "warning"
+            ? theme.colors.medium_risk_gradient || "#ff9a3c"
+            : theme.colors.low_risk_gradient || "#26c485"};
+    border: 1px solid
+        ${({ $variant }) =>
+            $variant === "warning"
+                ? "rgba(255, 173, 120, 0.6)"
+                : "rgba(120, 255, 190, 0.6)"};
+`;
+
+const StatusText = styled.span`
+    font-size: 0.8rem;
+    color: ${({ theme }) => theme.colors.text_secondary};
+    max-width: 520px;
+    text-align: center;
+
+    @media (max-width: 768px) {
+        text-align: left;
+    }
 `;
 
 // Skeletons
@@ -236,6 +283,37 @@ const OverviewErrorText = styled.p`
     color: ${({ theme }) => theme.colors.text_secondary};
 `;
 
+/**----------------
+ * Helpers
+ *-----------------*/
+function formatOverviewUpdatedLabel(lastUpdated: Date | null): string {
+    if (!lastUpdated) return "Getting your latest overview…";
+
+    const now = new Date();
+    const diffMs = now.getTime() - lastUpdated.getTime();
+    const diffMinutes = Math.round(diffMs / 60000);
+
+    if (diffMs < 60_000) {
+        return "Last updated just now.";
+    }
+    if (diffMinutes < 60) {
+        return `Last updated ${diffMinutes} min ago.`;
+    }
+
+    const sameDay = now.toDateString() === lastUpdated.toDateString();
+    const timeStr = lastUpdated.toLocaleTimeString(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+
+    if (sameDay) {
+        return `Last updated today at ${timeStr}.`;
+    }
+
+    const dateStr = lastUpdated.toLocaleDateString();
+    return `Updated on ${dateStr} at ${timeStr}.`;
+}
+
 /**--------------
     Component
 -----------------*/
@@ -254,6 +332,7 @@ export const HomePage: React.FC = () => {
         data: overview,
         loading: overviewLoading,
         error: overviewError,
+        lastUpdated,
     } = useRelapseOverview();
 
     const [riskScore, setRiskScore] = useState(0);
@@ -269,7 +348,7 @@ export const HomePage: React.FC = () => {
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
 
-    // 👇 toggle this if you ever want to show a user-friendly hint
+    // 👇 toggle this if you ever want an extra hint below the card
     const SHOW_OVERVIEW_ERROR_HINT = false;
 
     const toggleMenu = (e: MouseEvent) => {
@@ -479,6 +558,17 @@ export const HomePage: React.FC = () => {
                     <WelcomeText>
                         Welcome back, {user?.displayName || user?.email || "Friend"} 👋
                     </WelcomeText>
+
+                    <OverviewStatusRow>
+                        <StatusPill $variant={overviewError ? "warning" : "ok"}>
+                            {overviewError ? "Using saved data" : "Auto-updating"}
+                        </StatusPill>
+                        <StatusText>
+                            {overviewError
+                                ? "We couldn’t refresh your automatic overview this time, so you’re seeing your last saved prediction."
+                                : formatOverviewUpdatedLabel(lastUpdated)}
+                        </StatusText>
+                    </OverviewStatusRow>
 
                     <RiskResultCard
                         data={predictionData}
