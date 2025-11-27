@@ -15,3 +15,4 @@ export * from "./summaryApi";
 export * from "./trichBotApi";
 export * from "./trichGameApi";
 export * from "./triggersInsightsApi";
+export * from "./relapseOverviewApi"
