@@ -275,6 +275,12 @@ export const botService = {
             { new: true }
         ).exec();
     },
+
+    // 🧹 Clear all messages for a given user (used by "Clear chat")
+    async clearMessages(userId: string): Promise<number> {
+        const result = await TrichBotMessage.deleteMany({ userId }).exec();
+        return result.deletedCount ?? 0;
+    },
 };
 
 export default botService;
