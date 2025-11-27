@@ -1,30 +1,10 @@
 // client/src/hooks/useRelapseOverview.ts
 
 import { useEffect, useState } from "react";
-import { axiosClient } from "@/services";
-
-export type RiskLevel = "low" | "medium" | "high";
-
-export interface RelapseSummary {
-    risk_bucket: RiskLevel;
-    risk_score: number;    // 0–1
-    confidence: number;    // 0–1
-    model_version?: string;
-}
-
-export interface RiskHistoryPoint {
-    date: string;
-    score: number; // 0–1
-}
-
-export interface RelapseOverviewResponse {
-    ok: boolean;
-    enoughData: boolean;
-    relapseSummary: RelapseSummary | null;
-    riskHistory: RiskHistoryPoint[];
-    streak?: { current: number; previous: number };
-    coping?: { worked: string[]; notWorked: string[] };
-}
+import {
+    relapseOverviewApi,
+    type RelapseOverviewResponse,
+} from "@/services/relapseOverviewApi";
 
 export const useRelapseOverview = () => {
     const [data, setData] = useState<RelapseOverviewResponse | null>(null);
@@ -33,19 +13,21 @@ export const useRelapseOverview = () => {
 
     useEffect(() => {
         let alive = true;
+        const controller = new AbortController();
 
         (async () => {
             try {
                 setLoading(true);
-                const res = await axiosClient.get<RelapseOverviewResponse>(
-                    "/api/summary/overview"
+                const result = await relapseOverviewApi.fetchOverview(
+                    controller.signal
                 );
                 if (!alive) return;
-                setData(res.data);
+
+                setData(result);
                 setError(null);
             } catch (e) {
-                console.error("[useRelapseOverview] failed", e);
                 if (!alive) return;
+                console.error("[useRelapseOverview] failed", e);
                 setError("Failed to load overview");
             } finally {
                 if (alive) setLoading(false);
@@ -54,6 +36,7 @@ export const useRelapseOverview = () => {
 
         return () => {
             alive = false;
+            controller.abort();
         };
     }, []);
 
