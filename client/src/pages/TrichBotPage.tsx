@@ -180,9 +180,15 @@ const BotTipsListItem = styled.li`
     }
 `;
 
-// Save conversation
-const SaveButton = styled.button`
+// Save / Clear conversation
+const ButtonRow = styled.div`
     margin-top: 0.8rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+`;
+
+const SaveButton = styled.button`
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
@@ -194,6 +200,30 @@ const SaveButton = styled.button`
     font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: default;
+    }
+`;
+
+const ClearButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 0.8rem;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: #f6f7fb;
+    color: ${({ theme }) => theme.colors.text_secondary};
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: default;
+    }
 `;
 
 const SaveIconImg = styled.img`
@@ -292,6 +322,11 @@ function splitBotResponse(text: string): { intro: string; tips: string[] } {
     };
 }
 
+// Simple HTML tag stripper for export
+function stripHtml(input: string): string {
+    return input.replace(/<[^>]+>/g, "");
+}
+
 // ---------------- Component ----------------
 
 export const TrichBotPage: React.FC = () => {
@@ -369,18 +404,52 @@ export const TrichBotPage: React.FC = () => {
         }
     };
 
+    // 💾 Save conversation as a user-friendly .txt transcript
     const handleSaveConversation = () => {
         if (!messages || messages.length === 0) return;
 
         setSaving(true);
         try {
-            const payload = JSON.stringify(messages, null, 2);
-            const blob = new Blob([payload], { type: "application/json" });
+            const lines: string[] = [];
+
+            lines.push("TrichMind – TrichBot Conversation");
+            lines.push(`Exported: ${new Date().toLocaleString()}`);
+            lines.push("");
+            lines.push(
+                "This transcript is for your personal reflection. It is not medical advice."
+            );
+            lines.push("");
+            messages.forEach((m, idx) => {
+                const created =
+                    m.createdAt && typeof m.createdAt === "string"
+                        ? new Date(m.createdAt).toLocaleString()
+                        : "";
+
+                lines.push(
+                    `───────── Exchange ${idx + 1}${
+                        created ? ` • ${created}` : ""
+                    } ─────────`
+                );
+                lines.push("You:");
+                lines.push(m.prompt || "");
+                lines.push("");
+
+                if (m.response) {
+                    lines.push("TrichBot:");
+                    lines.push(stripHtml(m.response));
+                    lines.push("");
+                }
+            });
+
+            const content = lines.join("\n");
+            const blob = new Blob([content], {
+                type: "text/plain;charset=utf-8",
+            });
             const url = URL.createObjectURL(blob);
 
             const a = document.createElement("a");
             a.href = url;
-            a.download = "trichbot_conversation.json";
+            a.download = "trichbot_conversation.txt";
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -391,6 +460,18 @@ export const TrichBotPage: React.FC = () => {
         } finally {
             setSaving(false);
         }
+    };
+
+    // 🧹 Clear conversation from the screen (for when the user is done)
+    const handleClearConversation = () => {
+        if (!messages || messages.length === 0) return;
+
+        const confirmed = window.confirm(
+            "Clear this chat from your screen?\n\nThis won’t delete anything from your account history, but it will empty this conversation view."
+        );
+        if (!confirmed) return;
+
+        setMessages([]);
     };
 
     if (!isAuthenticated) {
@@ -489,14 +570,24 @@ export const TrichBotPage: React.FC = () => {
                         )}
                     </ChatList>
 
-                    <SaveButton
-                        type="button"
-                        onClick={handleSaveConversation}
-                        disabled={saving || messages.length === 0}
-                    >
-                        <SaveIconImg src={SaveIcon} alt="Save" />
-                        {saving ? "Saving…" : "Save Conversation"}
-                    </SaveButton>
+                    <ButtonRow>
+                        <SaveButton
+                            type="button"
+                            onClick={handleSaveConversation}
+                            disabled={saving || messages.length === 0}
+                        >
+                            <SaveIconImg src={SaveIcon} alt="Save" />
+                            {saving ? "Saving…" : "Save conversation"}
+                        </SaveButton>
+
+                        <ClearButton
+                            type="button"
+                            onClick={handleClearConversation}
+                            disabled={messages.length === 0}
+                        >
+                            Clear chat
+                        </ClearButton>
+                    </ButtonRow>
 
                     {showSavedBanner && (
                         <SavedBanner>Conversation saved!</SavedBanner>
