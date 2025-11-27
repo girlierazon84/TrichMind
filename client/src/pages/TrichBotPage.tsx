@@ -68,14 +68,11 @@ const HeaderTitle = styled.h1`
 const HeaderSubtitle = styled.span`
     font-size: 0.55rem;
     color: ${({ theme }) => theme.colors.text_secondary};
-`;
+    line-height: 0;
 
-const ParagraphOne = styled.span`
-    display: block;
-`;
-
-const ParagraphTwo = styled.span`
-    display: block;
+    .p-one, .p-two {
+        display: block;
+    }
 `;
 
 const AvatarButton = styled.button`
@@ -520,13 +517,13 @@ export const TrichBotPage: React.FC = () => {
                         <HeaderTitleGroup>
                             <HeaderTitle>TrichBot · TrichMind assistant</HeaderTitle>
                             <HeaderSubtitle>
-                                <ParagraphOne>
+                                <p>
                                     The in-app companion for people living with
                                     trichotillomania –
-                                </ParagraphOne>
-                                <ParagraphTwo>
+                                </p>
+                                <p className="p-two">
                                     here to guide you through urges, tools, and gentle next steps.
-                                </ParagraphTwo>
+                                </p>
                             </HeaderSubtitle>
                         </HeaderTitleGroup>
                     </HeaderLeft>
