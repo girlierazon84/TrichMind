@@ -233,7 +233,10 @@ export const HealthPage: React.FC = () => {
 
     const [sleepHours, setSleepHours] = useState(7);
     const [stressLevel, setStressLevel] = useState(5);
+
+    // 👉 default to a clean 30-minute step (matches labels)
     const [exerciseMinutes, setExerciseMinutes] = useState(30);
+
     const [saving, setSaving] = useState(false);
     const [logs, setLogs] = useState<HealthLogView[]>([]);
     const [logsLoading, setLogsLoading] = useState(false);
@@ -381,6 +384,7 @@ export const HealthPage: React.FC = () => {
                         }
                     />
                     <TickRow>
+                        <span>0</span>
                         <span>2</span>
                         <span>4</span>
                         <span>6</span>
@@ -418,7 +422,7 @@ export const HealthPage: React.FC = () => {
                         <span>10</span>
                     </TickRow>
 
-                    {/* Exercise */}
+                    {/* Exercise / Movement */}
                     <SoftDivider />
                     <SectionTitleRow>
                         <SectionTitle>Movement</SectionTitle>
@@ -434,7 +438,7 @@ export const HealthPage: React.FC = () => {
                     <RangeInput
                         min={0}
                         max={180}
-                        step={5}
+                        step={5}   // 🔥 snap to the same interval as the labels
                         value={exerciseMinutes}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                             setExerciseMinutes(Number(e.target.value))
@@ -446,6 +450,7 @@ export const HealthPage: React.FC = () => {
                         <span>60</span>
                         <span>90</span>
                         <span>120</span>
+                        <span>150</span>
                         <span>180</span>
                     </TickRow>
 
