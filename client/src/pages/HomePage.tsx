@@ -229,10 +229,11 @@ const WelcomeBody = styled.p`
     line-height: 1.5;
 `;
 
-// ✅ replaces inline style for overview error message
+// ✅ overview error hint (optional, controlled via flag below)
 const OverviewErrorText = styled.p`
     margin-top: 0.75rem;
     font-size: 0.8rem;
+    color: ${({ theme }) => theme.colors.text_secondary};
 `;
 
 /**--------------
@@ -267,6 +268,9 @@ export const HomePage: React.FC = () => {
     const [showWelcome, setShowWelcome] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
+
+    // 👇 toggle this if you ever want to show a user-friendly hint
+    const SHOW_OVERVIEW_ERROR_HINT = false;
 
     const toggleMenu = (e: MouseEvent) => {
         e.stopPropagation();
@@ -381,7 +385,7 @@ export const HomePage: React.FC = () => {
         setConfidence(rs.confidence);
         setBucket(rs.risk_bucket.toUpperCase() as RiskLevel);
         setModelVersion(rs.model_version ?? "live");
-        setRiskCode("auto"); // you can change this to something meaningful
+        setRiskCode("auto");
     }, [overview]);
 
     const quote = useMemo(() => {
@@ -455,7 +459,9 @@ export const HomePage: React.FC = () => {
                         </AvatarButton>
 
                         <DropdownMenu open={menuOpen}>
-                            <MenuItem onClick={() => navigate("/profile")}>Profile</MenuItem>
+                            <MenuItem onClick={() => navigate("/profile")}>
+                                Profile
+                            </MenuItem>
 
                             <MenuItem
                                 onClick={() => {
@@ -480,10 +486,11 @@ export const HomePage: React.FC = () => {
                         compact={isMobile}
                     />
 
-                    {overviewError && (
+                    {overviewError && SHOW_OVERVIEW_ERROR_HINT && (
                         <OverviewErrorText>
-                            (We couldn&apos;t refresh your automatic overview just now, so
-                            we&apos;re showing your last saved prediction.)
+                            We&apos;re showing your most recent saved prediction. Your
+                            automatic overview will update again as soon as the connection
+                            is stable.
                         </OverviewErrorText>
                     )}
                 </Section>
