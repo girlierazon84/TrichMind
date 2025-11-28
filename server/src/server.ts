@@ -1,11 +1,10 @@
 // server/src/server.ts
 
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import { connectMongo, ENV_AUTO } from "./config";
 import { notFound, errorHandler } from "./middlewares";
 import { logger, startWeeklySummaryScheduler } from "./utils";
-
 
 /**------------------
     Route Imports
@@ -27,6 +26,14 @@ import relapseOverviewRoutes from "./routes/relapseOverviewRoutes";
     Initialize Express App
 ------------------------------*/
 const app = express();
+
+/**------------------------------------------
+ * 🔍 Simple request logger (debug in dev)
+ *------------------------------------------*/
+app.use((req: Request, _res: Response, next: NextFunction) => {
+    console.log(`➡️  ${req.method} ${req.originalUrl}`);
+    next();
+});
 
 /**----------------------------------------
     ✅ CORS – multi-origin, env-driven
@@ -60,7 +67,8 @@ app.use(
 );
 
 /**---------------------------------------
-    (for avatar base64, JSON payloads)
+    ✅ Body parsers (JSON, form-data)
+    (supports avatar base64, profile forms)
 ------------------------------------------*/
 app.use(
     express.json({
@@ -74,6 +82,15 @@ app.use(
         limit: "5mb",
     })
 );
+
+/**--------------------------------------
+ * 🧪 Simple health / ping endpoint
+ *  (helps debug ERR_EMPTY_RESPONSE)
+ *---------------------------------------*/
+app.get("/api/ping", (_req: Request, res: Response) => {
+    console.log("👋 /api/ping hit");
+    res.json({ ok: true, message: "pong" });
+});
 
 /**-------------------
     ✅ API Routes
@@ -106,7 +123,11 @@ startWeeklySummaryScheduler();
     🚀 Start Server
 ------------------------*/
 connectMongo().then(() => {
-    app.listen(ENV_AUTO.PORT, () => {
-        logger.info(`🚀 TrichMind Server running on port ${ENV_AUTO.PORT}`);
+    const port = ENV_AUTO.PORT || 8080;
+    app.listen(port, () => {
+        logger.info(`🚀 TrichMind Server running on port ${port}`);
+        console.log(`🚀 TrichMind Server running on port ${port}`);
     });
 });
+
+export default app;
