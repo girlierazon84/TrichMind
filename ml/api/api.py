@@ -30,19 +30,17 @@ from common.risk import risk_from_score
 from common.transformers import ColumnSelector
 
 
-# ──────────────────────────────
-# 🛠️ Setup module path
-# ──────────────────────────────
+#----------------------------
+#   🛠️ Setup module path
+#----------------------------
 HERE = Path(__file__).resolve()
 ML_ROOT = HERE.parents[0]
 if str(ML_ROOT) not in sys.path:
     sys.path.insert(0, str(ML_ROOT))
 
-# ──────────────────────────────
-# 🧠 TrichMind ML (API) – CORS
-# ──────────────────────────────
-# You can override this via env:
-# FASTAPI_CORS_ORIGINS="http://172.19.192.1:5050,http://localhost:5050"
+#------------------------------------
+#   🧠 TrichMind ML (API) – CORS
+#------------------------------------
 _default_cors = (
     "http://localhost:5050,"
     "http://127.0.0.1:5050,"
@@ -59,9 +57,9 @@ ALLOWED_ORIGINS: list[str] = [
 
 print("🔐 [FastAPI CORS] Allowed origins:", ALLOWED_ORIGINS)
 
-# ──────────────────────────────
-# Globals
-# ──────────────────────────────
+#--------------
+#   Globals
+#--------------
 model = None
 label_encoder = None
 feature_names: List[str] = []
@@ -72,11 +70,11 @@ MODEL_VERSION = "unknown"
 # 0 = pure model, 1 = pure rules
 ALPHA = 0.5
 
-
-# ──────────────────────────────
-# 🧩 Input schema for model
-# ──────────────────────────────
+#-------------------------------------------
+#   🧩 Input schema for low-level model
+#-------------------------------------------
 class PredictIn(BaseModel):
+    # core manual features
     pulling_severity: float = Field(..., ge=0, le=10)
     pulling_frequency_encoded: int = Field(..., ge=0, le=5)
     awareness_level_encoded: float = Field(..., ge=0, le=1)
@@ -91,10 +89,23 @@ class PredictIn(BaseModel):
     coping_strategies_effective: Optional[int] = Field(default=0, ge=0, le=1)
     sleep_quality_score: Optional[float] = Field(default=5, ge=0, le=10)
 
+    # 🔹 extended features from journal/health – optional, default 0
+    avg_urge_7d: float = 0.0
+    avg_urge_30d: float = 0.0
+    max_urge_7d: float = 0.0
+    high_urge_events_7d: float = 0.0
 
-# ──────────────────────────────
-# 🧩 Friendly input schema
-# ──────────────────────────────
+    avg_sleep_7d: float = 0.0
+    short_sleep_nights_7d: float = 0.0
+
+    avg_health_stress_7d: float = 0.0
+    high_stress_days_7d: float = 0.0
+
+    high_urge_and_high_stress_days_7d: float = 0.0
+
+#----------------------------------------------------
+#   🧩 Friendly input schema (manual predictions)
+#----------------------------------------------------
 class PredictFriendly(BaseModel):
     age: int = Field(..., ge=0, le=120)
     age_of_onset: int = Field(..., ge=0, le=120)
@@ -122,11 +133,61 @@ class PredictFriendly(BaseModel):
             return False
         return False
 
+#-----------------------------------------------
+#   🧩 Extended schema for relapse overview
+#   (profile + journal + health aggregates)
+#-----------------------------------------------
+class RelapseOverviewFeatures(PredictFriendly):
+    # Journal – urges
+    avg_urge_7d: float = 0.0
+    avg_urge_30d: float = 0.0
+    max_urge_7d: float = 0.0
+    high_urge_events_7d: int = 0
+    num_journal_entries_7d: int = 0
+    num_journal_entries_30d: int = 0
+    days_since_last_entry: int = Field(999, ge=0)
 
-# ──────────────────────────────────────
-# 🧩 Maps for categorical encodings
-# ──────────────────────────────────────
-# Pulling frequency mapping – canonical keys
+    # Journal – moods
+    pct_stress_moods_30d: float = 0.0
+    pct_calm_moods_30d: float = 0.0
+    pct_happy_moods_30d: float = 0.0
+
+    # Journal – triggers
+    count_trigger_stress_30d: int = 0
+    count_trigger_boredom_30d: int = 0
+    count_trigger_anxiety_30d: int = 0
+    count_trigger_fatigue_30d: int = 0
+    count_trigger_bodyfocus_30d: int = 0
+    count_trigger_screentime_30d: int = 0
+    count_trigger_social_30d: int = 0
+    count_trigger_other_30d: int = 0
+
+    # Health – sleep
+    avg_sleep_7d: float = 0.0
+    avg_sleep_30d: float = 0.0
+    min_sleep_7d: float = 0.0
+    short_sleep_nights_7d: int = 0
+
+    # Health – stress
+    avg_health_stress_7d: float = 0.0
+    avg_health_stress_30d: float = 0.0
+    max_health_stress_7d: float = 0.0
+    high_stress_days_7d: int = 0
+
+    # Health – exercise
+    avg_exercise_7d: float = 0.0
+    avg_exercise_30d: float = 0.0
+    days_with_any_exercise_7d: int = 0
+    num_health_logs_7d: int = 0
+    num_health_logs_30d: int = 0
+    days_since_last_health_log: int = Field(999, ge=0)
+
+    # Combined
+    high_urge_and_high_stress_days_7d: int = 0
+
+#-----------------------------------------
+#   🧩 Maps for categorical encodings
+#-----------------------------------------
 _FREQ_MAP = {
     "daily": 5,
     "several times a week": 4,
@@ -135,23 +196,20 @@ _FREQ_MAP = {
     "rarely": 1,
 }
 
-# Pulling awareness mapping
 _AWARE_MAP = {
     "yes": 1.0,
     "sometimes": 0.5,
     "no": 0.0,
 }
 
-
-# ──────────────────────────────────────
-# 🧩 Simple normalization helpers
-# ──────────────────────────────────────
+#---------------------------------------
+#   🧩 Simple normalization helpers
+#---------------------------------------
 def _norm_simple(v: str | None) -> str:
     """Lowercase, strip, and collapse whitespace."""
     if v is None:
         return ""
     return " ".join(str(v).strip().lower().split())
-
 
 def _normalize_frequency(raw: str | None) -> str:
     """
@@ -179,10 +237,9 @@ def _normalize_frequency(raw: str | None) -> str:
     # Fallback: use normalized text as-is
     return v
 
-
-# ────────────────────────────────────────────────────
-# 🧩 Encoding function from friendly to model-ready
-# ────────────────────────────────────────────────────
+#---------------------------------------------------------
+#   🧩 Encoding function from friendly to model-ready
+#---------------------------------------------------------
 def _encode_friendly_to_encoded(p: PredictFriendly) -> PredictIn:
     """Convert user-friendly inputs to model-ready encoded payload."""
     # Frequency & awareness
@@ -216,10 +273,34 @@ def _encode_friendly_to_encoded(p: PredictFriendly) -> PredictIn:
         sleep_quality_score=5.0,
     )
 
+def _encode_overview_to_encoded(p: RelapseOverviewFeatures) -> PredictIn:
+    """
+    Convert extended relapse overview payload into PredictIn,
+    preserving the journal/health aggregates for the rule-based score.
+    """
+    base = _encode_friendly_to_encoded(p)
+    data = base.model_dump()
 
-# ────────────────────────────────────────
-# 🧬 Lifespan: Load model & artifacts
-# ────────────────────────────────────────
+    # pass through the aggregates (they are defined on PredictIn)
+    data.update(
+        avg_urge_7d=float(p.avg_urge_7d or 0.0),
+        avg_urge_30d=float(p.avg_urge_30d or 0.0),
+        max_urge_7d=float(p.max_urge_7d or 0.0),
+        high_urge_events_7d=float(p.high_urge_events_7d or 0.0),
+        avg_sleep_7d=float(p.avg_sleep_7d or 0.0),
+        short_sleep_nights_7d=float(p.short_sleep_nights_7d or 0.0),
+        avg_health_stress_7d=float(p.avg_health_stress_7d or 0.0),
+        high_stress_days_7d=float(p.high_stress_days_7d or 0.0),
+        high_urge_and_high_stress_days_7d=float(
+            p.high_urge_and_high_stress_days_7d or 0.0
+        ),
+    )
+
+    return PredictIn(**data)
+
+#-------------------------------------------
+#   🧬 Lifespan: Load model & artifacts
+#-------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global model, label_encoder, feature_names, MODEL_VERSION, scaler
@@ -230,7 +311,7 @@ async def lifespan(app: FastAPI):
 
     model = joblib.load(MODEL_PATH)
     label_encoder = joblib.load(LABEL_ENCODER)
-    feature_names = json.load(open(FEATURES_JSON, "r", encoding="utf-8"))
+    feature_names[:] = json.load(open(FEATURES_JSON, "r", encoding="utf-8"))
     scaler = joblib.load(SCALER_PATH)
     MODEL_VERSION = MODEL_PATH.name
 
@@ -238,10 +319,9 @@ async def lifespan(app: FastAPI):
 
     yield
 
-
-# ──────────────────────────────
-# 🛠️ FastAPI app & middleware
-# ──────────────────────────────
+#-----------------------------------
+#   🛠️ FastAPI app & middleware
+#-----------------------------------
 app = FastAPI(
     title="TrichMind Relapse Risk API",
     version="6.3.0",
@@ -256,10 +336,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# ─────────────────────────────────────────
-# 🛠️ Helpers - feature frame conversion
-# ─────────────────────────────────────────
+#---------------------------------------------
+#   🛠️ Helpers - feature frame conversion
+#---------------------------------------------
 def to_feature_frame(items: List[PredictIn] | PredictIn) -> pd.DataFrame:
     if isinstance(items, PredictIn):
         items = [items]
@@ -272,10 +351,9 @@ def to_feature_frame(items: List[PredictIn] | PredictIn) -> pd.DataFrame:
     X[feature_names] = scaler.transform(X[feature_names])
     return X
 
-
-# ───────────────────────────────────────────────────────
-# 🛠️ Scoring functions - get model inner and classes
-# ───────────────────────────────────────────────────────
+#----------------------------------------------------------
+#   🛠️ Scoring functions - get model inner and classes
+#----------------------------------------------------------
 def get_model_inner_and_classes():
     inner = getattr(model, "named_steps", {}).get("clf", model)
     classes = getattr(inner, "classes_", None)
@@ -283,10 +361,9 @@ def get_model_inner_and_classes():
         classes = np.array([0, 1, 2], dtype=int)
     return inner, np.array(classes, dtype=int)
 
-
-# ────────────────────────────────────────────────
-# 🛠️ Scoring functions - model classes weights
-# ────────────────────────────────────────────────
+#----------------------------------------------------
+#   🛠️ Scoring functions - model classes weights
+#----------------------------------------------------
 def build_weights_vector_from_model_classes(
     model_classes: np.ndarray,
 ) -> np.ndarray:
@@ -296,10 +373,9 @@ def build_weights_vector_from_model_classes(
     lookup = {c: float(base[ranks[c]]) for c in uniq}
     return np.array([lookup[int(c)] for c in model_classes], dtype=float)
 
-
-# ─────────────────────────────────────────────
-# 🛠️ Scoring functions - model weighted score
-# ─────────────────────────────────────────────
+#---------------------------------------------------
+#   🛠️ Scoring functions - model weighted score
+#---------------------------------------------------
 def model_weighted_score(X: pd.DataFrame) -> np.ndarray:
     inner, model_classes = get_model_inner_and_classes()
 
@@ -315,36 +391,97 @@ def model_weighted_score(X: pd.DataFrame) -> np.ndarray:
     lookup = {c: float(base[ranks[c]]) for c in uniq}
     return np.array([lookup[int(c)] for c in preds], dtype=float)
 
-
-# ─────────────────────────────────────────────────────
-# 🛠️ Scoring functions - rule-based score & blending
-# ─────────────────────────────────────────────────────
+#----------------------------------------------------------
+#   🛠️ Scoring functions - rule-based score & blending
+#----------------------------------------------------------
 def rule_based_score(p: PredictIn) -> float:
-    sev = np.clip(p.pulling_severity / 10.0, 0.0, 1.0)
-    freq = np.clip(p.pulling_frequency_encoded / 5.0, 0.0, 1.0)
-    inv_aw = np.clip(1.0 - p.awareness_level_encoded, 0.0, 1.0)
+    """
+    Heuristic score in [0, 1] using:
+        - pulling severity / frequency / awareness
+        - recent urge intensity (7d)
+        - recent sleep + stress (7d)
+        - high-urge+high-stress combo days
+        - protection from how long they've stayed stopped
+    """
+    # ---- Core behaviour ----------------------------------
+    sev = np.clip((p.pulling_severity or 0.0) / 10.0, 0.0, 1.0)
+    freq = np.clip((p.pulling_frequency_encoded or 0.0) / 5.0, 0.0, 1.0)
+    inv_aw = np.clip(1.0 - float(p.awareness_level_encoded or 0.0), 0.0, 1.0)
 
-    score = 0.6 * sev + 0.3 * freq + 0.1 * inv_aw
+    # ---- Journal: urges (0–10 → 0–1) --------------------
+    avg_urge_7d = np.clip((p.avg_urge_7d or 0.0) / 10.0, 0.0, 1.0)
+    # mild extra weight if the last week is worse than the month
+    avg_urge_30d = np.clip((p.avg_urge_30d or 0.0) / 10.0, 0.0, 1.0)
+    recent_urge_spike = max(0.0, avg_urge_7d - avg_urge_30d)  # 0–1
+
+    # ---- Health: sleep & stress -------------------------
+    avg_sleep_7d = float(p.avg_sleep_7d or 0.0)
+    # low sleep → higher risk; anything below 6h ramps up
+    if avg_sleep_7d <= 0:
+        low_sleep = 0.0
+    else:
+        low_sleep = np.clip((6.0 - avg_sleep_7d) / 6.0, 0.0, 1.0)
+
+    short_sleep_nights_7d = float(p.short_sleep_nights_7d or 0.0)
+    short_sleep_density = np.clip(short_sleep_nights_7d / 7.0, 0.0, 1.0)
+
+    avg_stress_7d = np.clip((p.avg_health_stress_7d or 0.0) / 10.0, 0.0, 1.0)
+    high_stress_days_7d = float(p.high_stress_days_7d or 0.0)
+    high_stress_density = np.clip(high_stress_days_7d / 7.0, 0.0, 1.0)
+
+    # ---- Combined: high urge AND high stress days -------
+    combo_days = float(p.high_urge_and_high_stress_days_7d or 0.0)
+    combo_intensity = np.clip(combo_days / 3.0, 0.0, 1.0)  # cap at 3 days
+
+    # ---- Protective factor: how long stopped ------------
+    days_stopped = float(p.how_long_stopped_days_est or 0.0)
+    # up to ~3 months gives maximal protection
+    protection = np.clip(days_stopped / 90.0, 0.0, 1.0)
+
+    # ---- Weighted sum -----------------------------------
+    # Base trich behaviour
+    score = 0.0
+    score += 0.30 * sev
+    score += 0.15 * freq
+    score += 0.10 * inv_aw
+
+    # Urges
+    score += 0.15 * avg_urge_7d
+    score += 0.05 * recent_urge_spike
+
+    # Sleep & stress
+    score += 0.10 * low_sleep
+    score += 0.05 * short_sleep_density
+    score += 0.08 * avg_stress_7d
+    score += 0.07 * high_stress_density
+
+    # Combined bad days
+    score += 0.05 * combo_intensity
+
+    # Protection: reduce risk based on abstinence time
+    score -= 0.20 * protection
+
+    # Clamp
     return float(np.clip(score, 0.0, 1.0))
 
-
-# ────────────────────────────────────────────────────────
-# 🛠️ Scoring functions - final blending & confidence
-# ────────────────────────────────────────────────────────
+#----------------------------------------------------------
+#   🛠️ Scoring functions - final blending & confidence
+#----------------------------------------------------------
 def final_score_from_blend(model_score: float, rule_score: float) -> float:
     return float(
         np.clip((1.0 - ALPHA) * model_score + ALPHA * rule_score, 0.0, 1.0)
     )
 
-
+#----------------------------------------------------
+#   🛠️ Scoring functions - confidence from score
+#----------------------------------------------------
 def confidence_from_score(s: float) -> float:
     """Simple confidence: distance from 0.5."""
     return float(min(1.0, abs(s - 0.5) * 2))
 
-
-# ───────────────────────────────────────────────
-# 🛠️ Logging inference - append to CSV log
-# ───────────────────────────────────────────────
+#------------------------------------------------
+#   🛠️ Logging inference - append to CSV log
+#------------------------------------------------
 def log_inference(row: dict) -> None:
     hdr = [
         "timestamp",
@@ -368,30 +505,10 @@ def log_inference(row: dict) -> None:
         w.writerow({k: row.get(k) for k in hdr})
 
 
-# ──────────────────────────────
-# 🚀 API Endpoints
-# ──────────────────────────────
-@app.get("/live")
-def live():
-    return {
-        "status": "alive",
-        "version": MODEL_VERSION,
-        "scoring": f"blend(model={1 - ALPHA:.2f}, rule={ALPHA:.2f})",
-    }
-
-
-@app.get("/healthz")
-def healthz():
-    ok = all([model is not None, label_encoder is not None, feature_names])
-    return {
-        "ok": bool(ok),
-        "n_features": len(feature_names),
-        "model_version": MODEL_VERSION,
-    }
-
-
-@app.post("/predict")
-def predict(p: PredictIn):
+#------------------------------
+#   🛠️ Core scoring helper
+#------------------------------
+def _run_predict_core(p: PredictIn, request_type: str = "single") -> dict:
     t0 = time.time()
     try:
         X = to_feature_frame(p)
@@ -420,7 +537,7 @@ def predict(p: PredictIn):
         log_inference(
             {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "request_type": "single",
+                "request_type": request_type,
                 "n_records": 1,
                 **out,
             }
@@ -430,13 +547,67 @@ def predict(p: PredictIn):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+#-----------------------------------------------------------------------------------------------------------
+#   🚀 API Endpoints - Live, healthz, predict, predict_friendly, predict_relapse_overview, debug_vector
+#-----------------------------------------------------------------------------------------------------------
+
+#----------------------------
+#   🚀 Liveness endpoint
+#----------------------------
+@app.get("/live")
+def live():
+    return {
+        "status": "alive",
+        "version": MODEL_VERSION,
+        "scoring": f"blend(model={1 - ALPHA:.2f}, rule={ALPHA:.2f})",
+    }
+
+#--------------------------------
+#   🚀 Health check endpoint
+#--------------------------------
+@app.get("/healthz")
+def healthz():
+    ok = all([model is not None, label_encoder is not None, feature_names])
+    return {
+        "ok": bool(ok),
+        "n_features": len(feature_names),
+        "model_version": MODEL_VERSION,
+    }
+
+#----------------------------------
+#   🚀 Raw prediction endpoint
+#----------------------------------
+@app.post("/predict")
+def predict(p: PredictIn):
+    """Low-level API: already-encoded features."""
+    return _run_predict_core(p, request_type="raw")
+
+#---------------------------------------
+#   🚀 Friendly prediction endpoint
+#---------------------------------------
 @app.post("/predict_friendly")
 def predict_friendly(p: PredictFriendly):
     """Accepts readable frontend inputs and encodes them internally."""
     encoded = _encode_friendly_to_encoded(p)
-    return predict(encoded)
+    return _run_predict_core(encoded, request_type="friendly")
 
+#------------------------------------
+#   🚀 Relapse overview endpoint
+#------------------------------------
+@app.post("/predict_relapse_overview")
+def predict_relapse_overview(p: RelapseOverviewFeatures):
+    """
+    Relapse overview endpoint.
+    Accepts extended features (profile + journal + health).
+    Uses those extended features in the rule-based scoring,
+    while the ML model still uses its trained feature set.
+    """
+    encoded = _encode_overview_to_encoded(p)
+    return _run_predict_core(encoded, request_type="overview")
 
+#--------------------------------------------------
+#   🛠️ Debug endpoint - peek at feature vector
+#--------------------------------------------------
 @app.post("/debug_vector")
 def debug_vector(p: PredictIn = Body(...)):
     """
