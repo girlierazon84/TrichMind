@@ -19,7 +19,6 @@ export interface LoginData {
     password: string;
 }
 
-
 // Authenticated user data
 export interface AuthUser {
     id: string;
@@ -65,35 +64,38 @@ function normalize(raw: RawAuthResponse): AuthResponse {
 -----------------------------*/
 // Register hits /api/auth/register and returns { token, refreshToken, user }
 async function rawRegister(data: RegisterData): Promise<AuthResponse> {
-    const res = await axiosClient.post<RawAuthResponse>("/api/auth/register", data);
+    const res = await axiosClient.post<RawAuthResponse>("/auth/register", data);
     return normalize(res.data);
 }
 
 // Login hits /api/auth/login and returns { token, refreshToken, user }
 async function rawLogin(data: LoginData): Promise<AuthResponse> {
-    const res = await axiosClient.post<RawAuthResponse>("/api/auth/login", data);
+    const res = await axiosClient.post<RawAuthResponse>("/auth/login", data);
     return normalize(res.data);
 }
 
 // me() hits /api/auth/me and returns { ok, user }
 async function rawMe(): Promise<AuthUser> {
-    const res = await axiosClient.get<{ ok: boolean; user: AuthUser }>("/api/auth/me");
+    const res = await axiosClient.get<{ ok: boolean; user: AuthUser }>("/auth/me");
     return res.data.user;
 }
 
 // forgotPassword hits /api/auth/forgot-password and returns { message }
 async function rawForgotPassword(email: string): Promise<{ message: string }> {
     const res = await axiosClient.post<{ message: string }>(
-        "/api/auth/forgot-password",
+        "/auth/forgot-password",
         { email }
     );
     return res.data;
 }
 
 // resetPassword hits /api/auth/reset-password and returns { message }
-async function rawResetPassword(data: { token: string; newPassword: string }): Promise<{ message: string }> {
+async function rawResetPassword(data: {
+    token: string;
+    newPassword: string;
+}): Promise<{ message: string }> {
     const res = await axiosClient.post<{ message: string }>(
-        "/api/auth/reset-password",
+        "/auth/reset-password",
         data
     );
     return res.data;
@@ -104,7 +106,7 @@ async function rawChangePassword(data: {
     oldPassword: string;
     newPassword: string;
 }) {
-    const res = await axiosClient.post("/api/auth/change-password", data);
+    const res = await axiosClient.post("/auth/change-password", data);
     return res.data;
 }
 
@@ -130,13 +132,13 @@ export const authApi = {
         errorMessage: "Login failed.",
     }),
 
-    // Me: wrapped calls with logging and toast notifications
+    // Me: wrapped calls with logging (no toast)
     me: withLogging(rawMe, {
         category: "auth",
         action: "me",
     }),
 
-    // Forgot Password: wrapped calls with logging and toast notifications
+    // Forgot Password
     forgotPassword: withLogging(rawForgotPassword, {
         category: "auth",
         action: "forgotPassword",
@@ -145,7 +147,7 @@ export const authApi = {
         errorMessage: "Failed to send reset link.",
     }),
 
-    // Reset Password: wrapped calls with logging and toast notifications
+    // Reset Password
     resetPassword: withLogging(rawResetPassword, {
         category: "auth",
         action: "resetPassword",
@@ -154,7 +156,7 @@ export const authApi = {
         errorMessage: "Failed to reset password.",
     }),
 
-    // Change Password: wrapped calls with logging and toast notifications
+    // Change Password
     changePassword: withLogging(rawChangePassword, {
         category: "auth",
         action: "changePassword",
