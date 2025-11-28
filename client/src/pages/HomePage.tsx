@@ -51,7 +51,7 @@ export interface MeResponse {
         pulling_frequency_encoded?: number;
         awareness_level_encoded?: number;
         how_long_stopped_days_est?: number;
-        successfully_stopped_encoded?: number;
+        successfully_stopped_encoded?: boolean;
         emotion_intensity_sum?: number;
 
         coping_worked?: string[];
