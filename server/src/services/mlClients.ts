@@ -5,22 +5,25 @@ import { ENV_AUTO } from "../config";
 import { logger } from "../utils";
 import type { RelapseFeaturesExtended } from "../types/relapseFeatures";
 
-
 /**--------------------------------------------------------
     Shape returned by the FastAPI relapse-risk endpoint
+    (matches FastAPI _run_predict_core output)
 -----------------------------------------------------------*/
 export interface MlRelapseResponse {
     risk_score: number;               // 0–1
     risk_bucket: "low" | "medium" | "high";
     confidence: number;               // 0–1
     model_version?: string;
+    risk_code?: string;               // e.g. "low", "medium", "high" (for ML/rules mapping)
+    runtime_sec?: number;             // server-side runtime
 }
 
 /**--------------------------------------------
     Base URL and path for the ML service.
     You can tweak via env:
-        - ML_BASE_URL (otherwise fallbacks)
-        - ML_RELAPSE_PATH if needed
+        - ENV_AUTO.ML_BASE_URL
+        - ML_BASE_URL
+        - ML_RELAPSE_PATH
 -----------------------------------------------*/
 const ML_BASE_URL =
     ENV_AUTO.ML_BASE_URL ||
@@ -34,25 +37,50 @@ const ML_RELAPSE_PATH =
 // Axios instance for ML service
 const mlHttp = axios.create({
     baseURL: ML_BASE_URL,
-    timeout: 6000,
+    timeout: 10_000,
 });
 
 /**-----------------------------------------------------------------------
     Send relapse-risk features to the ML service and get a prediction.
-    Uses the extended feature vector (profile + journal + health).
+
+    Uses the extended feature vector (profile + journal + health) that
+    matches FastAPI's RelapseOverviewFeatures → PredictIn encoding.
 --------------------------------------------------------------------------*/
 export async function predictRelapseRisk(
     features: RelapseFeaturesExtended
 ): Promise<MlRelapseResponse> {
     try {
+        logger.info(
+            `[ML] Sending relapse-overview payload to ${ML_BASE_URL}${ML_RELAPSE_PATH}`
+        );
+
         const { data } = await mlHttp.post<MlRelapseResponse>(
             ML_RELAPSE_PATH,
             features
         );
+
+        logger.info(`[ML] Relapse-overview response: ${JSON.stringify(data)}`);
         return data;
     } catch (err: any) {
+        const status = err?.response?.status;
         const msg = err?.message ?? String(err);
-        logger.error(`❌ ML relapse-risk request failed: ${msg}`);
+
+        logger.error(
+            `❌ ML relapse-risk request failed (${ML_RELAPSE_PATH}) – status: ${
+                status ?? "n/a"
+            }, error: ${msg}`
+        );
+
+        if (err?.response?.data) {
+            logger.error(
+                `[ML] Response data: ${JSON.stringify(
+                    err.response.data,
+                    null,
+                    2
+                )}`
+            );
+        }
+
         throw err;
     }
 }
