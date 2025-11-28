@@ -49,7 +49,9 @@ const SectionTitle = styled.h3`
   margin-bottom: 1rem;
   animation: ${fadeIn} 0.6s ease-out;
 
-  h3 {
+  .user-account,
+  .behaviour-emotions,
+  .coping-strategies {
     display: inline;
     font-size: 1rem;
     font-weight: 600;
@@ -294,7 +296,7 @@ export const RegisterPredictForm: React.FC = () => {
       <FormContainer onSubmit={handleSubmit}>
         <SectionTitle>
           <img src={UserIcon} className="user-icon" alt="User Icon" />
-          <h3>ACCOUNT DETAILS</h3>
+          <span className="user-account">ACCOUNT DETAILS</span>
         </SectionTitle>
 
         <FormInput
@@ -334,7 +336,7 @@ export const RegisterPredictForm: React.FC = () => {
 
         <SectionTitle>
           <img src={BrainIcon} className="brain-icon" alt="Brain Icon" />
-          <h3>BEHAVIOR & EMOTIONS</h3>
+          <span className="behaviour-emotions">BEHAVIOR & EMOTIONS</span>
         </SectionTitle>
 
         <FormInput
@@ -418,7 +420,7 @@ export const RegisterPredictForm: React.FC = () => {
 
         <SectionTitle>
           <img src={StrategyIcon} className="strategy-icon" alt="Strategy Icon" />
-          <h3>COPING STRATEGIES</h3>
+          <span className="coping-strategies">COPING STRATEGIES</span>
         </SectionTitle>
         <FormInput
           name="coping_worked"
