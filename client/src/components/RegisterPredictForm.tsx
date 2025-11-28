@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { ThemeButton, FormInput } from "@/components";
 import { useRegisterAndPredict } from "@/hooks";
-import { UserIcon, BrainIcon } from "@/assets/icons";
+import { UserIcon, BrainIcon, StrategyIcon } from "@/assets/icons";
 
 /**-------------------------------------
     ANIMATIONS — calm, premium, soft
@@ -46,17 +46,27 @@ const FormContainer = styled.form`
 `;
 
 const SectionTitle = styled.h3`
-  font-size: 1rem;
-  font-weight: 600;
-  text-align: left;
-  color: ${({ theme }) => theme.colors.text_primary};
   margin-bottom: 1rem;
   animation: ${fadeIn} 0.6s ease-out;
 
-  img {
-    width: 17px;
-    height: 17px;
+  h3 {
+    display: inline;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: left;
+    color: ${({ theme }) => theme.colors.text_primary};
+  }
+
+  .user-icon,
+  .brain-icon{
+    width: 1.2rem;
+    height: 1.2rem;
     margin-right: 0.5rem;
+  }
+
+  .strategy-icon {
+    width: 2rem;
+    height: 1.7rem;
   }
 `;
 
@@ -283,8 +293,8 @@ export const RegisterPredictForm: React.FC = () => {
       {/* Registration Form */}
       <FormContainer onSubmit={handleSubmit}>
         <SectionTitle>
-          <img src={UserIcon} alt="User Icon" />
-          ACCOUNT DETAILS
+          <img src={UserIcon} className="user-icon" alt="User Icon" />
+          <h3>ACCOUNT DETAILS</h3>
         </SectionTitle>
 
         <FormInput
@@ -323,8 +333,8 @@ export const RegisterPredictForm: React.FC = () => {
         />
 
         <SectionTitle>
-          <img src={BrainIcon} alt="Brain Icon" />
-          BEHAVIOR & EMOTIONS
+          <img src={BrainIcon} className="brain-icon" alt="Brain Icon" />
+          <h3>BEHAVIOR & EMOTIONS</h3>
         </SectionTitle>
 
         <FormInput
@@ -406,20 +416,22 @@ export const RegisterPredictForm: React.FC = () => {
           required
         />
 
-        <SectionTitle>🧩 COPING STRATEGIES</SectionTitle>
-
+        <SectionTitle>
+          <img src={StrategyIcon} className="strategy-icon" alt="Strategy Icon" />
+          <h3>COPING STRATEGIES</h3>
+        </SectionTitle>
         <FormInput
           name="coping_worked"
-          label="Coping strategies that helped you"
-          placeholder="e.g. fidget toy, deep breathing, wearing gloves"
+          label="Coping strategies that helped you."
+          placeholder="e.g. fidget toy, deep breathing, wearing gloves, and etc.,"
           value={form.coping_worked}
           onChange={handleChange}
         />
 
         <FormInput
           name="coping_not_worked"
-          label="Coping strategies that did not help"
-          placeholder="e.g. journaling, stress ball"
+          label="Coping strategies that did not help you."
+          placeholder="e.g. journaling, stress ball, and etc.,"
           value={form.coping_not_worked}
           onChange={handleChange}
         />
