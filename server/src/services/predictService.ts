@@ -6,10 +6,11 @@ import { PredictDTO } from "../schemas";
 import { ENV_AUTO } from "../config";
 import { loggerService } from "./loggerService";
 
-/**--------------------------------------------------
- * Response shape expected from the FastAPI ML model
- * (FastAPI /predict_friendly → /predict)
------------------------------------------------------**/
+
+/**--------------------------------------------------------------
+    Response shape expected from the FastAPI ML model
+    (FastAPI /predict_friendly and /predict_relapse_overview)
+-----------------------------------------------------------------*/
 interface PredictResponse {
     risk_score: number;
     risk_bucket: string;
@@ -19,25 +20,31 @@ interface PredictResponse {
     runtime_sec?: number;
 }
 
-/**------------------------------------------------------------
- * Prediction Service
- * Handles interactions with the ML model for user predictions.
----------------------------------------------------------------**/
+/**-------------------------------------------------------------------
+    Prediction Service
+    Handles interactions with the ML model for user predictions.
+    (This is the "manual" prediction flow, not the overview card.)
+----------------------------------------------------------------------*/
 export const predictService = {
+    // Send user input to the ML model and handle the response
     async predict(userId: string, input: PredictDTO) {
         const endpoint = `${ENV_AUTO.ML_BASE_URL}/predict_friendly`;
 
+        // Send input to FastAPI ML model
         try {
             console.log(`📡 [PredictService] Sending payload to ${endpoint}`);
             console.log("📦 [PredictService] Payload:", input);
 
+            // POST request to FastAPI endpoint
             const { data } = await axios.post<PredictResponse>(endpoint, input, {
                 timeout: 15_000,
                 headers: { "Content-Type": "application/json" },
             });
 
+            // Log the response from the ML model
             console.log("✅ [PredictService] ML Response:", data);
 
+            // Destructure response data
             const { risk_score, risk_bucket, confidence, model_version } = data;
 
             // 1️⃣ Store prediction document
@@ -66,6 +73,7 @@ export const predictService = {
                 },
             });
 
+            // Log success
             await loggerService.logInfo(
                 "Prediction created & HealthLog recorded",
                 {
@@ -76,11 +84,13 @@ export const predictService = {
                 }
             );
 
+            // Return the created prediction document
             return prediction;
         } catch (err: any) {
             console.error("❌ [PredictService] ML request failed");
             console.error("   Message:", err.message);
 
+            // Detailed error logging
             if (err.response) {
                 console.error("   Status:", err.response.status);
                 console.error("   Response data:", err.response.data);
@@ -92,6 +102,7 @@ export const predictService = {
                 console.error("   Unknown error:", err);
             }
 
+            // Log error details
             await loggerService.logError("Prediction failed", {
                 userId,
                 endpoint,
@@ -99,6 +110,7 @@ export const predictService = {
                 status: err.response?.status,
             });
 
+            // Rethrow a user-friendly error
             throw new Error(
                 err.response?.data?.detail ||
                     err.message ||
