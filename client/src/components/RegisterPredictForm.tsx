@@ -439,3 +439,4 @@ export const RegisterPredictForm: React.FC = () => {
 };
 
 export default RegisterPredictForm;
+
