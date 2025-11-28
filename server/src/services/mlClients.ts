@@ -3,33 +3,8 @@
 import axios from "axios";
 import { ENV_AUTO } from "../config";
 import { logger } from "../utils";
+import type { RelapseFeaturesExtended } from "../types/relapseFeatures";
 
-/**--------------------------------------------------
-    Features expected by your relapse-risk model.
-    Mirrors your FE description:
-        - age
-        - age_of_onset
-        - years_since_onset?
-        - pulling_severity
-        - pulling_frequency
-        - pulling_awareness
-        - successfully_stopped
-        - how_long_stopped_days
-        - emotion
------------------------------------------------------*/
-export interface RelapseFeatures {
-    age: number;
-    age_of_onset: number;
-    years_since_onset?: number;
-
-    pulling_severity: number;
-    pulling_frequency: string;
-    pulling_awareness: string;
-    successfully_stopped: string | boolean;
-    how_long_stopped_days: number;
-
-    emotion: string;
-}
 
 /**--------------------------------------------------------
     Shape returned by the FastAPI relapse-risk endpoint
@@ -52,9 +27,9 @@ const ML_BASE_URL =
     process.env.ML_BASE_URL ||
     "http://localhost:8000";
 
-// Path for relapse-risk predictions
+// Path for relapse-risk predictions (overview card)
 const ML_RELAPSE_PATH =
-    process.env.ML_RELAPSE_PATH || "/predict_friendly";
+    process.env.ML_RELAPSE_PATH || "/predict_relapse_overview";
 
 // Axios instance for ML service
 const mlHttp = axios.create({
@@ -64,9 +39,10 @@ const mlHttp = axios.create({
 
 /**-----------------------------------------------------------------------
     Send relapse-risk features to the ML service and get a prediction.
+    Uses the extended feature vector (profile + journal + health).
 --------------------------------------------------------------------------*/
 export async function predictRelapseRisk(
-    features: RelapseFeatures
+    features: RelapseFeaturesExtended
 ): Promise<MlRelapseResponse> {
     try {
         const { data } = await mlHttp.post<MlRelapseResponse>(
