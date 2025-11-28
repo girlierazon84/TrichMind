@@ -5,8 +5,11 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios";
 
-// Base URL (backend root, WITHOUT /api)
-const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+// Backend ROOT (WITHOUT /api) – axiosClient will append /api
+const API_ROOT = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+// Normalize and ensure we don't end up with double slashes
+const baseURL = `${API_ROOT.replace(/\/+$/, "")}/api`;
 
 // Extend Axios request config to include our internal flag
 type RetriableRequestConfig = InternalAxiosRequestConfig & {
@@ -18,7 +21,7 @@ interface ErrorResponseBody {
   error?: string;
 }
 
-// Axios Client
+// Axios Client – always points at /api
 export const axiosClient = axios.create({
   baseURL,
   headers: { "Content-Type": "application/json" },
@@ -53,7 +56,6 @@ axiosClient.interceptors.response.use(
     ) {
       original._retry = true;
 
-      // Request new access token
       try {
         const refreshToken = localStorage.getItem("refresh_token");
 
@@ -65,9 +67,9 @@ axiosClient.interceptors.response.use(
           return Promise.reject(error);
         }
 
-        // Request new access token
+        // Request new access token (direct axios, not axiosClient)
         const refresh = await axios.post<{ token?: string }>(
-          `${baseURL}/api/auth/refresh`,
+          `${baseURL}/auth/refresh`,
           { token: refreshToken },
           {
             withCredentials: true,
@@ -75,7 +77,6 @@ axiosClient.interceptors.response.use(
           }
         );
 
-        // Extract new access token from response
         const newToken = refresh.data.token;
 
         // No new token, redirect to login
