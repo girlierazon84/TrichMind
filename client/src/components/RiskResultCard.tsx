@@ -183,6 +183,14 @@ const Quote = styled.p<{ $compact?: boolean }>`
     font-size: ${({ $compact }) => ($compact ? ".8rem" : "0.95rem")};
 `;
 
+const ModelVersionTag = styled.span`
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.7rem;
+    opacity: 0.8;
+    color: #fdfdfd;
+`;
+
 /**------------------
     🧠 Component
 ---------------------*/
@@ -262,7 +270,12 @@ export const RiskResultCard: React.FC<{
             >
                 <Shine />
 
-                <Title $compact={compact}>Relapse Risk Summary</Title>
+                <Title $compact={compact}>
+                    Relapse Risk Summary
+                    {data.model_version && (
+                        <ModelVersionTag>Model: {data.model_version}</ModelVersionTag>
+                    )}
+                </Title>
 
                 <RiskLabel $compact={compact}>{band.toUpperCase()}</RiskLabel>
 
