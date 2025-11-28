@@ -1,6 +1,11 @@
 // server/src/models/UserModel.ts
 
-import { Schema, model, Document, Types } from "mongoose";
+import {
+    Schema,
+    model,
+    Document,
+    Types
+} from "mongoose";
 import bcrypt from "bcryptjs";
 
 /**-------------------------
@@ -15,11 +20,20 @@ export interface IUser extends Document {
     age?: number;
     age_of_onset?: number;
     years_since_onset?: number;
+
+    // Raw profile metrics
     pulling_severity?: number;
+    pulling_frequency?: string;
+    pulling_awareness?: string;
+    successfully_stopped?: string | boolean;
+    how_long_stopped_days?: number;
+
+    // Encoded / engineered features
     pulling_frequency_encoded?: number;
     awareness_level_encoded?: number;
     successfully_stopped_encoded?: boolean;
     how_long_stopped_days_est?: number;
+
     emotion?: string;
     avatarUrl?: string;
 
@@ -49,11 +63,19 @@ const UserSchema = new Schema<IUser>(
         age_of_onset: Number,
         years_since_onset: Number,
 
+        // Raw profile metrics
         pulling_severity: Number,
+        pulling_frequency: { type: String, trim: true },
+        pulling_awareness: { type: String, trim: true },
+        successfully_stopped: { type: Schema.Types.Mixed },
+        how_long_stopped_days: Number,
+
+        // Encoded / engineered features
         pulling_frequency_encoded: Number,
         awareness_level_encoded: Number,
         successfully_stopped_encoded: Boolean,
         how_long_stopped_days_est: Number,
+
         emotion: { type: String, trim: true },
 
         avatarUrl: { type: String, trim: true },
