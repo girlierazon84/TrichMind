@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from "react";
 import styled, { keyframes, css } from "styled-components";
 import type { PredictionResponse } from "@/types/ml";
 
+
 /**------------------------------------------------
     🧠 Risk Result Data Type (extends ML type)
 ---------------------------------------------------*/
