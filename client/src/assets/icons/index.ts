@@ -16,4 +16,4 @@ export { default as TriggersInsightsIcon } from "./triggers.png";
 export { default as UserIcon } from "./user.png";
 export { default as BrainIcon } from "./brain.png";
 export { default as BackIcon } from "./previous.png";
-export { default as StrategyIcon } from "./strategy.png";
+export { default as StrategyIcon } from "./strategies.png";
