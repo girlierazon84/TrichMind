@@ -11,10 +11,9 @@ import type {
     PredictPayload
 } from "@/types/ml";
 
-
-/* ---------------------------------------------------------
+/**----------
     Types
-----------------------------------------------------------*/
+-------------*/
 export interface RegisterFormData {
     email: string;
     password: string;
@@ -32,11 +31,15 @@ export interface RegisterFormData {
     how_long_stopped_days?: string;
 
     emotion?: string;
+
+    // optional – forwarded but not used in payload builder yet
+    coping_worked?: string[];
+    coping_not_worked?: string[];
 }
 
-/* ---------------------------------------------------------
+/**------------
     Helpers
-----------------------------------------------------------*/
+---------------*/
 
 const toNum = (v?: string) => {
     const n = Number(v ?? 0);
@@ -49,9 +52,9 @@ const calculateAge = (dob?: string): number => {
     return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
 };
 
-/* ---------------------------------------------------------
+/**---------
     Hook
-----------------------------------------------------------*/
+------------*/
 export const useRegisterAndPredict = () => {
     const { register, isAuthenticated, user } = useAuth();
     const { predict, loading: predicting, error: predictError } = usePredict();
