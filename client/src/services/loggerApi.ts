@@ -10,14 +10,14 @@ export interface LogEvent {
     userId?: string;
     level?: "info" | "warning" | "error" | "debug";
     category?:
-        | "auth"
-        | "ml"
-        | "ui"
-        | "network"
-        | "alert"
-        | "summary"
-        | "system"
-        | "unknown";
+    | "auth"
+    | "ml"
+    | "ui"
+    | "network"
+    | "alert"
+    | "summary"
+    | "system"
+    | "unknown";
     message: string;
     context?: Record<string, unknown>;
     timestamp?: string;
@@ -25,12 +25,12 @@ export interface LogEvent {
 
 /**-----------------------------------------------------------------------------------------
     🧾 Logger API — centralized logging for frontend events, model activity, and alerts
-    Backend endpoint: `/api/logs`
+    Backend endpoint (with axiosClient): `/logs` → `http://localhost:8080/api/logs`
 --------------------------------------------------------------------------------------------*/
 export const loggerApi = {
     // Log a generic event (info/debug)
     log: async (data: Omit<LogEvent, "_id" | "timestamp">) => {
-        const res = await axiosClient.post("/api/logs", {
+        const res = await axiosClient.post("/logs", {
             level: data.level || "info",
             timestamp: new Date().toISOString(),
             ...data,
@@ -56,7 +56,7 @@ export const loggerApi = {
         page?: number;
         limit?: number;
     }) => {
-        const res = await axiosClient.get("/api/logs", { params });
+        const res = await axiosClient.get("/logs", { params });
         return res.data;
     },
 };
