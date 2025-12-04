@@ -26,6 +26,7 @@ import { AppLogo } from "@/assets/images";
 import { UserIcon } from "@/assets/icons";
 import type { PredictionResponse } from "@/types/ml";
 
+
 /**----------
     Types
 -------------*/
@@ -174,7 +175,7 @@ const OverviewStatusRow = styled.div`
     gap: 0.5rem;
     margin-bottom: ${({ theme }) => theme.spacing(3)};
     flex-wrap: wrap;
-    justify-content: center;
+    justify-content:冷 center;
 
     @media (max-width: 768px) {
         align-items: flex-start;
@@ -400,11 +401,12 @@ export const HomePage: React.FC = () => {
         const loadDashboard = async () => {
             setLoading(true);
             try {
-                const meRes = await axiosClient.get<MeResponse>("/api/auth/me");
+                // ❗ axiosClient already points at /api → use /auth/me
+                const meRes = await axiosClient.get<MeResponse>("/auth/me");
                 if (cancelled) return;
 
                 const u = meRes.data.user;
-                console.log("[Dashboard] /api/auth/me →", u);
+                console.log("[Dashboard] /auth/me →", u);
 
                 if (!u) throw new Error("Missing user");
 
