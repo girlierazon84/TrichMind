@@ -1,0 +1,130 @@
+# Git ignore for TrichMind project
+# Generated: generic developer + frontend/backend common patterns
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Node / JavaScript
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.pnp.*
+.cache/
+.next/
+.nuxt/
+.out/
+dist/
+build/
+public/build/
+coverage/
+*.localhistory/
+
+# Environment / secrets
+.env
+.env.*
+.env.*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+credentials.json
+*.pem
+*.key
+*.p12
+
+# Logs and runtime files
+logs/
+*.log
+debug.log
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+venv/
+env/
+.venv/
+.envs/
+pip-log.txt
+pip-delete-this-directory.txt
+htmlcov/
+
+# Java / JVM
+*.class
+*.jar
+*.war
+*.ear
+target/
+.out/
+
+# Go
+vendor/
+bin/
+*.exe
+
+# Rust / Cargo
+target/
+
+# Ruby
+.bundle
+vendor/bundle
+*.gem
+
+# .NET / Visual Studio
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.vcxproj.user
+*.nupkg
+# Rider/IDE
+.idea/
+*.iml
+
+# Editors
+.vscode/
+*.code-workspace
+*.sublime-workspace
+*.sublime-project
+
+# Build artifacts and temporary files
+*.tmp
+*.temp
+*.cache
+*.bak
+*.swp
+*.class
+*.o
+*.obj
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Docker
+docker-compose.override.yml
+**/.docker/config.json
+
+# Test and coverage reports
+coverage/
+lcov-report/
+
+# Package manager lock files: typically committed. Uncomment to ignore:
+# yarn.lock
+# package-lock.json
+# pnpm-lock.yaml
+
+# Misc
+*.log.*
+.idea/
+.vagrant/
+.vscode-test/
