@@ -6,14 +6,12 @@ import styled from "styled-components";
 import { useAuth, useJournal } from "@/hooks";
 import { journalApi, type JournalEntry } from "@/services";
 import { ThemeButton } from "@/components";
-
 import {
     UserIcon,
     MyJournalIcon,
     CalendarClockIcon,
     SaveIcon,
 } from "@/assets/icons";
-
 import {
     ResponsiveContainer,
     LineChart,
@@ -23,7 +21,10 @@ import {
     CartesianGrid,
 } from "recharts";
 
-// ---------- Types ----------
+
+/**-----------------------------------------------------
+    Journal entry view type used in the JournalPage.
+--------------------------------------------------------*/
 interface JournalEntryView {
     _id: string;
     prompt?: string;
@@ -35,6 +36,7 @@ interface JournalEntryView {
     preUrgeTriggerNotes?: string;
 }
 
+// Extended journal entry type with metrics
 type JournalEntryWithMetrics = JournalEntry & {
     preUrgeTriggers?: string[];
     preUrgeTriggerNotes?: string;
@@ -43,6 +45,7 @@ type JournalEntryWithMetrics = JournalEntry & {
     happy?: number;
 };
 
+// Mood names
 type MoodName =
     | "Sad"
     | "Anxious"
@@ -74,6 +77,7 @@ const MOOD_OPTIONS: { value: MoodName; label: string; emoji: string }[] = [
     { value: "Proud", label: "Proud", emoji: "🏅" },
 ];
 
+// Mood groupings
 const STRESS_MOODS: MoodName[] = [
     "Sad",
     "Anxious",
@@ -83,9 +87,11 @@ const STRESS_MOODS: MoodName[] = [
     "Bored",
 ];
 
+// Calm moods
 const CALM_MOODS: MoodName[] = ["Calm", "Tired", "Neutral"];
 const HAPPY_MOODS: MoodName[] = ["Happy", "Proud", "Hopeful"];
 
+// Trigger keys and options
 type TriggerKey =
     | "Stress"
     | "Boredom"
@@ -96,6 +102,7 @@ type TriggerKey =
     | "Social"
     | "Other";
 
+// Trigger options
 const TRIGGER_OPTIONS: {
     key: TriggerKey;
     label: string;
@@ -116,8 +123,9 @@ const TRIGGER_OPTIONS: {
     { key: "Other", label: "Something else", emoji: "✏️" },
 ];
 
-// ---------- Styled Components ----------
-
+/**----------------------
+    Styled Components
+-------------------------*/
 const PageWrapper = styled.main`
     width: 100%;
     min-height: 100vh;
@@ -189,7 +197,6 @@ const AvatarImage = styled.img`
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
 `;
 
-// ---- Cards ----
 const Card = styled.section`
     background: ${(props) => props.theme.colors.card_bg};
     border-radius: 18px;
@@ -502,6 +509,9 @@ const PROMPTS: string[] = [
     "If I could talk to my future self, what would I want them to know?",
 ];
 
+/**--------------------------
+    JournalPage Component
+-----------------------------*/
 export const JournalPage: React.FC = () => {
     const navigate = useNavigate();
     const { user, isAuthenticated } = useAuth();
@@ -569,11 +579,11 @@ export const JournalPage: React.FC = () => {
 
             const preUrgeTriggers =
                 selectedTriggers.length > 0
-                    ? selectedTriggers.map(
-                          (k) =>
-                              TRIGGER_OPTIONS.find((opt) => opt.key === k)?.label || k
-                      )
-                    : undefined;
+                    ?   selectedTriggers.map(
+                            (k) =>
+                                TRIGGER_OPTIONS.find((opt) => opt.key === k)?.label || k
+                        )
+                    :   undefined;
 
             const payload: JournalEntryWithMetrics = {
                 text,
