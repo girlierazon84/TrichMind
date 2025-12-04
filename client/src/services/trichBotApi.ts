@@ -3,9 +3,11 @@
 import { axiosClient } from "@/services";
 import { withLogging } from "@/utils";
 
-/**------------------------------------
-    -- TrichBot API Types & Methods
----------------------------------------*/
+
+/**---------------------------------
+    TrichBot API Types & Methods
+------------------------------------*/
+// TrichBot Message type
 export interface TrichBotMessage {
     _id?: string;
     prompt: string;
@@ -32,58 +34,78 @@ interface ListResponse {
     messages: TrichBotMessage[];
 }
 
-// Create and Feedback response types
+// Create + feedback response
 interface CreateResponse {
     ok: boolean;
     message: TrichBotMessage;
 }
 
-// Feedback response type
+// Feedback response
 interface FeedbackResponse {
     ok: boolean;
     message: TrichBotMessage;
 }
 
+// Base path for TrichBot API
+const BOT_BASE = "/trichbot";
+
 // API Methods
-async function rawSendMessage(payload: { prompt: string; intent?: string }) {
-    const res = await axiosClient.post<CreateResponse>("/api/trichbot", payload);
+async function rawSendMessage(payload: {
+    prompt: string;
+    intent?: string;
+}): Promise<TrichBotMessage> {
+    // axiosClient baseURL already includes `/api`
+    const res = await axiosClient.post<CreateResponse>(BOT_BASE, payload);
     return res.data.message;
 }
 
 // Feedback API
-async function rawFeedback(id: string, data: TrichBotMessage["feedback"]) {
+async function rawFeedback(
+    id: string,
+    data: TrichBotMessage["feedback"]
+): Promise<TrichBotMessage> {
     const res = await axiosClient.put<FeedbackResponse>(
-        `/api/trichbot/${id}/feedback`,
+        `${BOT_BASE}/${id}/feedback`,
         data
     );
     return res.data.message;
 }
 
 // List Messages API
-async function rawList(params?: { page?: number; limit?: number; sort?: string }) {
-    const res = await axiosClient.get<ListResponse>("/api/trichbot", { params });
+async function rawList(params?: {
+    page?: number;
+    limit?: number;
+    sort?: string;
+}): Promise<TrichBotMessage[]> {
+    const res = await axiosClient.get<ListResponse>(BOT_BASE, { params });
     return res.data.messages;
 }
 
-/**-------------------------------------
-    -- Exported TrichBot API Service
-----------------------------------------*/
+/**----------------------------------
+    Exported TrichBot API Service
+-------------------------------------*/
 export const trichBotApi = {
+    //Send Message API
     sendMessage: withLogging(rawSendMessage, {
         category: "ml",
         action: "sendMessage",
         showToast: false,
+        errorMessage: "TrichBot is currently unavailable.",
     }),
+    // Feedback API
     feedback: withLogging(rawFeedback, {
         category: "ml",
         action: "botFeedback",
         showToast: true,
         successMessage: "Feedback sent! Thank you 🌿",
+        errorMessage: "Failed to send feedback.",
     }),
+    // List Messages API
     list: withLogging(rawList, {
         category: "ml",
         action: "botList",
         showToast: false,
+        errorMessage: "Failed to load previous TrichBot messages.",
     }),
 };
 
