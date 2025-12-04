@@ -3,10 +3,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled, { keyframes, css } from "styled-components";
-
 import { useAuth, useTrichGame } from "@/hooks";
 import { TrichGameIcon, UserIcon } from "@/assets/icons";
-
 import {
     ResponsiveContainer,
     LineChart,
@@ -16,27 +14,34 @@ import {
     CartesianGrid,
 } from "recharts";
 
-// ---------- Types ----------
 
+/**------------------------------------
+    Challenge modes and state types
+---------------------------------------*/
+// Types for different challenge modes
 type ChallengeMode = "focus_tap" | "picky_pad" | "grounding" | "breathing";
 
+// State for Focus Tap challenge
 interface FocusTapState {
     taps: number;
     target: number;
 }
 
+// State for Picky Pad challenge
 interface HairDot {
     id: number;
     plucked: boolean;
 }
 
+// Data point for session chart
 interface SessionPoint {
     label: string;
     score: number;
 }
 
-// ---------- Animations ----------
-
+/**---------------------------------
+    Styled Component Animations
+------------------------------------*/
 const wiggle = keyframes`
     0% { transform: translateY(0); }
     50% { transform: translateY(-2px); }
@@ -48,8 +53,6 @@ const pop = keyframes`
     40% { transform: scale(1.2); }
     100% { transform: scale(1); }
 `;
-
-// ---------- Styled Components ----------
 
 const PageWrapper = styled.main`
     width: 100%;
@@ -106,7 +109,8 @@ const HeaderSubtitle = styled.span`
     color: ${({ theme }) => theme.colors.text_secondary};
     line-height: 0;
 
-    .p-one, .p-two {
+    .p-one,
+    .p-two {
         display: block;
     }
 `;
@@ -127,7 +131,6 @@ const AvatarImage = styled.img`
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
 `;
 
-// ---- Cards ----
 const Card = styled.section`
     background: ${({ theme }) => theme.colors.card_bg};
     border-radius: 18px;
@@ -336,10 +339,14 @@ const EmptyState = styled.p`
     margin: 0.2rem 0 0.6rem;
 `;
 
-// ---------------- Component ----------------
+/**----------------------------
+    TrichGamePage Component
+-------------------------------*/
 
+// Constant for number of hair dots in Picky Pad
 const HAIR_DOT_COUNT = 12;
 
+// Main TrichGamePage component
 export const TrichGamePage: React.FC = () => {
     const navigate = useNavigate();
     const { user, isAuthenticated } = useAuth();
@@ -351,16 +358,19 @@ export const TrichGamePage: React.FC = () => {
         loading: gameLoading,
     } = useTrichGame();
 
+    // Local state
     const [mode, setMode] = useState<ChallengeMode>("focus_tap");
     const [currentUrge, setCurrentUrge] = useState<number>(3);
     const [points, setPoints] = useState<number>(0);
     const [streak, setStreak] = useState<number>(0);
 
+    // Focus Tap state
     const [focusTap, setFocusTap] = useState<FocusTapState>({
         taps: 0,
         target: 30,
     });
 
+    // Picky Pad state
     const [hairDots, setHairDots] = useState<HairDot[]>(() =>
         Array.from({ length: HAIR_DOT_COUNT }, (_, i) => ({
             id: i,
@@ -368,11 +378,12 @@ export const TrichGamePage: React.FC = () => {
         }))
     );
 
+    // Active session tracking
     const [activeSessionId, setActiveSessionId] = useState<string | undefined>();
     const [pickyClears, setPickyClears] = useState<number>(0);
     const [pickyMessage, setPickyMessage] = useState<string | null>(null);
 
-    // 🔄 Cohesive avatar handling (same pattern as TrichBotPage)
+    // 🔄 Cohesive avatar handling
     const headerAvatar =
         (user && (user as unknown as { avatarUrl?: string }).avatarUrl) ||
         UserIcon;
@@ -390,6 +401,7 @@ export const TrichGamePage: React.FC = () => {
         void fetchSessions({ page: 1, limit: 15, sort: "-createdAt" });
     }, [isAuthenticated, fetchSessions]);
 
+    // Reset local game state for new challenge
     const resetLocalGameState = () => {
         setFocusTap({ taps: 0, target: 30 });
         setHairDots(
@@ -400,11 +412,14 @@ export const TrichGamePage: React.FC = () => {
         );
         setPickyMessage(null);
         setActiveSessionId(undefined);
+        setPoints(0);
     };
 
+    // Ensure there is an active session, or create one
     const ensureSession = async (): Promise<string> => {
         if (activeSessionId) return activeSessionId;
 
+        // Create new session
         const created = await startSession({
             gameName: "TrichGame",
             mode,
@@ -418,6 +433,7 @@ export const TrichGamePage: React.FC = () => {
             },
         });
 
+        // Store active session ID
         const id = created._id!;
         setActiveSessionId(id);
         return id;
@@ -425,9 +441,10 @@ export const TrichGamePage: React.FC = () => {
 
     // ---- Focus Tap handlers ----
     const handleTap = async () => {
-        if (!isAuthenticated) return;
+        if (!isAuthenticated || gameLoading) return;
         await ensureSession();
 
+        // Update tap count and points
         setFocusTap((prev) => ({
             ...prev,
             taps: prev.taps + 1,
@@ -437,16 +454,19 @@ export const TrichGamePage: React.FC = () => {
 
     // ---- Picky Pad handlers ----
     const handleToggleDot = async (dotId: number) => {
-        if (!isAuthenticated) return;
+        if (!isAuthenticated || gameLoading) return;
         await ensureSession();
 
+        // Toggle plucked state of the dot
         setHairDots((prev) => {
             const next = prev.map((d) =>
                 d.id === dotId ? { ...d, plucked: !d.plucked } : d
             );
 
+            // Check if all dots are plucked
             const pluckedNow = next.filter((d) => d.plucked).length;
 
+            // Provide feedback message
             if (pluckedNow === HAIR_DOT_COUNT) {
                 setPickyClears((c) => c + 1);
                 setPickyMessage(
@@ -466,25 +486,30 @@ export const TrichGamePage: React.FC = () => {
             return next;
         });
 
+        // Increment points
         setPoints((p) => p + 1);
     };
 
     // Finish / log session
     const finishSession = async (didResist: boolean) => {
-        if (!isAuthenticated) return;
+        if (!isAuthenticated || gameLoading) return;
 
+        // Ensure session exists
         const id = await ensureSession();
 
+        // Calculate score and final urge
         const taps = focusTap.taps;
         const pluckedCount = hairDots.filter((d) => d.plucked).length;
         const score = taps + pluckedCount;
 
+        // Update streak and urge based on resistance
         const newStreak = didResist ? streak + 1 : 0;
         const finalUrge = Math.max(
             0,
             didResist ? currentUrge - 2 : currentUrge + 1
         );
 
+        // Complete session
         await completeSession(id, {
             score,
             streak: newStreak,
@@ -502,18 +527,22 @@ export const TrichGamePage: React.FC = () => {
             },
         });
 
+        // Update local state
         setStreak(newStreak);
         setCurrentUrge(finalUrge);
         resetLocalGameState();
     };
 
+    // Export session log as JSON
     const handleExportLog = () => {
         if (!sessions || sessions.length === 0) return;
 
+        // Create JSON blob and trigger download
         const payload = JSON.stringify(sessions, null, 2);
         const blob = new Blob([payload], { type: "application/json" });
         const url = URL.createObjectURL(blob);
 
+        // Create temporary link and click it
         const a = document.createElement("a");
         a.href = url;
         a.download = "trichgame_sessions.json";
@@ -523,6 +552,7 @@ export const TrichGamePage: React.FC = () => {
         URL.revokeObjectURL(url);
     };
 
+    // Prepare session chart data
     const sessionChartData: SessionPoint[] = useMemo(
         () =>
             (sessions ?? [])
@@ -535,11 +565,14 @@ export const TrichGamePage: React.FC = () => {
         [sessions]
     );
 
+    // Calculate Focus Tap progress percentage
     const focusProgressPct =
         (focusTap.taps / focusTap.target) * 100 || 0;
 
+    // Count of plucked dots in Picky Pad
     const pluckedCount = hairDots.filter((d) => d.plucked).length;
 
+    // Render nothing for unauthenticated users
     if (!isAuthenticated) {
         return null;
     }
@@ -731,12 +764,14 @@ export const TrichGamePage: React.FC = () => {
                         <SecondaryButton
                             type="button"
                             onClick={() => void finishSession(false)}
+                            disabled={gameLoading}
                         >
                             I gave in (log)
                         </SecondaryButton>
                         <PrimaryButton
                             type="button"
                             onClick={() => void finishSession(true)}
+                            disabled={gameLoading}
                         >
                             End challenge &amp; log
                         </PrimaryButton>
