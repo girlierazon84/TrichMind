@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-
 import { useAuth, useTrichBot } from "@/hooks";
 import { trichBotApi, type TrichBotMessage } from "@/services";
 import {
@@ -13,8 +12,11 @@ import {
     ArrowEnterIcon,
 } from "@/assets/icons";
 
-// ---------- Styled components ----------
 
+/**-------------------------------------------------------------------
+TrichBotPage component - Chat interface with TrichBot AI assistant
+----------------------------------------------------------------------*/
+// Styled components
 const PageWrapper = styled.main`
     width: 100%;
     min-height: 100vh;
@@ -70,7 +72,8 @@ const HeaderSubtitle = styled.span`
     color: ${({ theme }) => theme.colors.text_secondary};
     line-height: 0;
 
-    .p-one, .p-two {
+    .p-one,
+    .p-two {
         display: block;
     }
 `;
@@ -272,7 +275,7 @@ const SendButton = styled.button`
     height: 38px;
     border-radius: 999px;
     border: none;
-    background: transparent; /* 🔹 transparent, only arrow visible */
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -301,16 +304,21 @@ const ErrorLabel = styled(SmallLabel)`
     color: #b3261e;
 `;
 
-// -------- helper: keep bot reply in ONE bubble --------
+/**--------------------------------------------
+    Split bot response into intro and tips
+-----------------------------------------------*/
 function splitBotResponse(text: string): { intro: string; tips: string[] } {
+    // Normalize line endings and split into lines
     const lines = text
         .split("\n")
         .map((l) => l.trim())
         .filter(Boolean);
 
+    // Separate intro and tips
     const introParts: string[] = [];
     const tips: string[] = [];
 
+    // Extract numbered tips
     for (const line of lines) {
         if (/^\d+\.\s+/.test(line)) {
             tips.push(line.replace(/^\d+\.\s+/, ""));
@@ -319,11 +327,12 @@ function splitBotResponse(text: string): { intro: string; tips: string[] } {
         }
     }
 
+    // Join intro parts back into a single string
     const intro = introParts.join(" ");
 
     return {
         intro,
-        tips: tips.slice(0, 3), // max 3 tips
+        tips: tips.slice(0, 3),
     };
 }
 
@@ -332,27 +341,30 @@ function stripHtml(input: string): string {
     return input.replace(/<[^>]+>/g, "");
 }
 
-// ---------------- Component ----------------
-
+/**-------------------------------------------------
+    TrichBotPage component - main chat interface
+----------------------------------------------------*/
 export const TrichBotPage: React.FC = () => {
+    // Hooks and state
     const navigate = useNavigate();
     const { user, isAuthenticated } = useAuth();
     const { sendMessage, loading } = useTrichBot();
 
+    // Component state
     const [messages, setMessages] = useState<TrichBotMessage[]>([]);
     const [input, setInput] = useState("");
     const [saving, setSaving] = useState(false);
     const [showSavedBanner, setShowSavedBanner] = useState(false);
     const [botError, setBotError] = useState<string | null>(null);
 
-    // Safely read avatarUrl from user (may be undefined on base type)
+    // Determine header avatar
     const headerAvatar =
         (user && (user as unknown as { avatarUrl?: string }).avatarUrl) ||
         UserIcon;
 
-    // A per-user key so clearing is specific to this account
+    // Local storage key for cleared conversations
     const clearKey =
-        (user && "email" in user && user.email)
+        user && "email" in user && user.email
             ? `tm_trichbot_cleared_${(user as { email: string }).email}`
             : "tm_trichbot_cleared";
 
@@ -363,17 +375,18 @@ export const TrichBotPage: React.FC = () => {
         }
     }, [isAuthenticated, navigate]);
 
-    // Load previous bot messages, *unless* user has cleared chat
+    // Load previous bot messages unless user cleared
     useEffect(() => {
         if (!isAuthenticated) return;
 
+        // Check if user cleared conversation
         const clearedFlag = clearKey ? localStorage.getItem(clearKey) : null;
         if (clearedFlag === "1") {
-            // User chose to keep chat clear – don't fetch history
             setMessages([]);
             return;
         }
 
+        // Load history from API
         const loadHistory = async () => {
             try {
                 const history = await trichBotApi.list({
@@ -383,60 +396,63 @@ export const TrichBotPage: React.FC = () => {
                 });
                 setMessages(history);
             } catch {
-                // fail quietly – chat will just start empty
+                // silent fail
             }
         };
 
+        // Load on mount
         void loadHistory();
     }, [isAuthenticated, clearKey]);
 
+    // Handlers
     const handleSend = async () => {
         if (!input.trim() || !isAuthenticated) return;
 
+        // Send message to TrichBot
         const prompt = input.trim();
         setInput("");
         setBotError(null);
 
+        // Add user message to chat
         try {
-            // 👇 intent explicitly mentions TrichMind + trichotillomania support
             const msg = await sendMessage(
                 prompt,
                 "trichmind_app_trichotillomania_support"
             );
-
             setMessages((prev) => [...prev, msg]);
         } catch (err) {
             console.error("TrichBot send error:", err);
-            setInput(prompt); // put text back so the user doesn't lose it
+            setInput(prompt);
             setBotError(
                 "TrichBot is not available right now (server error). Please try again in a moment."
             );
         }
     };
 
+    // Form submit handler
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         void handleSend();
     };
 
-    const handleKeyDown = (
-        e: React.KeyboardEvent<HTMLTextAreaElement>
-    ): void => {
-        // Enter = send, Shift+Enter = new line
+    // Handle Enter key (without Shift) to send
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             void handleSend();
         }
     };
 
-    // 💾 Save conversation as a user-friendly .txt transcript
+    // Save conversation to text file
     const handleSaveConversation = () => {
         if (!messages || messages.length === 0) return;
 
+        // Generate text content
         setSaving(true);
         try {
             const lines: string[] = [];
 
+            // Header info
             lines.push("TrichMind – TrichBot Conversation");
             lines.push(`Exported: ${new Date().toLocaleString()}`);
             lines.push("");
@@ -444,12 +460,15 @@ export const TrichBotPage: React.FC = () => {
                 "This transcript is for your personal reflection. It is not medical advice."
             );
             lines.push("");
+
+            // Conversation exchanges
             messages.forEach((m, idx) => {
                 const created =
                     m.createdAt && typeof m.createdAt === "string"
                         ? new Date(m.createdAt).toLocaleString()
                         : "";
 
+                // Exchange header
                 lines.push(
                     `───────── Exchange ${idx + 1}${
                         created ? ` • ${created}` : ""
@@ -459,6 +478,7 @@ export const TrichBotPage: React.FC = () => {
                 lines.push(m.prompt || "");
                 lines.push("");
 
+                // Bot response
                 if (m.response) {
                     lines.push("TrichBot:");
                     lines.push(stripHtml(m.response));
@@ -466,12 +486,15 @@ export const TrichBotPage: React.FC = () => {
                 }
             });
 
+            // Create blob and trigger download
             const content = lines.join("\n");
             const blob = new Blob([content], {
                 type: "text/plain;charset=utf-8",
             });
+            // Create download link
             const url = URL.createObjectURL(blob);
 
+            // Trigger download
             const a = document.createElement("a");
             a.href = url;
             a.download = "trichbot_conversation.txt";
@@ -480,6 +503,7 @@ export const TrichBotPage: React.FC = () => {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
+            // Show saved banner
             setShowSavedBanner(true);
             window.setTimeout(() => setShowSavedBanner(false), 4000);
         } finally {
@@ -487,25 +511,29 @@ export const TrichBotPage: React.FC = () => {
         }
     };
 
-    // 🧹 Clear conversation from the screen (and keep it cleared across logins)
+    // Clear conversation from view
     const handleClearConversation = () => {
         if (!messages || messages.length === 0) return;
 
+        // Confirm with user
         const confirmed = window.confirm(
             "Clear this chat from your screen?\n\nThis won’t delete anything from the server, but it will empty this conversation view and keep it clear next time you log in."
         );
         if (!confirmed) return;
 
+        // Clear messages and set local storage flag
         setMessages([]);
         if (clearKey) {
             localStorage.setItem(clearKey, "1");
         }
     };
 
+    // Render
     if (!isAuthenticated) {
         return null;
     }
 
+    // Determine if we should show the intro bot bubble
     const showIntroBotBubble = messages.length === 0 && !loading;
 
     return (
@@ -517,12 +545,13 @@ export const TrichBotPage: React.FC = () => {
                         <HeaderTitleGroup>
                             <HeaderTitle>TrichBot · TrichMind assistant</HeaderTitle>
                             <HeaderSubtitle>
-                                <p>
+                                <p className="p-one">
                                     The in-app companion for people living with
                                     trichotillomania –
                                 </p>
                                 <p className="p-two">
-                                    here to guide you through urges, tools, and gentle next steps.
+                                    here to guide you through urges, tools, and gentle next
+                                    steps.
                                 </p>
                             </HeaderSubtitle>
                         </HeaderTitleGroup>
@@ -591,14 +620,12 @@ export const TrichBotPage: React.FC = () => {
                                                 alt="TrichBot"
                                             />
                                             <MessageBubble $role="bot">
-                                                {/* Render intro as HTML so <strong><em>verse</em></strong> is styled */}
                                                 <BotIntroText
                                                     $hasTips={tips.length > 0}
                                                     dangerouslySetInnerHTML={{
                                                         __html: intro,
                                                     }}
                                                 />
-
                                                 {tips.length > 0 && (
                                                     <BotTipsList>
                                                         {tips.map((tip, idx) => (
@@ -663,7 +690,7 @@ export const TrichBotPage: React.FC = () => {
                         <TextInput
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={handleKeyDown} // 🔹 Enter-to-send
+                            onKeyDown={handleKeyDown}
                             placeholder="Type your message…"
                         />
                         <SendButton type="submit" disabled={loading || !input.trim()}>
