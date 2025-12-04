@@ -7,6 +7,7 @@ import {
 } from "react";
 import { axiosClient } from "@/services";
 
+
 /**----------
     Types
 -------------*/
@@ -17,12 +18,16 @@ export interface SoberStreakResponse {
     lastEntryDate?: string;
 }
 
+/**-----------------------------------------------
+    Result returned by the useSoberStreak hook
+--------------------------------------------------*/
 interface UseSoberStreakResult {
     data: SoberStreakResponse | null;
     loading: boolean;
     error: string | null;
 }
 
+// Local storage key for caching sober streak data
 const LOCAL_KEY = "tm_sober_streak";
 
 /**-------------------------------------------------
@@ -33,15 +38,18 @@ export const useSoberStreak = (): UseSoberStreakResult => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Fetch sober streak data from backend or localStorage
     const fetchStreak = useCallback(async () => {
         setLoading(true);
         setError(null);
 
+        // 1) Try to fetch from backend
         try {
-            // 1) Try real backend API
-            const res = await axiosClient.get<SoberStreakResponse>("/api/health/streak");
+            // ❗ Remove /api prefix
+            const res = await axiosClient.get<SoberStreakResponse>("/health/streak");
             const payload = res.data || {};
 
+            // Normalize the response to ensure all fields are present
             const normalized: SoberStreakResponse = {
                 currentStreak: payload.currentStreak ?? 0,
                 previousStreak: payload.previousStreak ?? 0,
@@ -49,6 +57,7 @@ export const useSoberStreak = (): UseSoberStreakResult => {
                 lastEntryDate: payload.lastEntryDate,
             };
 
+            // Update state with normalized data
             setData(normalized);
 
             // Cache to localStorage as a fallback for next time
@@ -76,6 +85,7 @@ export const useSoberStreak = (): UseSoberStreakResult => {
         }
     }, []);
 
+    // Fetch streak data on mount
     useEffect(() => {
         fetchStreak();
     }, [fetchStreak]);
