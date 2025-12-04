@@ -2,31 +2,30 @@
 
 import { axiosClient } from "@/services";
 import { withLogging } from "@/utils";
-import type {
-    PredictPayload,
-    PredictionResponse
-} from "@/types/ml";
+import type { PredictPayload, PredictionResponse } from "@/types/ml";
 
 
-/**
- * 🔮 Predict API — communicates with ML backend
- * Fully integrated with centralized withLogging utility.
- */
+/**----------------------------------------------------------
+    🔮 Predict API — communicates with ML backend
+    Uses FastAPI endpoint: POST /api/ml/predict_friendly
+    (axiosClient baseURL already ends with /api)
+-------------------------------------------------------------*/
 
-// ──────────────────────────────
-// Raw API function
-// ──────────────────────────────
+/**-------------------------------------------------------------------
+    Raw API function to send prediction request to the ML backend.
+----------------------------------------------------------------------*/
 export async function rawPredict(
     payload: PredictPayload
 ): Promise<PredictionResponse> {
-    // Backend route: POST /api/ml/predict
-    const res = await axiosClient.post("/api/ml/predict_friendly", payload);
+    // baseURL: http://localhost:8080/api
+    // final URL: http://localhost:8080/api/ml/predict_friendly
+    const res = await axiosClient.post("/ml/predict_friendly", payload);
     return res.data;
-};
+}
 
-// ──────────────────────────────────────────────
-// Wrapped API (with automatic logging + toasts)
-// ──────────────────────────────────────────────
+/**--------------------------------------------------
+    Wrapped API (with automatic logging + toasts)
+-----------------------------------------------------*/
 export const predictApi = {
     predict: withLogging(rawPredict, {
         category: "ml",
