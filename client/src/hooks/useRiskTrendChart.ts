@@ -3,17 +3,18 @@
 import { useState, useEffect } from "react";
 import { axiosClient } from "@/services";
 
-// ----------------------------------------------------
-// Local Types
-// ----------------------------------------------------
+
+/**-----------------
+    Local Types
+--------------------*/
 export interface HistoryPoint {
     date: string;
     score: number;
 }
 
-// ----------------------------------------------------
-// Hook: useRiskTrendChart
-// ----------------------------------------------------
+/**----------------------------
+    Hook: useRiskTrendChart
+-------------------------------*/
 export const useRiskTrendChart = () => {
     const [data, setData] = useState<HistoryPoint[]>([]);
     const [loading, setLoading] = useState(true);
@@ -37,8 +38,9 @@ export const useRiskTrendChart = () => {
                     return;
                 }
 
+                // ❗ Remove /api prefix
                 const res = await axiosClient.get<{ trend: HistoryPoint[] }>(
-                    "/api/health/risk-trend"
+                    "/health/risk-trend"
                 );
                 if (!alive) return;
 
