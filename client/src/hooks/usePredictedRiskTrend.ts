@@ -3,21 +3,25 @@
 import { useEffect, useState } from "react";
 import { axiosClient } from "@/services";
 
-// --------------------------
-// Types and Interfaces
-// --------------------------
+
+/**-------------------------
+    Types and Interfaces
+----------------------------*/
 export interface PredictedPoint {
     day: number;
     predicted_risk: number;
 }
 
+/**-------------------------
+    Response Interfaces
+----------------------------*/
 interface MLTrendResponse {
     trend: PredictedPoint[];
 }
 
-// -----------------------------
-// usePredictedRiskTrend Hook
-// -----------------------------
+/**-------------------------------
+    usePredictedRiskTrend Hook
+----------------------------------*/
 export const usePredictedRiskTrend = (days: number = 14) => {
     const [trend, setTrend] = useState<PredictedPoint[]>([]);
     const [loading, setLoading] = useState(true);
@@ -32,8 +36,9 @@ export const usePredictedRiskTrend = (days: number = 14) => {
             setError(null);
 
             try {
+                // ❗ axiosClient already has /api, so use /ml/...
                 const res = await axiosClient.get<MLTrendResponse>(
-                    `/api/ml/risk-trend?days=${days}`
+                    `/ml/risk-trend?days=${days}`
                 );
                 if (!alive) return;
 
