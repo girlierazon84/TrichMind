@@ -8,7 +8,10 @@ import { ThemeButton } from "@/components";
 import { UserIcon, HealthIcon } from "@/assets/icons";
 import { notifyOverviewRefresh } from "@/utils";
 
-// ---------------- Types ----------------
+
+/**------------------------------------
+    Interface for a health log view
+---------------------------------------*/
 interface HealthLogView {
     _id: string;
     sleepHours: number;
@@ -17,7 +20,9 @@ interface HealthLogView {
     date: string;
 }
 
-// ---------------- Styled Components ----------------
+/**----------------------
+    Styled Components
+-------------------------*/
 const PageWrapper = styled.main`
     width: 100%;
     min-height: 100vh;
@@ -89,7 +94,6 @@ const AvatarImage = styled.img`
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
 `;
 
-// ---- Cards ----
 const Card = styled.section`
     background: ${({ theme }) => theme.colors.card_bg};
     border-radius: 18px;
@@ -189,7 +193,6 @@ const SaveButton = styled(ThemeButton)`
     margin-top: 0.5rem;
 `;
 
-// ---- Recent Logs ----
 const LogsList = styled.div`
     display: flex;
     flex-direction: column;
@@ -222,17 +225,23 @@ const EmptyState = styled.p`
     margin: 0.2rem 0 0.8rem;
 `;
 
-// ---------------- Component ----------------
+/**-------------------------
+    HealthPage Component
+----------------------------*/
 export const HealthPage: React.FC = () => {
+    // 🚀 Navigation hook
     const navigate = useNavigate();
 
+    // 🔐 Auth & Health hooks
     const { user, isAuthenticated } = useAuth();
     const { create, list, loading } = useHealth();
 
+    // 🏃‍♂️ State variables for health metrics
     const [sleepHours, setSleepHours] = useState(7);
     const [stressLevel, setStressLevel] = useState(5);
     const [exerciseMinutes, setExerciseMinutes] = useState(30);
 
+    // 💾 State variables for saving & logs
     const [saving, setSaving] = useState(false);
     const [logs, setLogs] = useState<HealthLogView[]>([]);
     const [logsLoading, setLogsLoading] = useState(false);
@@ -242,12 +251,15 @@ export const HealthPage: React.FC = () => {
         (user && (user as unknown as { avatarUrl?: string }).avatarUrl) ||
         UserIcon;
 
+    // 📥 Load cached logs from localStorage on mount
     const LS_KEY = "tm_health_logs";
 
+    // Load cached logs from localStorage on mount
     useEffect(() => {
         const cached = localStorage.getItem(LS_KEY);
         if (cached) {
             try {
+                // Parse and set cached logs
                 const parsed = JSON.parse(cached) as HealthLogView[];
                 setLogs(parsed);
             } catch {
@@ -256,6 +268,7 @@ export const HealthPage: React.FC = () => {
         }
     }, []);
 
+    // Function to save logs to state and localStorage
     const saveLogsToStorage = (items: HealthLogView[]) => {
         setLogs(items);
         try {
@@ -265,6 +278,7 @@ export const HealthPage: React.FC = () => {
         }
     };
 
+    // Function to fetch logs from backend
     const fetchLogs = async () => {
         try {
             setLogsLoading(true);
@@ -292,15 +306,18 @@ export const HealthPage: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isAuthenticated]);
 
+    // Function to handle saving a new health log
     const handleSave = async () => {
         try {
             setSaving(true);
+            // Create new health log
             const res = await create({
                 sleepHours,
                 stressLevel,
                 exerciseMinutes,
             });
 
+            // Update logs list with the newly created log
             const created = (res?.log ?? null) as HealthLogView | null;
             if (created && created._id) {
                 const next = [created, ...logs].slice(0, 5);
@@ -309,6 +326,7 @@ export const HealthPage: React.FC = () => {
                 await fetchLogs();
             }
 
+            // Notify overview to refresh
             notifyOverviewRefresh("health");
         } catch {
             // handled by hook/toast
@@ -317,6 +335,7 @@ export const HealthPage: React.FC = () => {
         }
     };
 
+    // Function to format ISO date strings
     const formatDate = (iso: string) =>
         new Date(iso).toLocaleDateString(undefined, {
             year: "numeric",
@@ -324,6 +343,7 @@ export const HealthPage: React.FC = () => {
             day: "2-digit",
         });
 
+    // Render nothing if not authenticated
     if (!isAuthenticated) {
         return null;
     }
