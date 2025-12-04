@@ -4,17 +4,20 @@ import { useState } from "react";
 import { toast } from "react-toastify";
 import {
     healthApi,
-    type HealthLogData
+    type HealthLogData,
 } from "@/services";
 import { useLogger } from "@/hooks";
 
 
-/** * 🩺 useHealth — React hook for managing health logs */
+/**--------------------------------------------------------
+    🩺 useHealth — React hook for managing health logs
+-----------------------------------------------------------*/
 export const useHealth = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { log, error: logError } = useLogger(false);
 
+    // Create a new health log
     const create = async (data: HealthLogData) => {
         setLoading(true);
         try {
@@ -39,7 +42,14 @@ export const useHealth = () => {
         }
     };
 
-    const list = async (params?: { from?: string; to?: string }) => {
+    // List health logs with optional filters
+    const list = async (params?: {
+        from?: string;
+        to?: string;
+        page?: number;
+        limit?: number;
+        sort?: string;
+    }) => {
         try {
             return await healthApi.list(params);
         } catch (err) {
