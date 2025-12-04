@@ -8,6 +8,7 @@ import { axiosClient, authApi } from "@/services";
 import { ThemeButton, FormInput } from "@/components";
 import { BackIcon, UserIcon } from "@/assets/icons";
 
+
 /**---------------
     Animations
 ------------------*/
@@ -90,7 +91,6 @@ const Avatar = styled.img`
   height: 116px;
   border-radius: 50%;
   object-fit: cover;          /* center by default */
-  /* removed object-position offset so the face isn't pushed up */
 `;
 
 const EditAvatarButton = styled.label`
@@ -142,7 +142,7 @@ const PrimarySaveButton = styled(ThemeButton)<{ $pulse?: boolean }>`
     $pulse &&
     css`
       animation: ${pulse} 1.6s ease-out infinite;
-    `}
+    `};
 `;
 
 // Secondary button variant
@@ -250,7 +250,7 @@ interface ExtendedUser {
   years_since_onset?: number;
   avatarUrl?: string;
 
-  // Mirror backend fields used in /api/auth/me
+  // Mirror backend fields used in /auth/me
   coping_worked?: string[];
   coping_not_worked?: string[];
 }
@@ -290,7 +290,8 @@ export const ProfilePage: React.FC = () => {
     if (!isAuthenticated) return;
 
     axiosClient
-      .get<{ ok: boolean; user: ExtendedUser }>("/api/auth/me")
+      // ❗ axiosClient base is /api → use /auth/me
+      .get<{ ok: boolean; user: ExtendedUser }>("/auth/me")
       .then((res) => {
         const user = res.data.user;
         setProfile(user);
@@ -405,7 +406,8 @@ export const ProfilePage: React.FC = () => {
       };
 
       const res = await axiosClient.patch<{ ok: boolean; user: ExtendedUser }>(
-        "/api/users/profile",
+        // ❗ base /api + /users/profile
+        "/users/profile",
         payload
       );
       setProfile(res.data.user);
