@@ -4,6 +4,9 @@ import { axiosClient } from "@/services";
 import { withLogging } from "@/utils";
 
 
+/**--------------------------------------------------------------
+    🩺 HealthLogData — Data structure for health log entries
+-----------------------------------------------------------------*/
 export interface HealthLogData {
     sleepHours: number;
     stressLevel: number;
@@ -11,33 +14,54 @@ export interface HealthLogData {
     date?: string;
 }
 
-// ───────────── Base Functions ─────────────
+// Constants
+const HEALTH_BASE = "/health";
+
+/**-----------------------------------
+    Basic CRUD Operations
+    Raw functions without logging
+--------------------------------------*/
+// Raw Create
 async function rawCreate(data: HealthLogData) {
-    const res = await axiosClient.post("/api/health", data);
+    // axiosClient baseURL already includes /api → use /health here
+    const res = await axiosClient.post(HEALTH_BASE, data);
     return res.data;
 }
 
-async function rawList(params?: { from?: string; to?: string; page?: number; limit?: number }) {
-    const res = await axiosClient.get("/api/health", { params });
+// Raw List
+async function rawList(params?: {
+    from?: string;
+    to?: string;
+    page?: number;
+    limit?: number;
+    sort?: string;
+}) {
+    // axiosClient baseURL already includes /api → use /health here
+    const res = await axiosClient.get(HEALTH_BASE, { params });
     return res.data;
 }
 
+// Raw Get By ID
 async function rawGetById(id: string) {
-    const res = await axiosClient.get(`/api/health/${id}`);
+    const res = await axiosClient.get(`${HEALTH_BASE}/${id}`);
     return res.data;
 }
 
+// Raw Update
 async function rawUpdate(id: string, data: Partial<HealthLogData>) {
-    const res = await axiosClient.put(`/api/health/${id}`, data);
+    const res = await axiosClient.put(`${HEALTH_BASE}/${id}`, data);
     return res.data;
 }
 
+// Raw Remove
 async function rawRemove(id: string) {
-    const res = await axiosClient.delete(`/api/health/${id}`);
+    const res = await axiosClient.delete(`${HEALTH_BASE}/${id}`);
     return res.data;
 }
 
-// ───────────── Wrapped with Logging ─────────────
+/**-----------------------------
+    Health API with Logging
+--------------------------------*/
 export const healthApi = {
     create: withLogging(rawCreate, {
         category: "ui",
@@ -63,3 +87,5 @@ export const healthApi = {
         errorMessage: "Failed to delete health log.",
     }),
 };
+
+export default healthApi;
