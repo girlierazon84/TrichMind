@@ -3,48 +3,56 @@
 import dotenv from "dotenv";
 import fs from "fs";
 
+
+/**--------------------
+    Load .env files
+-----------------------*/
 dotenv.config();
 
-// -------------------------------------
-// Detect docker reliably
-// -------------------------------------
+/**---------------------------
+    Detect docker reliably
+------------------------------*/
 const isDocker = () => {
+    // Only trust explicit flags or /.dockerenv
     if (process.env.DOCKERIZED === "true") return true;
     if (process.env.CONTAINERIZED === "true") return true;
-    if (process.env.HOSTNAME && process.env.HOSTNAME.length > 12) return true;
     return fs.existsSync("/.dockerenv");
 };
 
+// Local is simply “not docker”
 const isLocal = () => !isDocker();
 
-// -------------------------------------
-// Safe accessor
-// -------------------------------------
+/**------------------
+    Safe accessor
+---------------------*/
 const required = (key: string, fallback?: string) => {
     const v = process.env[key] ?? fallback;
     if (!v) throw new Error(`Missing ENV var: ${key}`);
     return v;
 };
 
-// -------------------------------------
-// AUTO-SWITCH HOSTS - MONGO
-// -------------------------------------
-const mongoHost = isLocal() ? "localhost:27018" : "mongo:27017";
+/**----------------------------------------------------------------
+    AUTO-SWITCH HOSTS - MONGO
+    🔁 Local dev: localhost:27017 (default Mongo port)
+    🔁 Docker:    mongo:27017 (service name in docker network)
+-------------------------------------------------------------------*/
+const mongoHost = isLocal() ? "localhost:27017" : "mongo:27017";
 
-// -------------------------------------
-// AUTO-SWITCH HOSTS - ML
-// -------------------------------------
+/**---------------------------
+    AUTO-SWITCH HOSTS - ML
+------------------------------*/
 const mlHost = isLocal() ? "localhost:8000" : "ml:8000";
 
-// -------------------------------------
-// Client & CORS
-// -------------------------------------
+/**------------------
+    Client & CORS
+---------------------*/
 const resolvedClientUrl =
     process.env.CLIENT_URL ||
     (isLocal()
         ? "http://localhost:5050"
         : "http://localhost:5050"); // browser always sees localhost
 
+// CORS origins
 const rawCors = process.env.CORS_ORIGIN;
 const defaultCorsOrigins = isLocal()
     ?   [
@@ -54,6 +62,7 @@ const defaultCorsOrigins = isLocal()
         ]
     :   [resolvedClientUrl];
 
+// Parse CORS origins from env or use defaults
 const corsOrigins = rawCors
     ?   rawCors
             .split(",")
@@ -61,9 +70,9 @@ const corsOrigins = rawCors
             .filter(Boolean)
     :   defaultCorsOrigins;
 
-// -------------------------------------
-// EXPORT ENV
-// -------------------------------------
+/**---------------------
+    EXPORT ENV_AUTO
+------------------------*/
 export const ENV = {
     NODE_ENV: process.env.NODE_ENV || "development",
     IS_DOCKER: isDocker(),
@@ -94,9 +103,9 @@ export const ENV = {
     RELAPSE_ALERT_THRESHOLD: Number(process.env.RELAPSE_ALERT_THRESHOLD) || 0.7,
 };
 
-// -------------------------------------
-// DEBUG ENV VARS
-// -------------------------------------
+/**-------------------
+    DEBUG ENV VARS
+----------------------*/
 console.log("🌍 ENV AUTO SWITCH:", {
     NODE_ENV: ENV.NODE_ENV,
     IS_LOCAL: ENV.IS_LOCAL,
