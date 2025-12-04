@@ -5,10 +5,13 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios";
 
-// Backend ROOT (WITHOUT /api) – axiosClient will append /api
+/**-------------------------------------------------------------------
+    Backend ROOT (WITHOUT trailing /api).
+    In dev, typically: VITE_API_BASE_URL = "http://localhost:8080"
+----------------------------------------------------------------------*/
 const API_ROOT = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
-// Normalize and ensure we don't end up with double slashes
+// Normalize and append `/api` → matches Express `app.use("/api", ...)`
 const baseURL = `${API_ROOT.replace(/\/+$/, "")}/api`;
 
 // Extend Axios request config to include our internal flag
@@ -33,6 +36,7 @@ export const axiosClient = axios.create({
 axiosClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("access_token");
 
+  // Attach token if available
   if (token) {
     config.headers = config.headers ?? {};
     config.headers.Authorization = `Bearer ${token}`;
@@ -56,6 +60,7 @@ axiosClient.interceptors.response.use(
     ) {
       original._retry = true;
 
+      // Attempt to refresh token
       try {
         const refreshToken = localStorage.getItem("refresh_token");
 
@@ -77,6 +82,7 @@ axiosClient.interceptors.response.use(
           }
         );
 
+        // Extract new token from refresh response
         const newToken = refresh.data.token;
 
         // No new token, redirect to login
