@@ -6,6 +6,7 @@ import { connectMongo, ENV_AUTO } from "./config";
 import { notFound, errorHandler } from "./middlewares";
 import { logger, startWeeklySummaryScheduler } from "./utils";
 
+
 /**------------------
     Route Imports
 ---------------------*/
@@ -27,9 +28,9 @@ import relapseOverviewRoutes from "./routes/relapseOverviewRoutes";
 ------------------------------*/
 const app = express();
 
-/**------------------------------------------
- * 🔍 Simple request logger (debug in dev)
- *------------------------------------------*/
+/**---------------------------------------------
+    🔍 Simple request logger (debug in dev)
+------------------------------------------------*/
 app.use((req: Request, _res: Response, next: NextFunction) => {
     console.log(`➡️  ${req.method} ${req.originalUrl}`);
     next();
@@ -42,13 +43,16 @@ const rawOrigins =
     process.env.CORS_ORIGIN ||
     `${ENV_AUTO.CLIENT_URL},http://localhost:5050,http://localhost:5173,http://172.19.192.1:5173`;
 
+// Parse and clean origins
 const ALLOWED_ORIGINS = rawOrigins
     .split(",")
     .map((o) => o.trim())
     .filter(Boolean);
 
+// Log allowed origins
 console.log("🌐 [CORS] Allowed origins:", ALLOWED_ORIGINS);
 
+// CORS middleware
 app.use(
     cors({
         origin(origin, callback) {
@@ -66,10 +70,10 @@ app.use(
     })
 );
 
-/**---------------------------------------
+/**--------------------------------------------
     ✅ Body parsers (JSON, form-data)
     (supports avatar base64, profile forms)
-------------------------------------------*/
+-----------------------------------------------*/
 app.use(
     express.json({
         limit: "5mb", // allow profile payloads with base64 avatar
@@ -84,9 +88,9 @@ app.use(
 );
 
 /**--------------------------------------
- * 🧪 Simple health / ping endpoint
- *  (helps debug ERR_EMPTY_RESPONSE)
- *---------------------------------------*/
+    🧪 Simple health / ping endpoint
+    (helps debug ERR_EMPTY_RESPONSE)
+-----------------------------------------*/
 app.get("/api/ping", (_req: Request, res: Response) => {
     console.log("👋 /api/ping hit");
     res.json({ ok: true, message: "pong" });
@@ -122,12 +126,14 @@ startWeeklySummaryScheduler();
 /**---------------------
     🚀 Start Server
 ------------------------*/
-connectMongo().then(() => {
-    const port = ENV_AUTO.PORT || 8080;
-    app.listen(port, () => {
-        logger.info(`🚀 TrichMind Server running on port ${port}`);
-        console.log(`🚀 TrichMind Server running on port ${port}`);
-    });
+const port = ENV_AUTO.PORT || 8080;
+
+app.listen(port, () => {
+    logger.info(`🚀 TrichMind Server running on port ${port}`);
+    console.log(`🚀 TrichMind Server running on port ${port}`);
+
+    // Connect to MongoDB in the background
+    void connectMongo();
 });
 
 export default app;
