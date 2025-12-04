@@ -9,12 +9,15 @@ import {
 import { useLogger } from "@/hooks";
 
 
-// ------------------------ Journal Hook ------------------------
+/**--------------------------------------------
+    Custom hook to manage journal entries.
+-----------------------------------------------*/
 export const useJournal = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { log, error: logError } = useLogger(false);
 
+    // Create a new journal entry
     const create = async (entry: JournalEntry) => {
         setLoading(true);
         try {
