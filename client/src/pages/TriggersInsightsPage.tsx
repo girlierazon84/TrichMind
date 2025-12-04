@@ -3,12 +3,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-
 import { useAuth } from "@/hooks";
 import { journalApi, type JournalEntry } from "@/services";
-
 import { UserIcon, TriggersInsightsIcon } from "@/assets/icons";
-
 import {
     ResponsiveContainer,
     LineChart,
@@ -18,13 +15,18 @@ import {
     CartesianGrid,
 } from "recharts";
 
-// ---------- Types ----------
 
+/**------------------------------------------------------------------------
+    Triggers & Insights Page
+    Shows urge trends, top triggers, and a simple relapse-risk preview.
+---------------------------------------------------------------------------*/
+// Urge trend data point interface
 interface UrgeTrendPoint {
     label: string;
     urgeIntensity: number;
 }
 
+// Trigger view interface
 interface TriggerView {
     name: string;
     frequency: number;
@@ -32,21 +34,25 @@ interface TriggerView {
     recencyScore: number;
 }
 
+// Risk label type
 type RiskLabel = "Low" | "Moderate" | "High";
 
+// Risk summary interface
 interface RiskSummary {
     score: number; // 0–1
     label: RiskLabel;
     explanation: string;
 }
 
+// Extended journal entry with triggers
 interface JournalWithTriggers extends JournalEntry {
     preUrgeTriggers?: string[];
     createdAt?: string;
 }
 
-// ---------- Styled Components ----------
-
+/**----------------------
+    Styled components
+-------------------------*/
 const PageWrapper = styled.main`
     width: 100%;
     min-height: 100vh;
@@ -118,7 +124,6 @@ const AvatarImage = styled.img`
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
 `;
 
-// ---- Cards ----
 const Card = styled.section`
     background: ${({ theme }) => theme.colors.card_bg};
     border-radius: 18px;
@@ -264,12 +269,15 @@ const getTriggerColor = (recencyScore: number): string => {
     return "#EC407A"; // very recent
 };
 
-// ---------------- Component ----------------
-
+/**-----------------------------------
+    TriggersInsightsPage Component
+--------------------------------------*/
 export const TriggersInsightsPage: React.FC = () => {
+    // Navigation & auth
     const navigate = useNavigate();
     const { user, isAuthenticated } = useAuth();
 
+    // State
     const [trendData, setTrendData] = useState<UrgeTrendPoint[]>([]);
     const [triggersAggregated, setTriggersAggregated] = useState<TriggerView[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
@@ -290,18 +298,22 @@ export const TriggersInsightsPage: React.FC = () => {
     useEffect(() => {
         if (!isAuthenticated) return;
 
+        // Fetch insights data
         const fetchInsights = async () => {
             try {
                 setLoading(true);
 
+                // Fetch recent journal entries
                 const res = await journalApi.list({
                     page: 1,
                     limit: 50,
                     sort: "-createdAt",
                 });
 
+                // Process entries
                 const entries = (res?.entries ?? []) as JournalEntry[];
 
+                // Filter entries with urgeIntensity and createdAt
                 const withUrgeAndDate = entries.filter(
                     (e): e is JournalEntry & { createdAt: string } =>
                         typeof e.urgeIntensity === "number" &&
@@ -327,12 +339,15 @@ export const TriggersInsightsPage: React.FC = () => {
                 // 2. Aggregate triggers
                 type TriggerAgg = { count: number; lastSeen: number };
 
+                // Map of trigger name → aggregation data
                 const triggerCounts = new Map<string, TriggerAgg>();
 
+                // Process entries for triggers
                 (entries as JournalWithTriggers[]).forEach((entry) => {
                     const { preUrgeTriggers, createdAt } = entry;
                     if (!Array.isArray(preUrgeTriggers)) return;
 
+                    // Parse timestamp
                     let ts = 0;
                     if (typeof createdAt === "string") {
                         const d = new Date(createdAt);
@@ -340,10 +355,12 @@ export const TriggersInsightsPage: React.FC = () => {
                         if (!Number.isNaN(time)) ts = time;
                     }
 
+                    // Process each trigger
                     preUrgeTriggers.forEach((rawName) => {
                         const name = rawName?.trim();
                         if (!name) return;
 
+                        // Update aggregation
                         const existing = triggerCounts.get(name);
                         if (!existing) {
                             triggerCounts.set(name, { count: 1, lastSeen: ts });
@@ -359,24 +376,30 @@ export const TriggersInsightsPage: React.FC = () => {
                     });
                 });
 
+                // Prepare final aggregated trigger views
                 const allAgg = Array.from(triggerCounts.entries());
 
+                // Determine lastSeen range
                 let minLastSeen = Infinity;
                 let maxLastSeen = -Infinity;
 
+                // Find min/max lastSeen
                 allAgg.forEach(([, value]) => {
                     if (value.lastSeen < minLastSeen) minLastSeen = value.lastSeen;
                     if (value.lastSeen > maxLastSeen) maxLastSeen = value.lastSeen;
                 });
 
+                // Compute range
                 const range =
                     maxLastSeen > minLastSeen ? maxLastSeen - minLastSeen : 0;
 
+                // Build final views with recency scores
                 const aggregated: TriggerView[] = allAgg
                     .map(([name, value]) => {
                         const { count, lastSeen } = value;
                         let recencyScore = 0.5;
 
+                        // Compute recency score (0–1)
                         if (range > 0 && lastSeen > 0) {
                             recencyScore = (lastSeen - minLastSeen) / range;
                         }
@@ -389,6 +412,7 @@ export const TriggersInsightsPage: React.FC = () => {
                     })
                     .sort((a, b) => b.frequency - a.frequency);
 
+                // Update state
                 setTriggersAggregated(aggregated);
             } catch {
                 // quietly fail
@@ -397,14 +421,17 @@ export const TriggersInsightsPage: React.FC = () => {
             }
         };
 
+        // Invoke fetch
         void fetchInsights();
     }, [isAuthenticated]);
 
+    // Top 5 triggers
     const topTriggers: TriggerView[] = useMemo(
         () => triggersAggregated.slice(0, 5),
         [triggersAggregated]
     );
 
+    // Max frequency among top triggers
     const maxFrequency = useMemo(
         () =>
             topTriggers.reduce(
@@ -414,34 +441,41 @@ export const TriggersInsightsPage: React.FC = () => {
         [topTriggers]
     );
 
+    // Compute simple risk summary
     const riskSummary: RiskSummary | null = useMemo(() => {
         if (trendData.length === 0 && topTriggers.length === 0) {
             return null;
         }
 
+        // Average urge intensity
         const avgUrge =
             trendData.length > 0
-                ? trendData.reduce((sum, p) => sum + p.urgeIntensity, 0) /
-                  trendData.length
-                : 0;
+                ?   trendData.reduce((sum, p) => sum + p.urgeIntensity, 0) /
+                    trendData.length
+                :   0;
 
+        // Total trigger count
         const totalTriggerCount = topTriggers.reduce(
             (sum, t) => sum + t.frequency,
             0
         );
 
+        // Compute components (capped at 1)
         const urgeComponent = Math.min(Math.max(avgUrge / 10, 0), 1);
         const triggerComponent = Math.min(totalTriggerCount / 20, 1);
 
+        // Weighted score
         const score = Math.min(
             urgeComponent * 0.65 + triggerComponent * 0.35,
             1
         );
 
+        // Determine label and explanation
         let label: RiskLabel = "Low";
         let explanation =
             "Your recent logs suggest a lower short-term relapse risk. Keep using your coping tools and check in regularly.";
 
+        // Adjust for moderate/high risk
         if (score >= 0.66) {
             label = "High";
             explanation =
@@ -452,9 +486,11 @@ export const TriggersInsightsPage: React.FC = () => {
                 "There are some active urges or triggers. Staying aware and using a few supports could be especially helpful.";
         }
 
+        // Return summary
         return { score, label, explanation };
     }, [trendData, topTriggers]);
 
+    // Render
     if (!isAuthenticated) {
         return null;
     }
@@ -515,6 +551,7 @@ export const TriggersInsightsPage: React.FC = () => {
                                     <XAxis dataKey="label" tickMargin={4} />
                                     <Tooltip
                                         formatter={(v: number) => [`${v}/10`, "Urge level"]}
+
                                         labelFormatter={(label: string) => label}
                                         contentStyle={{
                                             borderRadius: 8,
