@@ -4,12 +4,27 @@ import mongoose from "mongoose";
 import { ENV_AUTO } from "../config";
 import { logger } from "../utils";
 
+
+/**---------------------------------------
+    Connect to MongoDB using Mongoose.
+------------------------------------------*/
 export const connectMongo = async (): Promise<void> => {
     try {
+        logger.info(`[mongo] 🔌 Connecting to MongoDB at: ${ENV_AUTO.MONGO_URI}`);
         await mongoose.connect(ENV_AUTO.MONGO_URI);
         logger.info("[mongo] ✅ Connected to MongoDB");
     } catch (err) {
-        logger.error(`[mongo] ❌ Connection failed: ${(err as Error).message}`);
-        process.exit(1);
+        const message = (err as Error)?.message ?? String(err);
+        logger.error(`[mongo] ❌ Connection failed: ${message}`);
+
+        // ❗ IMPORTANT:
+        // - In development: DO NOT crash the server.
+        //   We still want /api/ping, /api/auth/* etc. to work.
+        // - In production: you *may* want to fail fast.
+        if (ENV_AUTO.NODE_ENV === "production") {
+            process.exit(1);
+        }
+
+        // In development: just log the error and continue.
     }
 };
