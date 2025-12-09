@@ -10,6 +10,7 @@ import type {
 } from "../schemas";
 import type { SortOrder } from "mongoose";
 
+
 // Extend ENV_AUTO at the type level to include OpenAI fields
 const ENV_OPENAI = ENV_AUTO as typeof ENV_AUTO & {
     OPENAI_API_KEY?: string;
@@ -28,18 +29,21 @@ const openai = new OpenAI({
     apiKey: openaiApiKey || "dummy", // will error at runtime if truly missing
 });
 
-/**
- * Simple heuristic: is this message just a greeting / intro?
- * Example: "hi", "hello", "hey", "who are you?", "what do you do?", "what is trichmind?"
- */
+/**-------------------------------------------------------------------------------------------
+    Simple heuristic: is this message just a greeting / intro?
+    Example: "hi", "hello", "hey", "who are you?", "what do you do?", "what is trichmind?"
+----------------------------------------------------------------------------------------------*/
 function isGreetingMessage(prompt: string): boolean {
+    // Basic checks
     const trimmed = prompt.trim();
     const lower = trimmed.toLowerCase();
 
+    // Check for short greetings
     const shortGreeting =
         trimmed.length <= 40 &&
         /^(hi|hello|hey|hej|hola|hallo|hei)[!.? ]*$/i.test(lower);
 
+    // Check for intro questions
     const introQuestion =
         /who are you|what do you do|what are you|what is this app|what is trichmind|what is trichbot/i.test(
             lower
@@ -48,32 +52,34 @@ function isGreetingMessage(prompt: string): boolean {
     return shortGreeting || introQuestion;
 }
 
-/**
- * Build messages array for OpenAI chat input.
- *
- * Behaviour rules:
- * - You are the in-app assistant for the TrichMind app, supporting people
- *   living with trichotillomania.
- *
- * - If the user clearly talks about urges / distress / difficulties:
- *    • Validate feelings (2–3 sentences).
- *    • Then give up to 3 numbered coping ideas (1., 2., 3.).
- *    • You may gently suggest relevant TrichMind features (dashboard, daily
- *      check-ins, coping strategies card, notes/journaling, relapse overview,
- *      TrichBot chat) – but do not invent the user’s personal data.
- *    • Optionally add ONE short comforting Bible verse at the end,
- *      wrapped in <verse>...</verse> so the backend can emphasise it.
- *
- * - If the user only greets or asks who you are / what TrichMind is:
- *    • Respond briefly and naturally (2–4 sentences).
- *    • Introduce yourself as TrichBot, the assistant inside the TrichMind app.
- *    • Explain how you can support them with urges, feelings, coping ideas,
- *      and how TrichMind’s tools can help.
- *    • Do NOT include numbered coping ideas or Bible verses in that case.
- */
+/**-----------------------------------------------------------------------------------------
+    Build messages array for OpenAI chat input.
+
+    Behaviour rules:
+        - You are the in-app assistant for the TrichMind app, supporting people
+            living with trichotillomania.
+
+        - If the user clearly talks about urges / distress / difficulties:
+            • Validate feelings (2–3 sentences).
+            • Then give up to 3 numbered coping ideas (1., 2., 3.).
+            • You may gently suggest relevant TrichMind features (dashboard, daily
+                check-ins, coping strategies card, notes/journaling, relapse overview,
+                TrichBot chat) – but do not invent the user’s personal data.
+            • Optionally add ONE short comforting Bible verse at the end,
+                wrapped in <verse>...</verse> so the backend can emphasise it.
+
+        - If the user only greets or asks who you are / what TrichMind is:
+            • Respond briefly and naturally (2–4 sentences).
+            • Introduce yourself as TrichBot, the assistant inside the TrichMind app.
+            • Explain how you can support them with urges, feelings, coping ideas,
+                and how TrichMind’s tools can help.
+            • Do NOT include numbered coping ideas or Bible verses in that case.
+--------------------------------------------------------------------------------------------*/
 function buildMessages(prompt: string, intent?: string) {
+    // Check if this looks like a greeting message
     const greeting = isGreetingMessage(prompt);
 
+    // System message for distress / urges
     const distressSystem = `
 You are TrichBot, the in-app assistant inside the TrichMind app. TrichMind is a supportive digital companion for people living with trichotillomania.
 
@@ -84,6 +90,14 @@ TrichMind context (features you can mention):
 - Notes / journaling space to process thoughts, triggers, and patterns.
 - A relapse overview / history view that shows ups and downs over time.
 - This TrichBot chat, where they can talk through urges, stress, and questions.
+- Gentle reminders about self-compassion and small steps forward.
+- Mini-games for urge management.
+- HYGA Essentials calming kits and tools.
+
+When responding to users:
+- Always prioritise validating their feelings in a warm, non-judgmental way.
+- Offer up to 3 concrete, realistic coping ideas in numbered format (1., 2., 3.).
+- Suggest relevant TrichMind features when appropriate, but do NOT invent their personal data.
 
 IMPORTANT:
 - You do NOT see real-time data from their dashboard. Talk in general terms like “your TrichMind dashboard” or “your daily check-in” without inventing specific scores or entries.
@@ -97,8 +111,8 @@ Tone & style:
 When the user shares urges, distress, or difficulties:
 - First, briefly validate their feelings in 2–3 sentences.
 - When relevant, mention how TrichMind tools might help (for example:
-  “You could log this urge in your TrichMind daily check-in and note what triggered it,”
-  or “On your TrichMind dashboard, you can look back at days that felt a bit safer.”).
+    “You could log this urge in your TrichMind daily check-in and note what triggered it,”
+    or “On your TrichMind dashboard, you can look back at days that felt a bit safer.”).
 - Then give up to 3 short, numbered coping ideas using this exact format:
     1. ...
     2. ...
@@ -121,8 +135,11 @@ When it feels appropriate and not pushy, you may include ONE short, comforting B
     • Do not include more than one verse.
 
 Aim for around 120–180 words in total.
+    - Aim for 3 concise paragraphs + the numbered tips.
+    - Avoid repeating the same validation sentence in different words.
 `.trim();
 
+    // System message for greetings / intros
     const greetingSystem = `
 You are TrichBot, the in-app assistant inside the TrichMind app. TrichMind is designed to gently support people with trichotillomania.
 
@@ -175,11 +192,11 @@ function extractText(resp: any): string {
     );
 }
 
-/**
- * Post-process text to emphasise any verse:
- * 1) If wrapped in <verse>...</verse>, convert to <strong><em>...</em></strong>.
- * 2) If the model still returns **_..._**, convert that to <strong><em>...</em></strong>.
- */
+/**------------------------------------------------------------------------------------------------
+    Post-process text to emphasise any verse:
+        1) If wrapped in <verse>...</verse>, convert to <strong><em>...</em></strong>.
+        2) If the model still returns **_..._**, convert that to <strong><em>...</em></strong>.
+---------------------------------------------------------------------------------------------------*/
 function emphasiseBibleVerse(text: string): string {
     let output = text;
 
@@ -195,14 +212,14 @@ function emphasiseBibleVerse(text: string): string {
     return output;
 }
 
-/**
- * Extracts numbered coping tips from the full response text.
- *
- * - Looks for lines starting with "1. ", "2. ", etc.
- * - Returns up to 3 tips.
- * - For simple greetings (no numbered lines), this will return an empty array,
- *   which is fine – the frontend will then just show the intro text only.
- */
+/**--------------------------------------------------------------------------------------
+    Extracts numbered coping tips from the full response text.
+
+        - Looks for lines starting with "1. ", "2. ", etc.
+        - Returns up to 3 tips.
+        - For simple greetings (no numbered lines), this will return an empty array,
+            which is fine – the frontend will then just show the intro text only.
+-----------------------------------------------------------------------------------------*/
 function extractTips(text: string): string[] {
     return text
         .split("\n")
@@ -221,6 +238,7 @@ export const botService = {
         userId: string,
         data: TrichBotCreateDTO
     ): Promise<ITrichBotMessage> {
+        // Destructure input data
         const { prompt, intent } = data;
 
         // Check for OpenAI API key
