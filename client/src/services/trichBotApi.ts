@@ -3,11 +3,12 @@
 import { axiosClient } from "@/services";
 import { withLogging } from "@/utils";
 
-
 /**---------------------------------
     TrichBot API Types & Methods
 ------------------------------------*/
-// TrichBot Message type
+
+
+// TrichBot Message type (mirrors server ITrichBotMessage)
 export interface TrichBotMessage {
     _id?: string;
     prompt: string;
@@ -34,27 +35,34 @@ interface ListResponse {
     messages: TrichBotMessage[];
 }
 
-// Create + feedback response
 interface CreateResponse {
     ok: boolean;
     message: TrichBotMessage;
 }
 
-// Feedback response
 interface FeedbackResponse {
     ok: boolean;
     message: TrichBotMessage;
 }
 
+interface ClearHistoryResponse {
+    ok: boolean;
+    deletedCount: number;
+}
+
 // Base path for TrichBot API
+// axiosClient baseURL already includes `/api`
 const BOT_BASE = "/trichbot";
 
-// API Methods
+/* -------------------------------
+ *  Raw API functions
+ * ------------------------------*/
+
+// Create / send message
 async function rawSendMessage(payload: {
     prompt: string;
     intent?: string;
 }): Promise<TrichBotMessage> {
-    // axiosClient baseURL already includes `/api`
     const res = await axiosClient.post<CreateResponse>(BOT_BASE, payload);
     return res.data.message;
 }
@@ -71,7 +79,7 @@ async function rawFeedback(
     return res.data.message;
 }
 
-// List Messages API
+// List messages API
 async function rawList(params?: {
     page?: number;
     limit?: number;
@@ -81,17 +89,26 @@ async function rawList(params?: {
     return res.data.messages;
 }
 
+// Clear chat history API
+async function rawClearHistory(): Promise<number> {
+    const res = await axiosClient.delete<ClearHistoryResponse>(
+        `${BOT_BASE}/history`
+    );
+    return res.data.deletedCount;
+}
+
 /**----------------------------------
     Exported TrichBot API Service
 -------------------------------------*/
 export const trichBotApi = {
-    //Send Message API
+    // Send Message API
     sendMessage: withLogging(rawSendMessage, {
         category: "ml",
         action: "sendMessage",
         showToast: false,
         errorMessage: "TrichBot is currently unavailable.",
     }),
+
     // Feedback API
     feedback: withLogging(rawFeedback, {
         category: "ml",
@@ -100,12 +117,22 @@ export const trichBotApi = {
         successMessage: "Feedback sent! Thank you 🌿",
         errorMessage: "Failed to send feedback.",
     }),
+
     // List Messages API
     list: withLogging(rawList, {
         category: "ml",
         action: "botList",
         showToast: false,
         errorMessage: "Failed to load previous TrichBot messages.",
+    }),
+
+    // Clear chat history API
+    clearHistory: withLogging(rawClearHistory, {
+        category: "ml",
+        action: "botClearHistory",
+        showToast: true,
+        successMessage: "Chat history cleared.",
+        errorMessage: "Failed to clear TrichBot history.",
     }),
 };
 
