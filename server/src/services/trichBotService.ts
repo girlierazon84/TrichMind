@@ -15,14 +15,21 @@ import type { SortOrder } from "mongoose";
 const ENV_OPENAI = ENV_AUTO as typeof ENV_AUTO & {
     OPENAI_API_KEY?: string;
     OPENAI_MODEL?: string;
+    TRICHBOT_ENABLED?: string;
 };
 
 // OpenAI configuration
-const openaiApiKey = ENV_OPENAI.OPENAI_API_KEY ?? process.env.OPENAI_API_KEY;
+const openaiApiKey =
+    ENV_OPENAI.OPENAI_API_KEY ?? process.env.OPENAI_API_KEY;
 
 // ✅ Use a real, supported default model
 // You can override this in .env with OPENAI_MODEL=gpt-4.1-mini or OPENAI_MODEL=gpt-5
-const DEFAULT_MODEL = ENV_OPENAI.OPENAI_MODEL || "gpt-4.1-mini";
+const DEFAULT_MODEL = ENV_OPENAI.OPENAI_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini";
+
+// ✅ Feature flag: TrichBot can be turned off in demo / cheap mode
+const TRICHBOT_ENABLED =
+    (ENV_OPENAI.TRICHBOT_ENABLED ?? process.env.TRICHBOT_ENABLED ?? "false")
+        .toLowerCase() === "true";
 
 // Initialise OpenAI client (we guard missing key in createMessage)
 const openai = new OpenAI({
@@ -34,16 +41,13 @@ const openai = new OpenAI({
     Example: "hi", "hello", "hey", "who are you?", "what do you do?", "what is trichmind?"
 ----------------------------------------------------------------------------------------------*/
 function isGreetingMessage(prompt: string): boolean {
-    // Basic checks
     const trimmed = prompt.trim();
     const lower = trimmed.toLowerCase();
 
-    // Check for short greetings
     const shortGreeting =
         trimmed.length <= 40 &&
         /^(hi|hello|hey|hej|hola|hallo|hei)[!.? ]*$/i.test(lower);
 
-    // Check for intro questions
     const introQuestion =
         /who are you|what do you do|what are you|what is this app|what is trichmind|what is trichbot/i.test(
             lower
@@ -54,32 +58,10 @@ function isGreetingMessage(prompt: string): boolean {
 
 /**-----------------------------------------------------------------------------------------
     Build messages array for OpenAI chat input.
-
-    Behaviour rules:
-        - You are the in-app assistant for the TrichMind app, supporting people
-            living with trichotillomania.
-
-        - If the user clearly talks about urges / distress / difficulties:
-            • Validate feelings (2–3 sentences).
-            • Then give up to 3 numbered coping ideas (1., 2., 3.).
-            • You may gently suggest relevant TrichMind features (dashboard, daily
-                check-ins, coping strategies card, notes/journaling, relapse overview,
-                TrichBot chat) – but do not invent the user’s personal data.
-            • Optionally add ONE short comforting Bible verse at the end,
-                wrapped in <verse>...</verse> so the backend can emphasise it.
-
-        - If the user only greets or asks who you are / what TrichMind is:
-            • Respond briefly and naturally (2–4 sentences).
-            • Introduce yourself as TrichBot, the assistant inside the TrichMind app.
-            • Explain how you can support them with urges, feelings, coping ideas,
-                and how TrichMind’s tools can help.
-            • Do NOT include numbered coping ideas or Bible verses in that case.
 --------------------------------------------------------------------------------------------*/
 function buildMessages(prompt: string, intent?: string) {
-    // Check if this looks like a greeting message
     const greeting = isGreetingMessage(prompt);
 
-    // System message for distress / urges
     const distressSystem = `
 You are TrichBot, the in-app assistant inside the TrichMind app. TrichMind is a supportive digital companion for people living with trichotillomania.
 
@@ -139,7 +121,6 @@ Aim for around 120–180 words in total.
     - Avoid repeating the same validation sentence in different words.
 `.trim();
 
-    // System message for greetings / intros
     const greetingSystem = `
 You are TrichBot, the in-app assistant inside the TrichMind app. TrichMind is designed to gently support people with trichotillomania.
 
@@ -160,10 +141,8 @@ For simple greetings or intro questions (for example: "hi", "hello", "who are yo
 - Keep the tone light, welcoming, and reassuring.
 `.trim();
 
-    // Choose system message based on whether this looks like a greeting
     let system = greeting ? greetingSystem : distressSystem;
 
-    // Only add intent hint when it's not a pure greeting
     if (intent && !greeting) {
         system += `\n\nUser intent hint: ${intent}`;
     }
@@ -176,14 +155,12 @@ For simple greetings or intro questions (for example: "hi", "hello", "who are yo
 
 // Extract text response from OpenAI response object
 function extractText(resp: any): string {
-    // For OpenAI Responses API (GPT-4.1 / GPT-5 family):
     const first = resp.output?.[0];
     if (first && "content" in first) {
         const textPart = first.content?.find((p: any) => p.type === "output_text");
         if (textPart?.text) return textPart.text;
     }
 
-    // Fallback for ChatCompletion-style responses
     const choice = resp.choices?.[0];
     return (
         choice?.message?.content ||
@@ -192,34 +169,19 @@ function extractText(resp: any): string {
     );
 }
 
-/**------------------------------------------------------------------------------------------------
-    Post-process text to emphasise any verse:
-        1) If wrapped in <verse>...</verse>, convert to <strong><em>...</em></strong>.
-        2) If the model still returns **_..._**, convert that to <strong><em>...</em></strong>.
----------------------------------------------------------------------------------------------------*/
 function emphasiseBibleVerse(text: string): string {
     let output = text;
 
-    // Handle <verse>...</verse> tags first
     output = output.replace(
         /<verse>\s*([\s\S]*?)\s*<\/verse>/i,
         "<strong><em>$1</em></strong>"
     );
 
-    // Also handle any existing markdown-style **_..._**
     output = output.replace(/\*\*_(.+?)_\*\*/g, "<strong><em>$1</em></strong>");
 
     return output;
 }
 
-/**--------------------------------------------------------------------------------------
-    Extracts numbered coping tips from the full response text.
-
-        - Looks for lines starting with "1. ", "2. ", etc.
-        - Returns up to 3 tips.
-        - For simple greetings (no numbered lines), this will return an empty array,
-            which is fine – the frontend will then just show the intro text only.
------------------------------------------------------------------------------------------*/
 function extractTips(text: string): string[] {
     return text
         .split("\n")
@@ -233,25 +195,38 @@ function extractTips(text: string): string[] {
     TrichBot Service
 ------------------------*/
 export const botService = {
-    // Create a new message: call LLM, store Mongo doc, return doc
     async createMessage(
         userId: string,
         data: TrichBotCreateDTO
     ): Promise<ITrichBotMessage> {
-        // Destructure input data
         const { prompt, intent } = data;
 
-        // Check for OpenAI API key
+        // 🌿 DEMO / OFFLINE MODE: no OpenAI cost, but UI still works
+        if (!TRICHBOT_ENABLED) {
+            const doc = await TrichBotMessage.create({
+                userId,
+                prompt,
+                response:
+                    "TrichBot is currently turned off in this demo environment, but the rest of TrichMind still works 🌿",
+                tips: [],
+                intent,
+                modelInfo: {
+                    name: "disabled",
+                    version: "offline",
+                },
+            });
+            return doc;
+        }
+
+        // If bot is enabled, we *require* a key
         if (!openaiApiKey) {
             throw new Error(
                 "OPENAI_API_KEY is not configured. TrichBot cannot respond right now."
             );
         }
 
-        // Measure start time (kept for potential logging)
         const started = Date.now();
 
-        // Call OpenAI Responses API (with safer error handling)
         let response;
         try {
             response = await openai.responses.create({
@@ -259,29 +234,21 @@ export const botService = {
                 input: buildMessages(prompt, intent),
             });
         } catch (err: any) {
-            // Avoid leaking the raw key in logs
             console.error("[TrichBot] OpenAI error", {
                 status: err?.status,
                 code: err?.code,
                 message: err?.message,
             });
-
-            // Throw a generic error that the UI can show nicely
             throw new Error("TrichBot AI backend is not available right now.");
         }
 
-        // Raw text from OpenAI
         const rawText = extractText(response);
         const runtimeSec = (Date.now() - started) / 1000;
-        void runtimeSec; // placeholder for future logging
+        void runtimeSec;
 
-        // Emphasise any verse (convert to <strong><em>...</em></strong>)
         const text = emphasiseBibleVerse(rawText);
-
-        // Extract tips based on numbered lines (1., 2., 3.)
         const tips: string[] = extractTips(text);
 
-        // Store in MongoDB
         const doc = await TrichBotMessage.create({
             userId,
             prompt,
@@ -292,25 +259,22 @@ export const botService = {
                 name: DEFAULT_MODEL,
                 version: response.id ?? undefined,
             },
-            // riskScore left undefined for now, could be integrated with ML later
+            // riskScore can be added later from ML
         });
 
         return doc;
     },
 
-    // List messages with pagination and sorting
     async listMessages(
         userId: string,
         query: TrichBotListQuery
     ): Promise<ITrichBotMessage[]> {
         const { page, limit, sort } = query;
 
-        // Build sort object
         const sortObj: Record<string, SortOrder> = sort.startsWith("-")
             ? { [sort.slice(1)]: -1 as SortOrder }
             : { [sort]: 1 as SortOrder };
 
-        // No `.lean()` here so the type is ITrichBotMessage[]
         return TrichBotMessage.find({ userId })
             .sort(sortObj)
             .skip((page - 1) * limit)
@@ -318,12 +282,10 @@ export const botService = {
             .exec();
     },
 
-    // Update feedback on a message
     async updateFeedback(
         id: string,
         feedback: TrichBotFeedbackDTO
     ): Promise<ITrichBotMessage | null> {
-        // No `.lean()` so return type matches ITrichBotMessage | null
         return TrichBotMessage.findByIdAndUpdate(
             id,
             { $set: { feedback } },
@@ -331,7 +293,6 @@ export const botService = {
         ).exec();
     },
 
-    // 🧹 Clear all messages for a given user (used by "Clear chat")
     async clearMessages(userId: string): Promise<number> {
         const result = await TrichBotMessage.deleteMany({ userId }).exec();
         return result.deletedCount ?? 0;
