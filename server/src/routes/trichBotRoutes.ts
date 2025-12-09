@@ -14,10 +14,17 @@ import {
     TrichBotFeedbackDTO,
 } from "../schemas";
 
+
 // Initialize router
+// This router is typically mounted under `/api/trichbot`
 const router = Router();
 
-// 🟢 TrichBot Routes
+/** ----------------------------------------
+ * 🧠 TrichBot Routes
+ * Base path: /api/trichbot
+ * ----------------------------------------*/
+
+// 👉 Create a new TrichBot message (LLM call + Mongo save)
 router.post(
     "/",
     authentication({ required: true }),
@@ -25,6 +32,7 @@ router.post(
     createMessage
 );
 
+// 👉 List messages with pagination & sorting
 router.get(
     "/",
     authentication({ required: true }),
@@ -32,6 +40,7 @@ router.get(
     listMessages
 );
 
+// 👉 Update feedback on a specific TrichBot message
 router.put(
     "/:id/feedback",
     authentication({ required: true }),
@@ -39,7 +48,7 @@ router.put(
     updateMessageFeedback
 );
 
-// 🧹 Clear all TrichBot messages for the current user
+// 👉 Clear all TrichBot messages for the current user
 router.delete(
     "/history",
     authentication({ required: true }),
