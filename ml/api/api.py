@@ -668,7 +668,7 @@ def debug_relapse_overview(p: RelapseOverviewFeatures):
     Debug endpoint:
     - Same payload as /predict_relapse_overview
     - Returns only the rule-based heuristic breakdown
-      so the UI can say 'why' the score looks like this.
+        so the UI can say 'why' the score looks like this.
     """
     encoded = _encode_overview_to_encoded(p)
     comps = rule_components(encoded)
