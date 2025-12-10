@@ -11,6 +11,8 @@ import {
 } from "../controllers";
 import { RegisterSchema, LoginSchema } from "../schemas";
 import { User } from "../models";
+import { asyncHandler } from "../utils";
+
 
 /* ──────────────────────────────
     🔹 Auth Routes
@@ -19,8 +21,18 @@ const router = Router();
 
 /* ──────────────────────────────
     🔹 POST /api/auth/register
+    Logs incoming body for debugging on Render
 ──────────────────────────────── */
-router.post("/register", validate(RegisterSchema), register);
+router.post(
+    "/register",
+    validate(RegisterSchema),
+    // 🔥 Debug middleware – see what the backend receives
+    (req, _res, next) => {
+        console.log("🔥 [AUTH] /register incoming body:", req.body);
+        next();
+    },
+    register
+);
 
 /* ──────────────────────────────
     🔹 POST /api/auth/login
@@ -44,58 +56,72 @@ router.post("/reset-password", resetPassword);
 
 /* ──────────────────────────────
     🔹 POST /api/auth/change-password
+    Uses asyncHandler + authentication
 ──────────────────────────────── */
 router.post(
     "/change-password",
     authentication(),
-    async (req, res) => {
-        try {
-            const { oldPassword, newPassword } = req.body;
-            const userId = req.auth?.userId;
+    asyncHandler(async (req, res) => {
+        const { oldPassword, newPassword } = req.body;
+        const userId = req.auth?.userId;
 
-            if (!oldPassword || !newPassword) {
-                return res
-                    .status(400)
-                    .json({ error: "Missing old or new password" });
-            }
-
-            const user = await User.findById(userId).select("+password");
-            if (!user) return res.status(404).json({ error: "User not found" });
-
-            // assuming User model has comparePassword()
-            const match = await (user as any).comparePassword(oldPassword);
-            if (!match) {
-                return res
-                    .status(400)
-                    .json({ error: "Incorrect old password" });
-            }
-
-            user.password = newPassword;
-            await user.save();
-
-            return res.json({ ok: true, message: "Password updated!" });
-        } catch (err) {
-            console.error("❌ /change-password error:", err);
-            return res
-                .status(500)
-                .json({ error: "Failed to change password" });
+        if (!oldPassword || !newPassword) {
+            return res.status(400).json({
+                ok: false,
+                error: "BadRequest",
+                message: "Missing old or new password",
+            });
         }
-    }
+
+        const user = await User.findById(userId).select("+password");
+        if (!user) {
+            return res.status(404).json({
+                ok: false,
+                error: "NotFound",
+                message: "User not found",
+            });
+        }
+
+        // assuming User model has comparePassword()
+        const match = await (user as any).comparePassword(oldPassword);
+        if (!match) {
+            return res.status(400).json({
+                ok: false,
+                error: "InvalidCredentials",
+                message: "Incorrect old password",
+            });
+        }
+
+        user.password = newPassword;
+        await user.save();
+
+        return res.json({
+            ok: true,
+            message: "Password updated!",
+        });
+    })
 );
 
 /* ──────────────────────────────
     🔹 GET /api/auth/me
     Returns a shaped user object with coping strategies arrays
+    Uses asyncHandler for clean error handling
 ──────────────────────────────── */
-router.get("/me", authentication(), async (req, res) => {
-    try {
+router.get(
+    "/me",
+    authentication(),
+    asyncHandler(async (req, res) => {
         const userId = req.auth?.userId;
         const dbUser = await User.findById(userId)
             .select("-password")
             .lean();
 
         if (!dbUser) {
-            return res.status(404).json({ error: "User not found" });
+            return res.status(404).json({
+                ok: false,
+                error: "NotFound",
+                message: "User not found",
+            });
         }
 
         res.json({
@@ -123,10 +149,7 @@ router.get("/me", authentication(), async (req, res) => {
                 coping_not_worked: (dbUser as any).coping_not_worked ?? [],
             },
         });
-    } catch (err) {
-        console.error("❌ /me error:", err);
-        res.status(500).json({ error: "Failed to fetch user profile" });
-    }
-});
+    })
+);
 
 export default router;
