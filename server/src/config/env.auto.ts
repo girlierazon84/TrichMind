@@ -66,7 +66,7 @@ const defaultCorsOrigins = isLocal()
 const corsOrigins = rawCors
     ?   rawCors
             .split(",")
-            .map((s) => s.trim())
+            .map((s: string) => s.trim())
             .filter(Boolean)
     :   defaultCorsOrigins;
 
