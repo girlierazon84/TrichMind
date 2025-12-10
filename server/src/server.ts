@@ -38,21 +38,29 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 
 /**----------------------------------------
     ✅ CORS – multi-origin, env-driven
+    Uses ENV_AUTO.CORS_ORIGINS from env.auto.ts
 -------------------------------------------*/
-const rawOrigins =
-    process.env.CORS_ORIGIN ||
-    `${ENV_AUTO.CLIENT_URL},http://localhost:5050,http://localhost:5173,http://172.19.192.1:5173`;
 
-// Parse and clean origins
-const ALLOWED_ORIGINS = rawOrigins
+// Prefer the precomputed array from ENV_AUTO.
+// Fallback: simple parsing from process.env.CORS_ORIGIN if ever needed.
+const envCorsOrigins = Array.isArray(ENV_AUTO.CORS_ORIGINS)
+    ? ENV_AUTO.CORS_ORIGINS
+    : [];
+
+const fallbackRaw =
+    process.env.CORS_ORIGIN ||
+    `${ENV_AUTO.CLIENT_URL},http://localhost:5050,http://localhost:5173`;
+
+const fallbackOrigins = fallbackRaw
     .split(",")
     .map((o) => o.trim())
     .filter(Boolean);
 
-// Log allowed origins
+const ALLOWED_ORIGINS: string[] =
+    envCorsOrigins.length > 0 ? envCorsOrigins : fallbackOrigins;
+
 console.log("🌐 [CORS] Allowed origins:", ALLOWED_ORIGINS);
 
-// CORS middleware
 app.use(
     cors({
         origin(origin, callback) {
@@ -64,7 +72,8 @@ app.use(
             }
 
             console.warn("[CORS] Blocked origin:", origin);
-            return callback(new Error("Not allowed by CORS"));
+            // Do NOT throw an error here – just deny CORS without crashing the route
+            return callback(null, false);
         },
         credentials: true,
     })
