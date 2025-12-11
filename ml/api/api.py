@@ -41,12 +41,23 @@ if str(ML_ROOT) not in sys.path:
 # ------------------------------------
 #   🧠 TrichMind ML (API) – CORS
 # ------------------------------------
-_default_cors = (
-    "http://localhost:5050,"
-    "http://127.0.0.1:5050,"
-    "http://localhost:5173,"
-    "http://172.19.192.1:5050,"
-    "http://192.168.1.208:5050"
+
+# Try to infer the main frontend URL from env (similar to Node)
+_frontend_env = (
+    os.getenv("FASTAPI_CLIENT_URL")
+    or os.getenv("CLIENT_URL")
+    or "http://localhost:5050"
+)
+
+_default_cors = ",".join(
+    [
+        # Main frontend (prod or local)
+        _frontend_env,
+        # Common local dev ports
+        "http://localhost:5050",
+        "http://127.0.0.1:5050",
+        "http://localhost:5173",
+    ]
 )
 
 ALLOWED_ORIGINS: list[str] = [
