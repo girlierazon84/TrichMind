@@ -9,13 +9,25 @@ import { asyncHandler } from "../utils";
 import { predictService } from "../services";
 import { Predict } from "../models";
 
+
 /* ──────────────────────────────
     🔹 Predict Routes
 ──────────────────────────────── */
 const router = Router();
 
-// Base FastAPI ML URL
-const ML_URL = ENV_AUTO.ML_BASE_URL || "http://localhost:8000";
+// Base FastAPI ML URL (may be empty on Render if not configured)
+const rawMlUrl = (ENV_AUTO.ML_BASE_URL || "").trim();
+const ML_URL = rawMlUrl.replace(/\/+$/, ""); // normalize, no trailing slash
+
+const hasMlBackend = !!ML_URL;
+
+// Small helper for "ML offline" responses
+const mlOfflinePayload = (reason: string) => ({
+    ok: false as const,
+    error: reason,
+    message:
+        "Our TrichMind ML coach is currently offline, but you can still use journaling, triggers and other tools 💚",
+});
 
 /* ------------------------------------------------------
     🔐  POST /api/ml/auth/register → Proxy to FastAPI
@@ -23,6 +35,12 @@ const ML_URL = ENV_AUTO.ML_BASE_URL || "http://localhost:8000";
 router.post(
     "/auth/register",
     asyncHandler(async (req, res) => {
+        if (!hasMlBackend) {
+            return res.status(200).json(
+                mlOfflinePayload("ML backend not configured")
+            );
+        }
+
         try {
             console.log("📤 [ML] Forwarding Auth Register:", req.body);
 
@@ -39,10 +57,11 @@ router.post(
         } catch (error: any) {
             console.error("❌ [ML] Register Failed:", error.message);
 
-            res.status(error.response?.status || 500).json({
-                ok: false,
-                error: error.response?.data || error.message,
-            });
+            res.status(200).json(
+                mlOfflinePayload(
+                    error.response?.data?.error || error.message
+                )
+            );
         }
     })
 );
@@ -53,16 +72,21 @@ router.post(
 router.get(
     "/ping",
     asyncHandler(async (_req, res) => {
+        if (!hasMlBackend) {
+            return res.status(200).json(
+                mlOfflinePayload("ML backend not configured")
+            );
+        }
+
         try {
             const { data } = await axios.get(`${ML_URL}/live`, {
                 timeout: 5000,
             });
             return res.status(200).json({ ok: true, ml_response: data });
         } catch (error: any) {
-            return res.status(500).json({
-                ok: false,
-                error: `Cannot reach ML service at ${ML_URL}`,
-            });
+            return res.status(200).json(
+                mlOfflinePayload(`Cannot reach ML service at ${ML_URL}`)
+            );
         }
     })
 );
@@ -71,6 +95,10 @@ router.get(
     🤖 Helper: forward *friendly* payload to FastAPI /predict_friendly
 --------------------------------------------------------------------------*/
 async function forwardPredictFriendly(reqBody: any) {
+    if (!hasMlBackend) {
+        throw new Error("ML backend not configured");
+    }
+
     const { data } = await axios.post(`${ML_URL}/predict_friendly`, reqBody, {
         headers: { "Content-Type": "application/json" },
         timeout: 15000,
@@ -88,6 +116,12 @@ router.post(
     "/",
     validate(PredictSchema),
     asyncHandler(async (req, res) => {
+        if (!hasMlBackend) {
+            return res.status(200).json(
+                mlOfflinePayload("ML backend not configured")
+            );
+        }
+
         try {
             console.log("📤 [ML] Predict Request (/):", req.body);
             const data = await forwardPredictFriendly(req.body);
@@ -100,20 +134,13 @@ router.post(
         } catch (error: any) {
             console.error("❌ [ML] Predict Failed (/):", error.message);
 
-            if (error.code === "ECONNREFUSED") {
-                return res.status(502).json({
-                    ok: false,
-                    error: `Cannot connect to ML service at ${ML_URL}`,
-                });
-            }
-
-            return res.status(error.response?.status || 500).json({
-                ok: false,
-                error:
+            return res.status(200).json(
+                mlOfflinePayload(
                     error.response?.data?.detail ||
-                    error.response?.data?.error ||
-                    error.message,
-            });
+                        error.response?.data?.error ||
+                        error.message
+                )
+            );
         }
     })
 );
@@ -125,6 +152,12 @@ router.post(
     "/predict_friendly",
     validate(PredictSchema),
     asyncHandler(async (req, res) => {
+        if (!hasMlBackend) {
+            return res.status(200).json(
+                mlOfflinePayload("ML backend not configured")
+            );
+        }
+
         try {
             console.log(
                 "📤 [ML] Predict Request (/predict_friendly):",
@@ -143,20 +176,13 @@ router.post(
                 error.message
             );
 
-            if (error.code === "ECONNREFUSED") {
-                return res.status(502).json({
-                    ok: false,
-                    error: `Cannot connect to ML service at ${ML_URL}`,
-                });
-            }
-
-            return res.status(error.response?.status || 500).json({
-                ok: false,
-                error:
+            return res.status(200).json(
+                mlOfflinePayload(
                     error.response?.data?.detail ||
-                    error.response?.data?.error ||
-                    error.message,
-            });
+                        error.response?.data?.error ||
+                        error.message
+                )
+            );
         }
     })
 );
@@ -168,6 +194,12 @@ router.post(
     "/predict",
     validate(PredictEncodedSchema),
     asyncHandler(async (req, res) => {
+        if (!hasMlBackend) {
+            return res.status(200).json(
+                mlOfflinePayload("ML backend not configured")
+            );
+        }
+
         try {
             console.log(
                 "📤 [ML] Predict Request (/predict, encoded):",
@@ -191,20 +223,13 @@ router.post(
                 error.message
             );
 
-            if (error.code === "ECONNREFUSED") {
-                return res.status(502).json({
-                    ok: false,
-                    error: `Cannot connect to ML service at ${ML_URL}`,
-                });
-            }
-
-            return res.status(error.response?.status || 500).json({
-                ok: false,
-                error:
+            return res.status(200).json(
+                mlOfflinePayload(
                     error.response?.data?.detail ||
-                    error.response?.data?.error ||
-                    error.message,
-            });
+                        error.response?.data?.error ||
+                        error.message
+                )
+            );
         }
     })
 );
@@ -215,6 +240,12 @@ router.post(
 router.post(
     "/batch",
     asyncHandler(async (req, res) => {
+        if (!hasMlBackend) {
+            return res.status(200).json(
+                mlOfflinePayload("ML backend not configured")
+            );
+        }
+
         try {
             const payload = req.body;
             if (!Array.isArray(payload) || payload.length === 0) {
@@ -240,17 +271,13 @@ router.post(
         } catch (error: any) {
             console.error("❌ [ML] Batch Failed:", error.message);
 
-            if (error.code === "ECONNREFUSED") {
-                return res.status(502).json({
-                    ok: false,
-                    error: `Cannot connect to ML service at ${ML_URL}`,
-                });
-            }
-
-            return res.status(error.response?.status || 500).json({
-                ok: false,
-                error: error.response?.data || error.message,
-            });
+            return res.status(200).json(
+                mlOfflinePayload(
+                    error.response?.data?.detail ||
+                        error.response?.data?.error ||
+                        error.message
+                )
+            );
         }
     })
 );
@@ -428,6 +455,13 @@ const TEST_INPUTS: Record<RiskTestLevel, TestInputPayload> = {
         `/test/${level}`,
         asyncHandler(async (_req, res) => {
             console.log(`🧪 [Test] ${level.toUpperCase()} → ML`);
+
+            if (!hasMlBackend) {
+                return res.status(200).json(
+                    mlOfflinePayload("ML backend not configured")
+                );
+            }
+
             try {
                 const payload = TEST_INPUTS[level];
                 const { data } = await axios.post(
@@ -440,10 +474,13 @@ const TEST_INPUTS: Record<RiskTestLevel, TestInputPayload> = {
 
                 return res.json({ ok: true, level, ml_prediction: data });
             } catch (error: any) {
-                return res.status(500).json({
-                    ok: false,
-                    error: error.response?.data || error.message,
-                });
+                return res.status(200).json(
+                    mlOfflinePayload(
+                        error.response?.data?.detail ||
+                            error.response?.data?.error ||
+                            error.message
+                    )
+                );
             }
         })
     );
