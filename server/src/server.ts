@@ -6,7 +6,6 @@ import { connectMongo, ENV_AUTO } from "./config";
 import { notFound, errorHandler } from "./middlewares";
 import { logger, startWeeklySummaryScheduler } from "./utils";
 
-
 /**------------------
     Route Imports
 ---------------------*/
@@ -22,6 +21,7 @@ import trichBotRoutes from "./routes/trichBotRoutes";
 import trichGameRoutes from "./routes/trichGameRoutes";
 import loggerRoutes from "./routes/loggerRoutes";
 import relapseOverviewRoutes from "./routes/relapseOverviewRoutes";
+
 
 /**---------------------------
     Initialize Express App
