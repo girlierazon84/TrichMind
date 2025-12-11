@@ -4,6 +4,7 @@ import nodemailer from "nodemailer";
 import { ENV } from "../config";
 import { logger } from "./logger";
 
+
 // SMTP configuration
 const smtpPort = Number(ENV.SMTP_PORT) || 587;
 
