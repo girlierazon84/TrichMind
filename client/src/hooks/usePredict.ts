@@ -11,7 +11,6 @@ import type {
   RiskBucket,
 } from "@/types/ml";
 
-
 /**--------------------------------------------------------------
     Wire shape (allows uppercase buckets & numeric risk_code)
 -----------------------------------------------------------------*/
