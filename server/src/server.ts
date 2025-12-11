@@ -1,10 +1,11 @@
 // server/src/server.ts
 
 import express, { Request, Response, NextFunction } from "express";
-import cors from "cors";
+import cors, { CorsOptions } from "cors";
 import { connectMongo, ENV_AUTO } from "./config";
 import { notFound, errorHandler } from "./middlewares";
 import { logger, startWeeklySummaryScheduler } from "./utils";
+
 
 /**------------------
     Route Imports
@@ -21,7 +22,6 @@ import trichBotRoutes from "./routes/trichBotRoutes";
 import trichGameRoutes from "./routes/trichGameRoutes";
 import loggerRoutes from "./routes/loggerRoutes";
 import relapseOverviewRoutes from "./routes/relapseOverviewRoutes";
-
 
 /**---------------------------
     Initialize Express App
@@ -42,11 +42,12 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 -------------------------------------------*/
 
 // Prefer the precomputed array from ENV_AUTO.
-// Fallback: simple parsing from process.env.CORS_ORIGIN if ever needed.
+// It is always an array according to env.auto.ts.
 const envCorsOrigins = Array.isArray(ENV_AUTO.CORS_ORIGINS)
     ? ENV_AUTO.CORS_ORIGINS
     : [];
 
+// Fallback: parse from CORS_ORIGIN or CLIENT_URL + localhost ports
 const fallbackRaw =
     process.env.CORS_ORIGIN ||
     `${ENV_AUTO.CLIENT_URL},http://localhost:5050,http://localhost:5173`;
@@ -56,23 +57,36 @@ const fallbackOrigins = fallbackRaw
     .map((o) => o.trim())
     .filter(Boolean);
 
+// Final allowed origins list
 const ALLOWED_ORIGINS: string[] =
     envCorsOrigins.length > 0 ? envCorsOrigins : fallbackOrigins;
 
 console.log("🌐 [CORS] Allowed origins:", ALLOWED_ORIGINS);
 
-app.use(
-    cors({
-        origin(origin, callback) {
-            // Allow non-browser tools (Postman, curl, etc.)
-            if (!origin) return callback(null, true);
+const corsOptions: CorsOptions = {
+    origin(origin, callback) {
+        // Allow non-browser tools (Postman, curl, server-to-server)
+        if (!origin) return callback(null, true);
 
-            if (ENV_AUTO.CORS_ORIGINS.includes(origin)) return callback(null, true);
-                return callback(new Error(`Not allowed by CORS: ${origin}`))
-        },
-        credentials: true,
-    })
-);
+        if (ALLOWED_ORIGINS.includes(origin)) {
+            return callback(null, true);
+        }
+
+        // Optional: allow any Vercel preview URL if needed
+        if (origin.endsWith(".vercel.app")) {
+            return callback(null, true);
+        }
+
+        return callback(new Error(`Not allowed by CORS: ${origin}`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+};
+
+app.use(cors(corsOptions));
+// Ensure preflight requests are also handled with the same options
+app.options("*", cors(corsOptions));
 
 /**--------------------------------------------
     ✅ Body parsers (JSON, form-data)
