@@ -30,17 +30,17 @@ from common.risk import risk_from_score
 from common.transformers import ColumnSelector
 
 
-#----------------------------
+# ----------------------------
 #   🛠️ Setup module path
-#----------------------------
+# ----------------------------
 HERE = Path(__file__).resolve()
 ML_ROOT = HERE.parents[0]
 if str(ML_ROOT) not in sys.path:
     sys.path.insert(0, str(ML_ROOT))
 
-#------------------------------------
+# ------------------------------------
 #   🧠 TrichMind ML (API) – CORS
-#------------------------------------
+# ------------------------------------
 _default_cors = (
     "http://localhost:5050,"
     "http://127.0.0.1:5050,"
@@ -57,9 +57,9 @@ ALLOWED_ORIGINS: list[str] = [
 
 print("🔐 [FastAPI CORS] Allowed origins:", ALLOWED_ORIGINS)
 
-#--------------
+# --------------
 #   Globals
-#--------------
+# --------------
 model = None
 label_encoder = None
 feature_names: List[str] = []
@@ -71,9 +71,9 @@ MODEL_VERSION = "unknown"
 ALPHA = 0.5
 
 
-#-------------------------------------------
+# -------------------------------------------
 #   🧩 Input schema for low-level model
-#-------------------------------------------
+# -------------------------------------------
 class PredictIn(BaseModel):
     # core manual features
     pulling_severity: float = Field(..., ge=0, le=10)
@@ -105,9 +105,9 @@ class PredictIn(BaseModel):
     high_urge_and_high_stress_days_7d: float = 0.0
 
 
-#----------------------------------------------------
+# ----------------------------------------------------
 #   🧩 Friendly input schema (manual predictions)
-#----------------------------------------------------
+# ----------------------------------------------------
 class PredictFriendly(BaseModel):
     age: int = Field(..., ge=0, le=120)
     age_of_onset: int = Field(..., ge=0, le=120)
@@ -136,10 +136,10 @@ class PredictFriendly(BaseModel):
         return False
 
 
-#-----------------------------------------------
+# -----------------------------------------------
 #   🧩 Extended schema for relapse overview
 #   (profile + journal + health aggregates)
-#-----------------------------------------------
+# -----------------------------------------------
 class RelapseOverviewFeatures(PredictFriendly):
     """
     Extended relapse overview payload:
@@ -195,9 +195,9 @@ class RelapseOverviewFeatures(PredictFriendly):
     high_urge_and_high_stress_days_7d: int = 0
 
 
-#-----------------------------------------
+# -----------------------------------------
 #   🧩 Maps for categorical encodings
-#-----------------------------------------
+# -----------------------------------------
 _FREQ_MAP = {
     "daily": 5,
     "several times a week": 4,
@@ -213,9 +213,9 @@ _AWARE_MAP = {
 }
 
 
-#---------------------------------------
+# ---------------------------------------
 #   🧩 Simple normalization helpers
-#---------------------------------------
+# ---------------------------------------
 def _norm_simple(v: str | None) -> str:
     """Lowercase, strip, and collapse whitespace."""
     if v is None:
@@ -250,9 +250,9 @@ def _normalize_frequency(raw: str | None) -> str:
     return v
 
 
-#---------------------------------------------------------
+# ---------------------------------------------------------
 #   🧩 Encoding function from friendly to model-ready
-#---------------------------------------------------------
+# ---------------------------------------------------------
 def _encode_friendly_to_encoded(p: PredictFriendly) -> PredictIn:
     """Convert user-friendly inputs to model-ready encoded payload."""
     # Frequency & awareness
@@ -313,9 +313,9 @@ def _encode_overview_to_encoded(p: RelapseOverviewFeatures) -> PredictIn:
     return PredictIn(**data)
 
 
-#-------------------------------------------
+# -------------------------------------------
 #   🧬 Lifespan: Load model & artifacts
-#-------------------------------------------
+# -------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global model, label_encoder, feature_names, MODEL_VERSION, scaler
@@ -335,12 +335,12 @@ async def lifespan(app: FastAPI):
     yield
 
 
-#-----------------------------------
+# -----------------------------------
 #   🛠️ FastAPI app & middleware
-#-----------------------------------
+# -----------------------------------
 app = FastAPI(
     title="TrichMind Relapse Risk API",
-    version="6.3.0",
+    version="6.3.1",
     lifespan=lifespan,
 )
 
@@ -353,9 +353,9 @@ app.add_middleware(
 )
 
 
-#---------------------------------------------
+# ---------------------------------------------
 #   🛠️ Helpers - feature frame conversion
-#---------------------------------------------
+# ---------------------------------------------
 def to_feature_frame(items: List[PredictIn] | PredictIn) -> pd.DataFrame:
     if isinstance(items, PredictIn):
         items = [items]
@@ -369,9 +369,9 @@ def to_feature_frame(items: List[PredictIn] | PredictIn) -> pd.DataFrame:
     return X
 
 
-#----------------------------------------------------------
+# ----------------------------------------------------------
 #   🛠️ Scoring functions - get model inner and classes
-#----------------------------------------------------------
+# ----------------------------------------------------------
 def get_model_inner_and_classes():
     inner = getattr(model, "named_steps", {}).get("clf", model)
     classes = getattr(inner, "classes_", None)
@@ -380,9 +380,9 @@ def get_model_inner_and_classes():
     return inner, np.array(classes, dtype=int)
 
 
-#----------------------------------------------------
+# ----------------------------------------------------
 #   🛠️ Scoring functions - model classes weights
-#----------------------------------------------------
+# ----------------------------------------------------
 def build_weights_vector_from_model_classes(
     model_classes: np.ndarray,
 ) -> np.ndarray:
@@ -393,9 +393,9 @@ def build_weights_vector_from_model_classes(
     return np.array([lookup[int(c)] for c in model_classes], dtype=float)
 
 
-#---------------------------------------------------
+# ---------------------------------------------------
 #   🛠️ Scoring functions - model weighted score
-#---------------------------------------------------
+# ---------------------------------------------------
 def model_weighted_score(X: pd.DataFrame) -> np.ndarray:
     inner, model_classes = get_model_inner_and_classes()
 
@@ -412,9 +412,9 @@ def model_weighted_score(X: pd.DataFrame) -> np.ndarray:
     return np.array([lookup[int(c)] for c in preds], dtype=float)
 
 
-#----------------------------------------------------------
+# ----------------------------------------------------------
 #   🛠️ Scoring functions - rule components & score
-#----------------------------------------------------------
+# ----------------------------------------------------------
 def rule_components(p: PredictIn) -> dict:
     """
     Break down the heuristic into human-readable components
@@ -511,26 +511,26 @@ def rule_based_score(p: PredictIn) -> float:
     return comps["final_score"]
 
 
-#----------------------------------------------------------
+# ----------------------------------------------------------
 #   🛠️ Scoring functions - final blending & confidence
-#----------------------------------------------------------
+# ----------------------------------------------------------
 def final_score_from_blend(model_score: float, rule_score: float) -> float:
     return float(
         np.clip((1.0 - ALPHA) * model_score + ALPHA * rule_score, 0.0, 1.0)
     )
 
 
-#----------------------------------------------------
+# ----------------------------------------------------
 #   🛠️ Scoring functions - confidence from score
-#----------------------------------------------------
+# ----------------------------------------------------
 def confidence_from_score(s: float) -> float:
     """Simple confidence: distance from 0.5."""
     return float(min(1.0, abs(s - 0.5) * 2))
 
 
-#------------------------------------------------
+# ------------------------------------------------
 #   🛠️ Logging inference - append to CSV log
-#------------------------------------------------
+# ------------------------------------------------
 def log_inference(row: dict) -> None:
     hdr = [
         "timestamp",
@@ -554,9 +554,9 @@ def log_inference(row: dict) -> None:
         w.writerow({k: row.get(k) for k in hdr})
 
 
-#------------------------------
+# ------------------------------
 #   🛠️ Core scoring helper
-#------------------------------
+# ------------------------------
 def _run_predict_core(p: PredictIn, request_type: str = "single") -> dict:
     t0 = time.time()
     try:
@@ -570,7 +570,7 @@ def _run_predict_core(p: PredictIn, request_type: str = "single") -> dict:
         runtime = round(time.time() - t0, 3)
         out = {
             "risk_score": round(score, 3),
-            "risk_bucket": rr.bucket,
+            "risk_bucket": rr.bucket,   # always "low" | "medium" | "high"
             "risk_code": rr.code,
             "confidence": round(rr_conf, 3),
             "n_features_used": len(feature_names),
@@ -596,13 +596,13 @@ def _run_predict_core(p: PredictIn, request_type: str = "single") -> dict:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-#-----------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------------------
 #   🚀 API Endpoints - Live, healthz, predict, predict_friendly, predict_relapse_overview, debug_vector, debug_relapse_overview
-#-----------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------------------
 
-#----------------------------
+# ----------------------------
 #   🚀 Liveness endpoint
-#----------------------------
+# ----------------------------
 @app.get("/live")
 def live():
     return {
@@ -612,9 +612,9 @@ def live():
     }
 
 
-#--------------------------------
+# --------------------------------
 #   🚀 Health check endpoint
-#--------------------------------
+# --------------------------------
 @app.get("/healthz")
 def healthz():
     ok = all([model is not None, label_encoder is not None, feature_names])
@@ -625,18 +625,18 @@ def healthz():
     }
 
 
-#----------------------------------
+# ----------------------------------
 #   🚀 Raw prediction endpoint
-#----------------------------------
+# ----------------------------------
 @app.post("/predict")
 def predict(p: PredictIn):
     """Low-level API: already-encoded features."""
     return _run_predict_core(p, request_type="raw")
 
 
-#---------------------------------------
+# ---------------------------------------
 #   🚀 Friendly prediction endpoint
-#---------------------------------------
+# ---------------------------------------
 @app.post("/predict_friendly")
 def predict_friendly(p: PredictFriendly):
     """Accepts readable frontend inputs and encodes them internally."""
@@ -644,9 +644,9 @@ def predict_friendly(p: PredictFriendly):
     return _run_predict_core(encoded, request_type="friendly")
 
 
-#------------------------------------
+# ------------------------------------
 #   🚀 Relapse overview endpoint
-#------------------------------------
+# ------------------------------------
 @app.post("/predict_relapse_overview")
 def predict_relapse_overview(p: RelapseOverviewFeatures):
     """
@@ -659,9 +659,9 @@ def predict_relapse_overview(p: RelapseOverviewFeatures):
     return _run_predict_core(encoded, request_type="overview")
 
 
-#--------------------------------------------------
+# --------------------------------------------------
 #   🚀 Debug endpoint - rule components for overview
-#--------------------------------------------------
+# --------------------------------------------------
 @app.post("/debug_relapse_overview")
 def debug_relapse_overview(p: RelapseOverviewFeatures):
     """
@@ -684,9 +684,9 @@ def debug_relapse_overview(p: RelapseOverviewFeatures):
     }
 
 
-#--------------------------------------------------
+# --------------------------------------------------
 #   🛠️ Debug endpoint - peek at feature vector
-#--------------------------------------------------
+# --------------------------------------------------
 @app.post("/debug_vector")
 def debug_vector(p: PredictIn = Body(...)):
     """
