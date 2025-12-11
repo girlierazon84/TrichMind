@@ -30,7 +30,7 @@ export const axiosClient = axios.create({
   baseURL,
   headers: { "Content-Type": "application/json" },
   withCredentials: true,
-  timeout: 10000,
+  timeout: 30000,
 });
 
 // Attach access token to requests
