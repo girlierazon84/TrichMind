@@ -18,7 +18,7 @@ export interface PredictPayload {
     emotion: string;
 }
 
-// Response from the ML model
+// Response from the ML model (FastAPI _run_predict_core shape)
 export interface PredictionResponse {
     risk_score: number;
     confidence: number;
@@ -26,4 +26,5 @@ export interface PredictionResponse {
     model_version?: string;
     risk_code?: string;
     runtime_sec?: number;
+    debug?: unknown;
 }
