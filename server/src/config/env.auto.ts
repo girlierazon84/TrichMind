@@ -46,51 +46,66 @@ const mongoHost = isLocal() ? "localhost:27017" : "mongo:27017";
 ------------------------------*/
 const mlHost = isLocal() ? "localhost:8000" : "ml:8000";
 
-/**
- * ML_BASE_URL default:
- *  - Local:   http://localhost:8000
- *  - Docker:  http://ml:8000
- *  - Render:  same as docker unless overridden by ML_BASE_URL env
- */
-const defaultMlBaseUrl = `http://${mlHost}`;
+/**-----------------------------------------------------------------------
+    ML_BASE_URL default:
+        - Local:   http://localhost:8000 (or ml:8000 in docker)
+        - Render:  "" (disabled) unless ML_BASE_URL is explicitly set
+--------------------------------------------------------------------------*/
+const defaultMlBaseUrl = runningOnRender ? "" : `http://${mlHost}`;
 
-/**---------------------------------------
-    FRONTEND URL & CORS CONFIGURATION
-----------------------------------------*/
+/**--------------------------------------------
+    CLIENT URL & CORS CONFIGURATION
+    Try to infer production client URLs.
+    You can still override everything with:
+        - CLIENT_URL
+        - CORS_ORIGIN (comma-separated)
+-----------------------------------------------*/
+const vercelClientFromEnv =
+    process.env.VERCEL_CLIENT_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    undefined;
 
-// 🧁 Your deployed Vercel frontend (fallback for production)
-const PROD_FALLBACK_CLIENT_URL =
-    process.env.PROD_CLIENT_URL ||
-    "https://trichmind-qemri09tb-girlierazon84s-projects.vercel.app";
+// Known production clients (hard-coded + env)
+const knownProdClients = [
+    // Your current Vercel deployment:
+    "https://trichmind.vercel.app",
+    vercelClientFromEnv,
+].filter(Boolean) as string[];
 
-/**
- * Canonical client URL:
- *  - Prefer CLIENT_URL env
- *  - Local:  http://localhost:5050
- *  - Prod:   Vercel URL fallback
- */
+// Single “main” client URL (for redirects etc.)
 const resolvedClientUrl =
     process.env.CLIENT_URL ||
-    (isLocal() ? "http://localhost:5050" : PROD_FALLBACK_CLIENT_URL);
+    (isLocal()
+        ?   "http://localhost:5050"
+        :   // Prefer first known prod client on Render / non-local
+            knownProdClients[0] || "http://localhost:5050");
 
-// Raw CORS env (comma separated)
+// Raw CORS env (optional, comma separated)
 const rawCors = process.env.CORS_ORIGIN;
 
-/**
- * Default CORS origins if none provided via env:
- *  - Local: typical dev ports
- *  - Prod:  resolvedClientUrl + Vercel fallback (deduped)
- */
-const defaultCorsOrigins = isLocal()
-    ?   [
-            "http://localhost:5050",
-            "http://127.0.0.1:5050",
-            "http://localhost:5173",
-        ]
-    :   [
-            resolvedClientUrl,
-            PROD_FALLBACK_CLIENT_URL,
-        ];
+// Default CORS origins depending on environment
+let defaultCorsOrigins: string[];
+
+if (isLocal()) {
+    // Local dev: typical ports
+    defaultCorsOrigins = [
+        "http://localhost:5050",
+        "http://127.0.0.1:5050",
+        "http://localhost:5173",
+    ];
+} else if (runningOnRender) {
+    // Render: allow Vercel + localhost (for testing) by default
+    defaultCorsOrigins = [
+        resolvedClientUrl,
+        ...knownProdClients,
+        "http://localhost:5050",
+        "http://127.0.0.1:5050",
+        "http://localhost:5173",
+    ];
+} else {
+    // Generic non-local, non-Render environment
+    defaultCorsOrigins = [resolvedClientUrl];
+}
 
 // Parse CORS origins from env or use defaults
 const corsOrigins = rawCors
@@ -107,7 +122,6 @@ export const ENV = {
     NODE_ENV: process.env.NODE_ENV || "development",
     IS_DOCKER: isDocker(),
     IS_LOCAL: isLocal(),
-    RUNNING_ON_RENDER: runningOnRender,
 
     // Application Port
     PORT: Number(process.env.PORT) || 8080,
@@ -115,8 +129,8 @@ export const ENV = {
     // Database URI (env override → auto host)
     MONGO_URI: process.env.MONGO_URI || `mongodb://${mongoHost}/trichmind`,
 
-    // ML Service Base URL (env override → auto host)
-    // Use ?? so empty string from env is still respected if you ever want to disable it explicitly
+    // ML Service Base URL (env override → auto host / disabled on Render)
+    // Use ?? so that empty string ("") is respected when set by defaultMlBaseUrl
     ML_BASE_URL: process.env.ML_BASE_URL ?? defaultMlBaseUrl,
 
     // JWT Secrets
@@ -143,7 +157,6 @@ console.log("🌍 ENV AUTO SWITCH:", {
     NODE_ENV: ENV.NODE_ENV,
     IS_LOCAL: ENV.IS_LOCAL,
     IS_DOCKER: ENV.IS_DOCKER,
-    RUNNING_ON_RENDER: ENV.RUNNING_ON_RENDER,
     MONGO_URI: ENV.MONGO_URI,
     ML_BASE_URL: ENV.ML_BASE_URL,
     CLIENT_URL: ENV.CLIENT_URL,
