@@ -1,5 +1,5 @@
 // server/src/config/index.ts
 
-export * from "./env";
+export { ENV } from "./env";
+export { ENV_AUTO } from "./env.auto";
 export * from "./mongo";
-export { ENV as ENV_AUTO } from "./env.auto";
