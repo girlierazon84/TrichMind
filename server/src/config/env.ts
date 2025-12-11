@@ -32,7 +32,7 @@ const runningOnRender = process.env.RENDER === "true" || !!process.env.RENDER;
     🔁 Docker: mongo:27017
 -----------------------------------*/
 const DEFAULT_MONGO_HOST = isLocal ? "localhost:27017" : "mongo:27017";
-const DEFAULT_ML_HOST    = isLocal ? "localhost:8000" : "ml:8000";
+const DEFAULT_ML_HOST = isLocal ? "localhost:8000" : "ml:8000";
 const DEFAULT_SERVER_HOST = isLocal ? "localhost:8080" : "server:8080";
 
 /**
@@ -41,6 +41,25 @@ const DEFAULT_SERVER_HOST = isLocal ? "localhost:8080" : "server:8080";
  *  - Render:  "" (disabled) unless ML_BASE_URL is explicitly set
  */
 const DEFAULT_ML_BASE_URL = runningOnRender ? "" : `http://${DEFAULT_ML_HOST}`;
+
+/**--------------------------------------------
+    CLIENT URL & CORS (aligned with env.auto)
+---------------------------------------------*/
+const vercelClientFromEnv =
+    process.env.VERCEL_CLIENT_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    undefined;
+
+const knownProdClients = [
+    "https://trichmind.vercel.app",
+    vercelClientFromEnv,
+].filter(Boolean) as string[];
+
+const resolvedClientUrl =
+    process.env.CLIENT_URL ||
+    (isLocal
+        ? "http://localhost:5050"
+        : knownProdClients[0] || "http://localhost:5050");
 
 /**---------------
     ENV Export
@@ -61,7 +80,10 @@ export const ENV = {
         🔐 Auth / JWT
     ----------------------*/
     JWT_SECRET: required("JWT_SECRET", "super-secret-change-me"),
-    JWT_REFRESH_SECRET: required("JWT_REFRESH_SECRET", "refresh-secret-change-me"),
+    JWT_REFRESH_SECRET: required(
+        "JWT_REFRESH_SECRET",
+        "refresh-secret-change-me"
+    ),
 
     /**-----------------------------------------
         🤖 FastAPI ML Backend (auto-switch)
@@ -74,8 +96,10 @@ export const ENV = {
     -------------------------*/
     SERVER_URL: process.env.SERVER_URL || `http://${DEFAULT_SERVER_HOST}`,
 
-    CLIENT_URL: process.env.CLIENT_URL || "http://localhost:5050",
+    // Same main client URL resolution as env.auto.ts
+    CLIENT_URL: resolvedClientUrl,
 
+    // String form (for legacy use); server.ts uses ENV_AUTO.CORS_ORIGINS
     CORS_ORIGIN:
         process.env.CORS_ORIGIN ||
         "http://localhost:5050,http://127.0.0.1:5050,http://localhost:5173",
@@ -101,7 +125,8 @@ export const ENV = {
     /**-----------------------
         🔥 Risk Threshold
     --------------------------*/
-    RELAPSE_ALERT_THRESHOLD: Number(process.env.RELAPSE_ALERT_THRESHOLD) || 0.7,
+    RELAPSE_ALERT_THRESHOLD:
+        Number(process.env.RELAPSE_ALERT_THRESHOLD) || 0.7,
 } as const;
 
 export type EnvKeys = keyof typeof ENV;
