@@ -8,9 +8,15 @@ import axios, {
 
 /**-------------------------------------------------------------------
     Backend ROOT (WITHOUT trailing /api).
-    In dev, typically: VITE_API_BASE_URL = "http://localhost:8080"
+
+    🔹 In dev (Vite):  VITE_API_BASE_URL = "http://localhost:8080"
+    🔹 In prod (Vercel): falls back to Render API if not set
 ----------------------------------------------------------------------*/
-const API_ROOT = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+const API_ROOT =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD
+    ? "https://trichmind-api.onrender.com"
+    : "http://localhost:8080");
 
 // Normalize and append `/api` → matches Express `app.use("/api", ...)`
 const baseURL = `${API_ROOT.replace(/\/+$/, "")}/api`;
@@ -23,6 +29,7 @@ type RetriableRequestConfig = InternalAxiosRequestConfig & {
 // Shape of error payload from backend
 interface ErrorResponseBody {
   error?: string;
+  message?: string;
 }
 
 // Axios Client – always points at /api
@@ -30,7 +37,7 @@ export const axiosClient = axios.create({
   baseURL,
   headers: { "Content-Type": "application/json" },
   withCredentials: true,
-  timeout: 30000,
+  timeout: 30000, // ⬅️ 30s to be kinder to Render cold starts
 });
 
 // Attach access token to requests
@@ -61,7 +68,6 @@ axiosClient.interceptors.response.use(
     ) {
       original._retry = true;
 
-      // Attempt to refresh token
       try {
         const refreshToken = localStorage.getItem("refresh_token");
 
@@ -83,7 +89,6 @@ axiosClient.interceptors.response.use(
           }
         );
 
-        // Extract new token from refresh response
         const newToken = refresh.data.token;
 
         // No new token, redirect to login
