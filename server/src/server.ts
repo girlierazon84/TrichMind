@@ -57,9 +57,10 @@ const fallbackOrigins = fallbackRaw
     .map((o) => o.trim())
     .filter(Boolean);
 
-// Final allowed origins list
-const ALLOWED_ORIGINS: string[] =
-    envCorsOrigins.length > 0 ? envCorsOrigins : fallbackOrigins;
+// Final allowed origins list (deduped)
+const ALLOWED_ORIGINS: string[] = Array.from(
+    new Set(envCorsOrigins.length > 0 ? envCorsOrigins : fallbackOrigins)
+);
 
 console.log("🌐 [CORS] Allowed origins:", ALLOWED_ORIGINS);
 
@@ -72,7 +73,7 @@ const corsOptions: CorsOptions = {
             return callback(null, true);
         }
 
-        // Optional: allow any Vercel preview URL if needed
+        // Allow any Vercel preview URL: https://trichmind-xxxx.vercel.app
         if (origin.endsWith(".vercel.app")) {
             return callback(null, true);
         }
