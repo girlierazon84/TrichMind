@@ -22,6 +22,9 @@ const isDocker = () => {
 // Local is simply “not docker”
 const isLocal = () => !isDocker();
 
+// Detect Render environment
+const runningOnRender = process.env.RENDER === "true" || !!process.env.RENDER;
+
 /**------------------
     Safe accessor
 ---------------------*/
@@ -42,6 +45,13 @@ const mongoHost = isLocal() ? "localhost:27017" : "mongo:27017";
     AUTO-SWITCH HOSTS - ML
 ------------------------------*/
 const mlHost = isLocal() ? "localhost:8000" : "ml:8000";
+
+/**
+ * ML_BASE_URL default:
+ *  - Local:   http://localhost:8000 (or ml:8000 in docker)
+ *  - Render:  "" (disabled) unless ML_BASE_URL is explicitly set
+ */
+const defaultMlBaseUrl = runningOnRender ? "" : `http://${mlHost}`;
 
 /**------------------
     Client & CORS
@@ -84,8 +94,9 @@ export const ENV = {
     // Database URI (env override → auto host)
     MONGO_URI: process.env.MONGO_URI || `mongodb://${mongoHost}/trichmind`,
 
-    // ML Service Base URL (env override → auto host)
-    ML_BASE_URL: process.env.ML_BASE_URL || `http://${mlHost}`,
+    // ML Service Base URL (env override → auto host / disabled on Render)
+    // Use ?? so that empty string ("") is respected when set by defaultMlBaseUrl
+    ML_BASE_URL: process.env.ML_BASE_URL ?? defaultMlBaseUrl,
 
     // JWT Secrets
     JWT_SECRET: required("JWT_SECRET", "local-secret"),
@@ -100,7 +111,8 @@ export const ENV = {
     // Optional extras (for consistency with .env / .env.docker)
     SERVER_URL: process.env.SERVER_URL || "http://localhost:8080",
     LOG_DIR: process.env.LOG_DIR || "./logs",
-    RELAPSE_ALERT_THRESHOLD: Number(process.env.RELAPSE_ALERT_THRESHOLD) || 0.7,
+    RELAPSE_ALERT_THRESHOLD:
+        Number(process.env.RELAPSE_ALERT_THRESHOLD) || 0.7,
 };
 
 /**-------------------

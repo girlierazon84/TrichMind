@@ -23,6 +23,9 @@ const isLocal =
     process.env.NODE_ENV === "local" ||
     !process.env.NODE_ENV;
 
+// Detect Render environment (Render sets RENDER env var)
+const runningOnRender = process.env.RENDER === "true" || !!process.env.RENDER;
+
 /**--------------------------------
     Dynamic Host Switching
     🔁 Local:  localhost:27017
@@ -31,6 +34,13 @@ const isLocal =
 const DEFAULT_MONGO_HOST = isLocal ? "localhost:27017" : "mongo:27017";
 const DEFAULT_ML_HOST    = isLocal ? "localhost:8000" : "ml:8000";
 const DEFAULT_SERVER_HOST = isLocal ? "localhost:8080" : "server:8080";
+
+/**
+ * ML_BASE_URL default:
+ *  - Local:   http://localhost:8000 (or ml:8000 in docker)
+ *  - Render:  "" (disabled) unless ML_BASE_URL is explicitly set
+ */
+const DEFAULT_ML_BASE_URL = runningOnRender ? "" : `http://${DEFAULT_ML_HOST}`;
 
 /**---------------
     ENV Export
@@ -56,7 +66,8 @@ export const ENV = {
     /**-----------------------------------------
         🤖 FastAPI ML Backend (auto-switch)
     --------------------------------------------*/
-    ML_BASE_URL: process.env.ML_BASE_URL || `http://${DEFAULT_ML_HOST}`,
+    // Use nullish coalescing so empty string ("") is respected on Render
+    ML_BASE_URL: process.env.ML_BASE_URL ?? DEFAULT_ML_BASE_URL,
 
     /**----------------------
         🌐 Server & CORS
