@@ -118,7 +118,7 @@ const corsOrigins = rawCors
 /**---------------------
     EXPORT ENV_AUTO
 ------------------------*/
-export const ENV = {
+export const ENV_AUTO = {
     NODE_ENV: process.env.NODE_ENV || "development",
     IS_DOCKER: isDocker(),
     IS_LOCAL: isLocal(),
@@ -154,11 +154,11 @@ export const ENV = {
     DEBUG ENV VARS
 ----------------------*/
 console.log("🌍 ENV AUTO SWITCH:", {
-    NODE_ENV: ENV.NODE_ENV,
-    IS_LOCAL: ENV.IS_LOCAL,
-    IS_DOCKER: ENV.IS_DOCKER,
-    MONGO_URI: ENV.MONGO_URI,
-    ML_BASE_URL: ENV.ML_BASE_URL,
-    CLIENT_URL: ENV.CLIENT_URL,
-    CORS_ORIGINS: ENV.CORS_ORIGINS,
+    NODE_ENV: ENV_AUTO.NODE_ENV,
+    IS_LOCAL: ENV_AUTO.IS_LOCAL,
+    IS_DOCKER: ENV_AUTO.IS_DOCKER,
+    MONGO_URI: ENV_AUTO.MONGO_URI,
+    ML_BASE_URL: ENV_AUTO.ML_BASE_URL,
+    CLIENT_URL: ENV_AUTO.CLIENT_URL,
+    CORS_ORIGINS: ENV_AUTO.CORS_ORIGINS,
 });
