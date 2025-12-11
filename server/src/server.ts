@@ -67,13 +67,8 @@ app.use(
             // Allow non-browser tools (Postman, curl, etc.)
             if (!origin) return callback(null, true);
 
-            if (ALLOWED_ORIGINS.includes(origin)) {
-                return callback(null, true);
-            }
-
-            console.warn("[CORS] Blocked origin:", origin);
-            // Do NOT throw an error here – just deny CORS without crashing the route
-            return callback(null, false);
+            if (ENV_AUTO.CORS_ORIGINS.includes(origin)) return callback(null, true);
+                return callback(new Error(`Not allowed by CORS: ${origin}`))
         },
         credentials: true,
     })
