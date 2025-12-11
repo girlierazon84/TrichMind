@@ -1,6 +1,6 @@
 // server/src/routes/authRoutes.ts
 
-import { Router } from "express";
+import { Router, type Request, type Response, type NextFunction } from "express";
 import { validate, authentication } from "../middlewares";
 import {
     register,
@@ -19,18 +19,21 @@ import { asyncHandler } from "../utils";
 ──────────────────────────────── */
 const router = Router();
 
+/** Small debug logger for /register – only in non-production */
+const debugRegisterLogger = (req: Request, _res: Response, next: NextFunction) => {
+    if (process.env.NODE_ENV !== "production") {
+        console.log("🔥 [AUTH] /register incoming body:", req.body);
+    }
+    next();
+};
+
 /* ──────────────────────────────
     🔹 POST /api/auth/register
-    Logs incoming body for debugging on Render
 ──────────────────────────────── */
 router.post(
     "/register",
     validate(RegisterSchema),
-    // 🔥 Debug middleware – see what the backend receives
-    (req, _res, next) => {
-        console.log("🔥 [AUTH] /register incoming body:", req.body);
-        next();
-    },
+    debugRegisterLogger,
     register
 );
 
@@ -104,8 +107,6 @@ router.post(
 
 /* ──────────────────────────────
     🔹 GET /api/auth/me
-    Returns a shaped user object with coping strategies arrays
-    Uses asyncHandler for clean error handling
 ──────────────────────────────── */
 router.get(
     "/me",
