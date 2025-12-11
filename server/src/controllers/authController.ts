@@ -6,11 +6,9 @@ import { Request, Response } from "express";
 import { ENV } from "../config";
 import type { RegisterDTO, LoginDTO } from "../schemas";
 import { sendMail } from "../utils";
-import {
-    buildWelcomeEmail,
-    buildResetPasswordEmail,
-} from "../templates";
+import { buildWelcomeEmail, buildResetPasswordEmail } from "../templates";
 import { loggerService, userService } from "../services";
+
 
 /**-----------------------------------------------
     🔐 Generate JWT Access and Refresh Tokens
@@ -29,6 +27,8 @@ export const generateTokens = (userId: string) => {
 
 /**---------------------------
     📝 Register a new user
+    - Responds quickly
+    - Sends welcome email in background
 ------------------------------*/
 export const register = async (req: Request, res: Response) => {
     try {
@@ -39,14 +39,7 @@ export const register = async (req: Request, res: Response) => {
             user._id.toString()
         );
 
-        const { html, text } = buildWelcomeEmail(user.displayName);
-        await sendMail(user.email, "Welcome to TrichMind 💚", html, text);
-
-        await loggerService.logInfo("Welcome email sent", {
-            userId: user._id.toString(),
-            email: user.email,
-        });
-
+        // ✅ Respond immediately to the client
         res.status(201).json({
             token: accessToken,
             refreshToken,
@@ -56,6 +49,30 @@ export const register = async (req: Request, res: Response) => {
                 displayName: user.displayName,
             },
         });
+
+        // 📧 Fire-and-forget welcome email
+        (async () => {
+            try {
+                const { html, text } = buildWelcomeEmail(user.displayName);
+                await sendMail(
+                    user.email,
+                    "Welcome to TrichMind 💚",
+                    html,
+                    text
+                );
+
+                await loggerService.logInfo("Welcome email sent", {
+                    userId: user._id.toString(),
+                    email: user.email,
+                });
+            } catch (err: any) {
+                await loggerService.logError("❌ Welcome email send failed", {
+                    userId: user._id.toString(),
+                    email: user.email,
+                    error: err.message,
+                });
+            }
+        })();
     } catch (err: any) {
         await loggerService.logError("❌ Registration error", {
             error: err.message,
