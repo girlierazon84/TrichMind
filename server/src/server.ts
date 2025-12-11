@@ -73,7 +73,7 @@ const corsOptions: CorsOptions = {
             return callback(null, true);
         }
 
-        // Allow any Vercel preview URL: https://trichmind-xxxx.vercel.app
+        // Allow any Vercel preview URL: https://xxxxx.vercel.app
         if (origin.endsWith(".vercel.app")) {
             return callback(null, true);
         }
@@ -85,9 +85,8 @@ const corsOptions: CorsOptions = {
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 };
 
+// This is enough – handles preflight too
 app.use(cors(corsOptions));
-// Ensure preflight requests are also handled with the same options
-app.options("*", cors(corsOptions));
 
 /**--------------------------------------------
     ✅ Body parsers (JSON, form-data)
