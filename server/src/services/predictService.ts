@@ -18,7 +18,11 @@ interface PredictResponse {
     model_version?: string;
     risk_code?: string;
     runtime_sec?: number;
+    debug?: unknown;
 }
+
+const ML_OFFLINE_MESSAGE =
+    "Our TrichMind ML coach is currently offline, but you can still use journaling, triggers and other tools 💚";
 
 /**-------------------------------------------------------------------
     Prediction Service
@@ -30,22 +34,62 @@ export const predictService = {
     async predict(userId: string, input: PredictDTO) {
         const endpoint = `${ENV_AUTO.ML_BASE_URL}/predict_friendly`;
 
-        // Send input to FastAPI ML model
         try {
             console.log(`📡 [PredictService] Sending payload to ${endpoint}`);
             console.log("📦 [PredictService] Payload:", input);
 
-            // POST request to FastAPI endpoint
-            const { data } = await axios.post<PredictResponse>(endpoint, input, {
-                timeout: 15_000,
-                headers: { "Content-Type": "application/json" },
-            });
+            const { data } = await axios.post<PredictResponse | any>(
+                endpoint,
+                input,
+                {
+                    timeout: 15_000,
+                    headers: { "Content-Type": "application/json" },
+                }
+            );
 
-            // Log the response from the ML model
-            console.log("✅ [PredictService] ML Response:", data);
+            // Handle "wrapped" error case, just in case
+            if (data && typeof data === "object" && data.ok === false) {
+                const msg =
+                    data.message ||
+                    data.error ||
+                    ML_OFFLINE_MESSAGE;
 
-            // Destructure response data
-            const { risk_score, risk_bucket, confidence, model_version } = data;
+                await loggerService.logError("Prediction failed (wrapped)", {
+                    userId,
+                    endpoint,
+                    backendPayload: data,
+                    message: msg,
+                });
+
+                throw new Error(msg);
+            }
+
+            const {
+                risk_score,
+                risk_bucket,
+                confidence,
+                model_version,
+            } = data as PredictResponse;
+
+            if (
+                typeof risk_score !== "number" ||
+                typeof risk_bucket !== "string"
+            ) {
+                // Defensive: FastAPI should always send these, but if not,
+                // treat as ML offline.
+                const msg = ML_OFFLINE_MESSAGE;
+
+                await loggerService.logError(
+                    "Prediction payload missing required fields",
+                    {
+                        userId,
+                        endpoint,
+                        backendPayload: data,
+                    }
+                );
+
+                throw new Error(msg);
+            }
 
             // 1️⃣ Store prediction document
             const prediction = await Predict.create({
@@ -61,7 +105,6 @@ export const predictService = {
             // 2️⃣ Auto-log into HealthLog as a relapseRisk snapshot
             await HealthLog.create({
                 userId,
-                // These fields depend on your PredictDTO shape – using safe fallbacks
                 sleepHours: (input as any).sleepHours ?? 0,
                 stressLevel: (input as any).stressLevel ?? 0,
                 exerciseMinutes: (input as any).exerciseMinutes ?? 0,
@@ -84,13 +127,11 @@ export const predictService = {
                 }
             );
 
-            // Return the created prediction document
             return prediction;
         } catch (err: any) {
             console.error("❌ [PredictService] ML request failed");
             console.error("   Message:", err.message);
 
-            // Detailed error logging
             if (err.response) {
                 console.error("   Status:", err.response.status);
                 console.error("   Response data:", err.response.data);
@@ -102,7 +143,6 @@ export const predictService = {
                 console.error("   Unknown error:", err);
             }
 
-            // Log error details
             await loggerService.logError("Prediction failed", {
                 userId,
                 endpoint,
@@ -110,9 +150,10 @@ export const predictService = {
                 status: err.response?.status,
             });
 
-            // Rethrow a user-friendly error
             throw new Error(
                 err.response?.data?.detail ||
+                    err.response?.data?.message ||
+                    err.response?.data?.error ||
                     err.message ||
                     "Prediction service unavailable"
             );
