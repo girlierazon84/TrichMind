@@ -331,9 +331,21 @@ def _encode_overview_to_encoded(p: RelapseOverviewFeatures) -> PredictIn:
 async def lifespan(app: FastAPI):
     global model, label_encoder, feature_names, MODEL_VERSION, scaler
 
-    for pth in [MODEL_PATH, LABEL_ENCODER, FEATURES_JSON, SCALER_PATH]:
-        if not Path(pth).exists():
-            raise RuntimeError(f"Missing artifact: {pth}")
+    artifacts = [MODEL_PATH, LABEL_ENCODER, FEATURES_JSON, SCALER_PATH]
+    missing = [str(p) for p in artifacts if not Path(p).exists()]
+
+    if missing:
+        # 🚨 Very important for Render logs
+        print("❌ [ML startup] Missing artifacts:", missing, flush=True)
+        print(f"📂 MODEL_PATH    = {MODEL_PATH}", flush=True)
+        print(f"📂 LABEL_ENCODER = {LABEL_ENCODER}", flush=True)
+        print(f"📂 FEATURES_JSON = {FEATURES_JSON}", flush=True)
+        print(f"📂 SCALER_PATH   = {SCALER_PATH}", flush=True)
+        # Do NOT crash – allow /healthz to show ok = false
+        yield
+        return
+
+    print("✅ [ML startup] All artifacts found. Loading...", flush=True)
 
     model = joblib.load(MODEL_PATH)
     label_encoder = joblib.load(LABEL_ENCODER)
@@ -343,8 +355,13 @@ async def lifespan(app: FastAPI):
 
     INFER_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-    yield
+    print(
+        f"✅ [ML startup] Model loaded: {MODEL_VERSION}, "
+        f"{len(feature_names)} features",
+        flush=True,
+    )
 
+    yield
 
 # -----------------------------------
 #   🛠️ FastAPI app & middleware
