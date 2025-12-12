@@ -11,9 +11,9 @@ import type {
     PredictPayload
 } from "@/types/ml";
 
-/**----------
-    Types
--------------*/
+
+
+/**----------TYPES-------------*/
 export interface RegisterFormData {
     email: string;
     password: string;
@@ -37,10 +37,7 @@ export interface RegisterFormData {
     coping_not_worked?: string[];
 }
 
-/**------------
-    Helpers
----------------*/
-
+/**------------HELPERS---------------*/
 const toNum = (v?: string) => {
     const n = Number(v ?? 0);
     return Number.isFinite(n) ? n : 0;
@@ -52,27 +49,30 @@ const calculateAge = (dob?: string): number => {
     return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
 };
 
-/**---------
-    Hook
-------------*/
+/**---------HOOK------------*/
 export const useRegisterAndPredict = () => {
     const { register, isAuthenticated, user } = useAuth();
     const { predict, loading: predicting, error: predictError } = usePredict();
-    const { log, error: logError } = useLogger(false);
+    const { log, error: logError, warn } = useLogger(false);
 
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [prediction, setPrediction] = useState<PredictionResponse | null>(null);
 
+    /**
+     * Returns:
+     *  - true  → registration succeeded (ML may or may not have run)
+     *  - false → registration failed
+     */
     async function registerAndPredict(
         form: RegisterFormData
-    ): Promise<PredictionResponse | null> {
+    ): Promise<boolean> {
         setSubmitting(true);
         setSubmitError(null);
         setPrediction(null);
 
         try {
-            // 1) Register only if NOT authenticated
+            /* 1️⃣ Ensure the user account exists */
             if (!isAuthenticated) {
                 if (!form.email?.trim() || !form.password) {
                     throw new Error("Email and password are required.");
@@ -84,16 +84,18 @@ export const useRegisterAndPredict = () => {
                     displayName: form.displayName?.trim(),
                 });
 
-                if (!registered?.token) throw new Error("Registration failed");
+                if (!registered?.token) {
+                    throw new Error("Registration failed");
+                }
+
                 await log("User registered successfully", { email: form.email });
             } else {
-                await log("Authenticated user detected", { userId: user?.id });
+                await log("Authenticated user detected (skipping register)", {
+                    userId: user?.id,
+                });
             }
 
-            /* ---------------------------------------------------------
-                2) Build ML payload — RAW VALUES ONLY
-                Must match FastAPI EXACTLY
-            ----------------------------------------------------------*/
+            /* 2️⃣ Build ML payload (same as before) */
             const payload: PredictPayload = {
                 age: calculateAge(form.date_of_birth),
                 age_of_onset: toNum(form.age_of_onset),
@@ -109,19 +111,44 @@ export const useRegisterAndPredict = () => {
                 emotion: form.emotion?.trim() || "neutral",
             };
 
-            // 3) Execute ML prediction
-            const result = await predict(payload);
-            setPrediction(result);
+            /* 3️⃣ Try ML prediction – but DO NOT treat as fatal */
+            try {
+                const result = await predict(payload);
+                setPrediction(result);
 
-            await log("Prediction completed", {
-                userId: user?.id || "guest",
-                emotion: payload.emotion,
-            });
+                await log("Register & Predict – ML completed", {
+                    userId: user?.id || "guest",
+                    risk_score: result.risk_score,
+                    risk_bucket: result.risk_bucket,
+                });
+            } catch (mlErr: unknown) {
+                const msg =
+                    mlErr instanceof Error ? mlErr.message : String(mlErr);
 
-            return result;
-        } catch (e) {
+                await logError(
+                    "Register & Predict – ML failed (account already created)",
+                    {
+                        error: msg,
+                        email: form.email,
+                    }
+                );
+
+                // Optional: softer warning instead of "hard" error state
+                await warn("ML coach offline during registration", {
+                    email: form.email,
+                    message: msg,
+                });
+
+                // ❗ Important: we DO NOT set submitError here,
+                // and we DO NOT throw, so registration remains a success.
+            }
+
+            // ✅ At this point, registration definitely succeeded
+            return true;
+        } catch (e: unknown) {
             const msg =
                 e instanceof Error ? e.message : "Register & Predict failed";
+
             setSubmitError(msg);
 
             await logError("Register & Predict process failed", {
@@ -129,7 +156,7 @@ export const useRegisterAndPredict = () => {
                 email: form.email,
             });
 
-            return null;
+            return false;
         } finally {
             setSubmitting(false);
         }
