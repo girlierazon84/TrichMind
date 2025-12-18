@@ -49,15 +49,17 @@ router.post(
                 req.body,
                 {
                     headers: { "Content-Type": "application/json" },
+                    timeout: 8000, // ✅ IMPORTANT: don't hang forever
                 }
             );
 
             console.log("📥 [ML] Register OK:", data);
-            res.json(data);
+            return res.json(data);
         } catch (error: any) {
             console.error("❌ [ML] Register Failed:", error.message);
 
-            res.status(200).json(
+            // Always respond quickly with “offline” payload (never hang)
+            return res.status(200).json(
                 mlOfflinePayload(
                     error.response?.data?.error || error.message
                 )
