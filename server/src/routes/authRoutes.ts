@@ -19,10 +19,14 @@ import { asyncHandler } from "../utils";
 ──────────────────────────────── */
 const router = Router();
 
-/** Small debug logger for /register – only in non-production */
+// Small debug logger for /register – only in non-production
 const debugRegisterLogger = (req: Request, _res: Response, next: NextFunction) => {
     if (process.env.NODE_ENV !== "production") {
-        console.log("🔥 [AUTH] /register incoming body:", req.body);
+        const { password, ...rest } = req.body ?? {};
+        console.log("🔥 [AUTH] /register incoming body (redacted):", {
+            ...rest,
+            password: password ? "[REDACTED]" : undefined,
+        });
     }
     next();
 };
