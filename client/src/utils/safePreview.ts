@@ -3,6 +3,7 @@
 // Utility to create a safe preview of an object by redacting sensitive fields.
 const REDACT = new Set([
     "password",
+    "oldPassword",
     "newPassword",
     "currentPassword",
     "token",
