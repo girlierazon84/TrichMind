@@ -15,8 +15,8 @@ type SimpleLoggerMethod = (
 
 type SafeLogKey = {
     [K in keyof typeof loggerService]: typeof loggerService[K] extends SimpleLoggerMethod
-        ? K
-        : never;
+    ? K
+    : never;
 }[keyof typeof loggerService];
 
 function safeLog(
@@ -111,8 +111,8 @@ export const userService = {
     async register(data: RegisterDTO): Promise<IUser> {
         const email = data.email.toLowerCase();
 
-        // Check if the email is already registered
-        const existing = await User.findOne({ email });
+        // Check if the email is already registered (fail fast)
+        const existing = await User.findOne({ email }).maxTimeMS(5000);
         if (existing) {
             throw new Error("Email already registered");
         }
@@ -188,23 +188,29 @@ export const userService = {
     async login(data: LoginDTO): Promise<IUser> {
         const email = data.email.toLowerCase();
 
-        // Validate input data
-        const user = await User.findOne({ email });
+        // Find user by email (with timeout)
+        const user = await User.findOne({ email }).maxTimeMS(5000);
+
+        // Check if user exists
         if (!user) {
+            // Log the failed login attempt
             safeLog("logError", "Login attempt with invalid email", {
                 email: data.email,
                 category: "auth",
             });
+            // Generic error message to avoid user enumeration
             throw new Error("Invalid email or password");
         }
 
         // Check if the password is valid
         const valid = await user.compare(data.password);
         if (!valid) {
+            // Log the failed login attempt
             safeLog("logError", "Invalid password attempt", {
                 email: data.email,
                 category: "auth",
             });
+            // Generic error message to avoid user enumeration
             throw new Error("Invalid email or password");
         }
 
