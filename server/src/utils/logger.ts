@@ -5,6 +5,7 @@ import path from "path";
 import util from "util";
 import { ENV } from "../config";
 
+
 // Determine log directory dynamically from ENV
 const LOG_DIR = path.resolve(process.cwd(), ENV.LOG_DIR || "./logs");
 
@@ -15,20 +16,72 @@ if (!fs.existsSync(LOG_DIR)) {
 
 // Daily log file rotation
 const date = new Date().toISOString().split("T")[0];
-// Log file path
 const LOG_FILE = path.join(LOG_DIR, `trichmind-${date}.log`);
+
+/**-------------------------------------------------
+    Redact sensitive keys in logged objects
+----------------------------------------------------*/
+const REDACT_KEYS = new Set([
+    "password",
+    "oldPassword",
+    "newPassword",
+    "currentPassword",
+    "token",
+    "accessToken",
+    "refreshToken",
+    "authorization",
+    "cookie",
+]);
+
+// Deeply redacts sensitive fields in an object
+function redactDeep(value: unknown, depth = 4): unknown {
+    // Base case
+    if (depth <= 0) return value;
+
+    // Handle arrays
+    if (Array.isArray(value)) {
+        return value.map((v) => redactDeep(v, depth - 1));
+    }
+
+    // Handle objects
+    if (value && typeof value === "object") {
+        const obj = value as Record<string, unknown>;
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(obj)) {
+            out[k] = REDACT_KEYS.has(k) ? "[REDACTED]" : redactDeep(v, depth - 1);
+        }
+        return out;
+    }
+
+    return value;
+}
 
 /**------------------------------------------------------------------------------
     Formats and writes log messages with timestamps, environment, and levels.
 ---------------------------------------------------------------------------------**/
-function write(level: "info" | "warn" | "error", message: unknown): void {
+function write(
+    level: "info" | "warn" | "error",
+    message: unknown,
+    meta?: Record<string, unknown>
+): void {
     const timestamp = new Date().toISOString();
     const env = (ENV.NODE_ENV || "development").toUpperCase();
-    const formattedMessage =
-        typeof message === "string"
-            ? message
-            : util.inspect(message, { depth: 3 });
-    const formatted = `[${timestamp}] [${env}] [${level.toUpperCase()}] ${formattedMessage}\n`;
+
+    const safeMsg =
+        typeof message === "object" && message !== null ? redactDeep(message) : message;
+
+    const safeMeta =
+        meta && typeof meta === "object" ? (redactDeep(meta) as Record<string, unknown>) : undefined;
+
+    const msgStr =
+        typeof safeMsg === "string" ? safeMsg : util.inspect(safeMsg, { depth: 4 });
+
+    const metaStr =
+        safeMeta && Object.keys(safeMeta).length > 0
+            ? ` | meta=${util.inspect(safeMeta, { depth: 4 })}`
+            : "";
+
+    const formatted = `[${timestamp}] [${env}] [${level.toUpperCase()}] ${msgStr}${metaStr}\n`;
 
     // --- Console output (with colors) ---
     const colors: Record<string, string> = {
@@ -48,20 +101,17 @@ function write(level: "info" | "warn" | "error", message: unknown): void {
     try {
         fs.appendFileSync(LOG_FILE, formatted, "utf8");
     } catch (err) {
-        console.error(
-            "❌ Failed to write log file:",
-            (err as Error).message
-        );
+        console.error("❌ Failed to write log file:", (err as Error).message);
     }
 }
 
 /**---------------------------------------------------------------------
-    🧠 Smart logger with info, warn, error + object-safe formatting
+    🧠 Smart logger with info, warn, error + meta/context support
 ------------------------------------------------------------------------*/
 export const logger = {
-    info: (msg: unknown) => write("info", msg),
-    warn: (msg: unknown) => write("warn", msg),
-    error: (msg: unknown) => write("error", msg),
+    info: (msg: unknown, meta?: Record<string, unknown>) => write("info", msg, meta),
+    warn: (msg: unknown, meta?: Record<string, unknown>) => write("warn", msg, meta),
+    error: (msg: unknown, meta?: Record<string, unknown>) => write("error", msg, meta),
 };
 
 /**-------------------------------------------------
@@ -70,9 +120,10 @@ export const logger = {
 export const logWithContext = (
     level: "info" | "warn" | "error",
     context: string,
-    message: unknown
+    message: unknown,
+    meta?: Record<string, unknown>
 ) => {
-    write(level, `[${context}] ${message}`);
+    write(level, `[${context}] ${typeof message === "string" ? message : util.inspect(message)}`, meta);
 };
 
 export default {
