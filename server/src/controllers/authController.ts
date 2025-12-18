@@ -50,23 +50,18 @@ export const register = async (req: Request, res: Response) => {
             },
         });
 
-        // 📧 Fire-and-forget welcome email
-        (async () => {
+        // 📧 Fire-and-forget welcome email + logs
+        void (async () => {
             try {
                 const { html, text } = buildWelcomeEmail(user.displayName);
-                await sendMail(
-                    user.email,
-                    "Welcome to TrichMind 💚",
-                    html,
-                    text
-                );
+                await sendMail(user.email, "Welcome to TrichMind 💚", html, text);
 
-                await loggerService.logInfo("Welcome email sent", {
+                void loggerService.logInfo("Welcome email sent", {
                     userId: user._id.toString(),
                     email: user.email,
                 });
             } catch (err: any) {
-                await loggerService.logError("❌ Welcome email send failed", {
+                void loggerService.logError("❌ Welcome email send failed", {
                     userId: user._id.toString(),
                     email: user.email,
                     error: err.message,
@@ -74,10 +69,15 @@ export const register = async (req: Request, res: Response) => {
             }
         })();
     } catch (err: any) {
-        await loggerService.logError("❌ Registration error", {
+        // ✅ don't await logging here (avoid hanging if DB/logger is down)
+        void loggerService.logError("❌ Registration error", {
             error: err.message,
         });
-        res.status(400).json({ error: err.message || "Registration failed" });
+
+        res.status(400).json({
+            ok: false,
+            error: err.message || "Registration failed",
+        });
     }
 };
 
@@ -86,18 +86,22 @@ export const register = async (req: Request, res: Response) => {
 ---------------------*/
 export const login = async (req: Request, res: Response) => {
     try {
+        // Extract validated credentials
         const credentials = req.body as LoginDTO; // validated by middleware
         const user = await userService.login(credentials);
 
+        // Generate tokens
         const { accessToken, refreshToken } = generateTokens(
             user._id.toString()
         );
 
-        await loggerService.logInfo("User logged in", {
+        // Log successful login
+        void loggerService.logInfo("User logged in", {
             userId: user._id.toString(),
             email: user.email,
         });
 
+        // Respond with tokens and user info
         res.json({
             token: accessToken,
             refreshToken,
@@ -108,13 +112,19 @@ export const login = async (req: Request, res: Response) => {
             },
         });
     } catch (err: any) {
-        await loggerService.log(
+        // Log failed login attempt
+        void loggerService.log(
             "Invalid login attempt",
             "warning",
             "auth",
             { email: req.body.email }
         );
-        res.status(401).json({ error: err.message || "Invalid credentials" });
+
+        // Respond with error
+        res.status(401).json({
+            ok: false,
+            error: err.message || "Invalid credentials",
+        });
     }
 };
 
