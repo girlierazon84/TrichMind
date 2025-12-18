@@ -1,7 +1,7 @@
 // server/src/config/mongo.ts
 
 import mongoose from "mongoose";
-import { ENV_AUTO } from "../config";
+import { ENV_AUTO } from "./env.auto"; // ✅ FIX: avoid circular import via ../config
 import { logger } from "../utils";
 
 
@@ -13,6 +13,9 @@ const DB_NAME =
     process.env.DB_NAME ||
     "trichmind_db";
 
+// ✅ ensure we only register listeners once
+let listenersAttached = false;
+
 /**---------------------------------------
     Connect to MongoDB using Mongoose.
     Key updates:
@@ -20,37 +23,39 @@ const DB_NAME =
     - add timeouts → fail fast
 ------------------------------------------*/
 export const connectMongo = async (): Promise<void> => {
-    // Trim whitespace from URI
     const uri = ENV_AUTO.MONGO_URI?.trim?.();
 
     // ✅ Prevent Mongoose from queueing operations when disconnected
     mongoose.set("bufferCommands", false);
 
-    // Validate URI
     if (!uri) {
         const msg = "[mongo] ❌ Missing MONGO_URI";
         logger.error(msg);
         throw new Error(msg);
     }
 
-    // Attempt connection
     try {
-        logger.info(
-            `[mongo] 🔌 Connecting to MongoDB at: ${uri} (db: ${DB_NAME})`
-        );
-
-        // Optional connection event hooks (helpful for debugging)
-        mongoose.connection.on("connected", () => {
-            logger.info("[mongo] ✅ Connected");
-        });
-        mongoose.connection.on("disconnected", () => {
-            logger.error("[mongo] ⚠️ Disconnected");
-        });
-        mongoose.connection.on("error", (e) => {
-            logger.error(`[mongo] ❌ Connection error: ${String(e)}`);
+        logger.info(`[mongo] 🔌 Connecting to MongoDB (db: ${DB_NAME})`, {
+            uri: uri.replace(/\/\/.*@/, "//[REDACTED]@"), // optional safety
         });
 
-        // Connect with timeouts
+        // Attach listeners only once
+        if (!listenersAttached) {
+            listenersAttached = true;
+
+            mongoose.connection.on("connected", () => {
+                logger.info("[mongo] ✅ Connected");
+            });
+
+            mongoose.connection.on("disconnected", () => {
+                logger.error("[mongo] ⚠️ Disconnected");
+            });
+
+            mongoose.connection.on("error", (e) => {
+                logger.error("[mongo] ❌ Connection error", { error: String(e) });
+            });
+        }
+
         await mongoose.connect(uri, {
             dbName: DB_NAME,
             serverSelectionTimeoutMS: 8000,
@@ -58,18 +63,15 @@ export const connectMongo = async (): Promise<void> => {
             socketTimeoutMS: 15000,
         });
 
-        // Success
         logger.info("[mongo] ✅ Connected to MongoDB");
     } catch (err) {
-        // Log error
         const message = (err as Error)?.message ?? String(err);
-        logger.error(`[mongo] ❌ Connection failed: ${message}`);
+        logger.error("[mongo] ❌ Connection failed", { error: message });
 
         // In production: fail fast
         if (ENV_AUTO.NODE_ENV === "production") {
             throw err;
         }
-
-        // In dev: do NOT throw, but buffering is disabled so routes will fail fast (no 30s hangs)
+        // In dev: do NOT throw (server can still boot), buffering is disabled so requests won't hang.
     }
 };
