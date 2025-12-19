@@ -2,6 +2,7 @@
 
 import { axiosClient } from "@/services";
 
+
 /**---------------------
     Log event schema
 ------------------------*/
@@ -17,15 +18,57 @@ export interface LogEvent {
     | "alert"
     | "summary"
     | "system"
-    | "unknown";
+    | "unknown"
+    // ✅ optional: helps you tag Render cold start / DB-not-ready
+    | "server_warming_up";
     message: string;
     context?: Record<string, unknown>;
     timestamp?: string;
 }
 
+/** Allow passing either plain context or richer metadata */
+type LogMeta =
+    | Record<string, unknown>
+    | {
+        userId?: string;
+        category?: LogEvent["category"];
+        context?: Record<string, unknown>;
+    };
+
+function normalizeMeta(meta?: LogMeta): {
+    userId?: string;
+    category?: LogEvent["category"];
+    context?: Record<string, unknown>;
+} {
+    if (!meta) return {};
+
+    // If meta looks like { category/userId/context }, treat it as structured meta
+    const maybe = meta as {
+        userId?: string;
+        category?: LogEvent["category"];
+        context?: Record<string, unknown>;
+    };
+
+    const hasStructuredKeys =
+        typeof maybe.userId === "string" ||
+        typeof maybe.category === "string" ||
+        typeof maybe.context === "object";
+
+    if (hasStructuredKeys) {
+        return {
+            userId: maybe.userId,
+            category: maybe.category,
+            context: maybe.context,
+        };
+    }
+
+    // Otherwise meta is a plain context object
+    return { context: meta as Record<string, unknown> };
+}
+
 /**-----------------------------------------------------------------------------------------
     🧾 Logger API — centralized logging for frontend events, model activity, and alerts
-    Backend endpoint (with axiosClient): `/logs` → `http://localhost:8080/api/logs`
+    Backend endpoint (with axiosClient): `/logs` → `${baseURL}/logs`
 --------------------------------------------------------------------------------------------*/
 export const loggerApi = {
     // Log a generic event (info/debug)
@@ -38,14 +81,28 @@ export const loggerApi = {
         return res.data;
     },
 
-    // ⚠️ Log a warning
-    warn: async (message: string, context?: Record<string, unknown>) => {
-        return loggerApi.log({ level: "warning", message, context });
+    // ⚠️ Log a warning (supports: warn(msg, context) OR warn(msg, {category,userId,context}))
+    warn: async (message: string, meta?: LogMeta) => {
+        const { category, userId, context } = normalizeMeta(meta);
+        return loggerApi.log({
+            level: "warning",
+            message,
+            category,
+            userId,
+            context,
+        });
     },
 
-    // ❌ Log an error
-    error: async (message: string, context?: Record<string, unknown>) => {
-        return loggerApi.log({ level: "error", message, context });
+    // ❌ Log an error (supports: error(msg, context) OR error(msg, {category,userId,context}))
+    error: async (message: string, meta?: LogMeta) => {
+        const { category, userId, context } = normalizeMeta(meta);
+        return loggerApi.log({
+            level: "error",
+            message,
+            category,
+            userId,
+            context,
+        });
     },
 
     // 💬 Retrieve logs (for dashboards or admin views)
