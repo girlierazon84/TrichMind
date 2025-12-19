@@ -7,19 +7,24 @@ import { safePreview } from "@/utils/safePreview";
 import { isRetryable, type ErrorResponseBody } from "@/services/axiosClient";
 
 
-/** --------------------------------------------------
- * Fire-and-forget helper – NEVER throws
- * ------------------------------------------------- */
+/**------------------------------------------
+    Fire-and-forget helper – NEVER throws
+---------------------------------------------*/
 function fireAndForget(promise: Promise<unknown>) {
     void promise.catch((err: unknown) => {
         const message =
             err instanceof Error ? err.message : String(err ?? "Unknown error");
+        // Never break UI flow because logging failed
         console.warn("[withLogging] Failed to send log:", message);
     });
 }
 
-/** Distinguish cold start / DB not ready from real failures */
-function classifyNetworkIssue(err: unknown): {
+/**-------------------------------------------------------------
+    Distinguish cold start / DB not ready from real failures
+----------------------------------------------------------------*/
+function classifyNetworkIssue(
+    err: unknown
+): {
     isWarmup: boolean;
     status?: number;
     message: string;
@@ -47,16 +52,16 @@ function classifyNetworkIssue(err: unknown): {
         message.toLowerCase().includes("network error");
 
     if (warmup) {
-        // nicer user-safe message (don’t scare users)
+        // user-friendly message (don’t scare users)
         message = "Server is waking up — please try again in a moment.";
     }
 
     return { isWarmup: warmup, status, message, backendMessage };
 }
 
-/**
- * 🌐 withLogging — wraps async API calls with automatic backend + UI logging
- */
+/**--------------------------------------------------------------------------------
+    🌐 withLogging — wraps async API calls with automatic backend + UI logging
+-----------------------------------------------------------------------------------*/
 export function withLogging<TArgs extends unknown[], TResult>(
     fn: (...args: TArgs) => Promise<TResult>,
     meta?: {
@@ -65,28 +70,31 @@ export function withLogging<TArgs extends unknown[], TResult>(
         showToast?: boolean;
         successMessage?: string;
         errorMessage?: string;
-        warmupMessage?: string; // ✅ optional override text for warmup
+        warmupMessage?: string; // optional override text for warmup
     }
 ): (...args: TArgs) => Promise<TResult> {
     return async (...args: TArgs): Promise<TResult> => {
         const start = performance.now();
 
         const endpoint =
-            meta?.action || (fn.name ? fn.name.replace(/^bound\s*/, "") : "anonymous");
+            meta?.action ||
+            (fn.name ? fn.name.replace(/^bound\s*/, "") : "anonymous");
 
-        const context = buildContext(args[0]);
+        const ctx = buildContext(args[0]);
 
         try {
             const result = await fn(...args);
             const duration = Math.round(performance.now() - start);
 
+            // ✅ success log
             fireAndForget(
                 loggerApi.log({
                     level: "info",
                     category: meta?.category ?? "network",
                     message: `${endpoint} request successful`,
+                    userId: ctx.user?.id ?? undefined,
                     context: {
-                        ...context,
+                        ...ctx,
                         duration_ms: duration,
                         endpoint,
                         action: meta?.action,
@@ -105,20 +113,29 @@ export function withLogging<TArgs extends unknown[], TResult>(
             const info = classifyNetworkIssue(err);
             const category = meta?.category ?? "network";
 
-            // ✅ Do NOT write scary "Registration failed" during cold start
+            // ✅ Don’t spam scary “failed” titles for warmup
             const logMessage = info.isWarmup
                 ? `${endpoint} server_warming_up`
                 : `${endpoint} request failed`;
 
+            // ✅ IMPORTANT: loggerApi.error(message, meta)
+            // meta must be { category, userId, context } to keep category top-level
             fireAndForget(
                 loggerApi.error(logMessage, {
                     category: info.isWarmup ? "server_warming_up" : category,
-                    duration_ms: duration,
-                    error: info.backendMessage || (err instanceof Error ? err.message : "Unknown error"),
-                    status: info.status,
-                    endpoint,
-                    action: meta?.action,
-                    ...context,
+                    userId: ctx.user?.id ?? undefined,
+                    context: {
+                        ...ctx,
+                        duration_ms: duration,
+                        status: info.status,
+                        endpoint,
+                        action: meta?.action,
+                        // store raw error message for debugging
+                        error:
+                            info.backendMessage ||
+                            (err instanceof Error ? err.message : "Unknown error"),
+                        warmup: info.isWarmup,
+                    },
                 })
             );
 
@@ -136,9 +153,7 @@ export function withLogging<TArgs extends unknown[], TResult>(
     };
 }
 
-/**
- * 🧠 Build unified context for all logs
- */
+// Build common context for logging
 function buildContext(arg: unknown) {
     const userContext = getUserContext();
     const browserContext = getBrowserContext();
@@ -152,6 +167,7 @@ function buildContext(arg: unknown) {
     };
 }
 
+// Get user info from localStorage if available
 function getUserContext(): Record<string, string | null> | undefined {
     try {
         const raw = localStorage.getItem("user");
@@ -166,6 +182,7 @@ function getUserContext(): Record<string, string | null> | undefined {
     }
 }
 
+// Get basic browser info if in browser context
 function getBrowserContext():
     | { userAgent: string; language: string; platform: string }
     | undefined {
