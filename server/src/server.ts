@@ -2,9 +2,11 @@
 
 import express, { Request, Response, NextFunction } from "express";
 import cors, { CorsOptions } from "cors";
+import mongoose from "mongoose";
 import { connectMongo, ENV_AUTO } from "./config";
 import { notFound, errorHandler } from "./middlewares";
 import { logger, startWeeklySummaryScheduler } from "./utils";
+
 
 /**------------------
     Route Imports
@@ -57,13 +59,20 @@ const ALLOWED_ORIGINS: string[] = Array.from(
     new Set(envCorsOrigins.length > 0 ? envCorsOrigins : fallbackOrigins)
 );
 
-console.log("🌐 [CORS] Allowed origins:", ALLOWED_ORIGINS);
+if (ENV_AUTO.NODE_ENV !== "production") {
+    console.log("🌐 [CORS] Allowed origins:", ALLOWED_ORIGINS);
+}
 
 const corsOptions: CorsOptions = {
     origin(origin, callback) {
+        // Allow non-browser tools (Postman, curl, server-to-server)
         if (!origin) return callback(null, true);
+
         if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+
+        // Allow Vercel preview deployments
         if (origin.endsWith(".vercel.app")) return callback(null, true);
+
         return callback(new Error(`Not allowed by CORS: ${origin}`));
     },
     credentials: true,
@@ -72,6 +81,8 @@ const corsOptions: CorsOptions = {
 };
 
 app.use(cors(corsOptions));
+// ✅ Explicit preflight handler (helps with some proxies/CDNs)
+app.options("*", cors(corsOptions));
 
 /**--------------------------------------------
     ✅ Body parsers (JSON, form-data)
@@ -90,10 +101,24 @@ app.use(
 );
 
 /**--------------------------------------
-    🧪 Simple health / ping endpoint
+    🧪 Health endpoints
 -----------------------------------------*/
 app.get("/api/ping", (_req: Request, res: Response) => {
     res.json({ ok: true, message: "pong" });
+});
+
+/**
+ * ✅ Readiness check:
+ *  - 200 when Mongo is connected
+ *  - 503 when not connected
+ *  (useful on Render to confirm server is up even if DB is down)
+ */
+app.get("/api/ready", (_req: Request, res: Response) => {
+    const ready = mongoose.connection.readyState === 1;
+    res.status(ready ? 200 : 503).json({
+        ok: ready,
+        mongoReadyState: mongoose.connection.readyState,
+    });
 });
 
 /**-------------------
@@ -118,33 +143,28 @@ app.use("/api/overview", relapseOverviewRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
+/**------------------------------------------
+    🕒 Scheduler (Weekly Summary Emails)
+    Start regardless of DB; scheduler logic should handle failures safely
+---------------------------------------------*/
+startWeeklySummaryScheduler();
+
 /**---------------------
     🚀 Start Server
 ------------------------*/
 const port = ENV_AUTO.PORT || 8080;
 
-async function start() {
-    try {
-        // ✅ Connect first so auth/register won't hang on buffered queries
-        await connectMongo();
+// ✅ Always start HTTP server first (prevents Render 502 on preflight when Mongo is down)
+app.listen(port, () => {
+    logger.info(`🚀 TrichMind Server running on port ${port}`);
+    console.log(`🚀 TrichMind Server running on port ${port}`);
 
-        app.listen(port, () => {
-            logger.info(`🚀 TrichMind Server running on port ${port}`);
-            console.log(`🚀 TrichMind Server running on port ${port}`);
-        });
-
-        // ✅ Start scheduler after server + (attempted) DB connect
-        startWeeklySummaryScheduler();
-    } catch (err) {
+    // ✅ Connect Mongo in background
+    void connectMongo().catch((err) => {
         const msg = (err as Error)?.message ?? String(err);
-
-        // ✅ FIX: your logger.error appears typed to accept ONE argument only
-        logger.error(`❌ Failed to start server (Mongo connect failed): ${msg}`);
-
-        process.exit(1);
-    }
-}
-
-void start();
+        // logger.error is 1-arg in your implementation
+        logger.error(`❌ Mongo connect failed (background): ${msg}`);
+    });
+});
 
 export default app;
