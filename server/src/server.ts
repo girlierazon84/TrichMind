@@ -4,7 +4,7 @@ import express, { Request, Response, NextFunction } from "express";
 import cors, { CorsOptions } from "cors";
 import mongoose from "mongoose";
 import { connectMongo, ENV_AUTO } from "./config";
-import { notFound, errorHandler } from "./middlewares";
+import { notFound, errorHandler, requireMongoReady } from "./middlewares";
 import { logger, startWeeklySummaryScheduler } from "./utils";
 
 
@@ -30,7 +30,7 @@ import relapseOverviewRoutes from "./routes/relapseOverviewRoutes";
 const app = express();
 
 /** ✅ IMPORTANT: disable buffering IMMEDIATELY (before any routes)
- *  Otherwise first requests can hang ~30s while Mongo connects.
+ *  Otherwise first requests can hang while Mongo connects.
  */
 mongoose.set("bufferCommands", false);
 
@@ -76,7 +76,7 @@ const corsOptions: CorsOptions = {
         const allowed =
             ALLOWED_ORIGINS.includes(origin) || origin.endsWith(".vercel.app");
 
-        // IMPORTANT: don't throw errors from CORS — just deny
+        // ✅ IMPORTANT: don’t throw from CORS (can cause ugly 502 behavior via proxies)
         return callback(null, allowed);
     },
     credentials: true,
@@ -87,25 +87,15 @@ const corsOptions: CorsOptions = {
 app.use(cors(corsOptions));
 
 /** ✅ Explicit preflight handler
- *  Use regex instead of "*" to avoid path-to-regexp crash on Render.
+ *  Use regex instead of "*" to avoid path-to-regexp crash on Express 5.
  */
 app.options(/.*/, cors(corsOptions));
 
 /**--------------------------------------------
     ✅ Body parsers (JSON, form-data)
 -----------------------------------------------*/
-app.use(
-    express.json({
-        limit: "5mb",
-    })
-);
-
-app.use(
-    express.urlencoded({
-        extended: true,
-        limit: "5mb",
-    })
-);
+app.use(express.json({ limit: "5mb" }));
+app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
 /**--------------------------------------
     🧪 Health endpoints
@@ -123,34 +113,28 @@ app.get("/api/ready", (_req: Request, res: Response) => {
 });
 
 /**--------------------------------------
-    ✅ DB Guard (prevents 30s request hangs)
+    ✅ DB Guard (prevents request hangs)
 -----------------------------------------*/
-const requireMongo: express.RequestHandler = (_req, res, next) => {
-    if (mongoose.connection.readyState === 1) return next();
-
-    return res.status(503).json({
-        ok: false,
-        error: "ServiceUnavailable",
-        message: "Database is starting up. Please retry in a few seconds.",
-        mongoReadyState: mongoose.connection.readyState,
-    });
-};
+const requireMongo = requireMongoReady();
 
 /**-------------------
     ✅ API Routes
 ----------------------*/
+// DB-backed routes guarded
 app.use("/api/alerts", requireMongo, alertRoutes);
 app.use("/api/auth", requireMongo, authRoutes);
 app.use("/api/health", requireMongo, healthRoutes);
 app.use("/api/journal", requireMongo, journalRoutes);
 app.use("/api/logs", requireMongo, loggerRoutes);
-app.use("/api/ml", requireMongo, predictRoutes);
 app.use("/api/summary", requireMongo, summaryRoutes);
 app.use("/api/trichbot", requireMongo, trichBotRoutes);
 app.use("/api/games", requireMongo, trichGameRoutes);
 app.use("/api/triggers", requireMongo, triggersInsightsRoutes);
 app.use("/api/users", requireMongo, userRoutes);
 app.use("/api/overview", requireMongo, relapseOverviewRoutes);
+
+// ✅ If /api/ml depends on Mongo, keep guarded; if not, remove requireMongo here.
+app.use("/api/ml", requireMongo, predictRoutes);
 
 /**-----------------------------
     ✅ 404 + Error Handlers
