@@ -1,6 +1,6 @@
 // server/src/middlewares/index.ts
 
 export * from "./authMiddleware";
-export * from "./errorHandler";
-export * from "./validateMiddleware";
-export * from "./requireMongoReady";
+export { notFound, errorHandler } from "./errorHandler";
+export { validate } from "./validateMiddleware";
+export { requireMongoReady } from "./requireMongoReady";
