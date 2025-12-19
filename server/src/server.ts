@@ -65,12 +65,12 @@ if (ENV_AUTO.NODE_ENV !== "production") {
 
 const corsOptions: CorsOptions = {
     origin(origin, callback) {
-        // Allow non-browser tools (Postman, curl, server-to-server)
+        // Allow non-browser tools (Postman/curl/server-to-server)
         if (!origin) return callback(null, true);
 
         if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
 
-        // Allow Vercel preview deployments
+        // Allow Vercel preview deployments (optional)
         if (origin.endsWith(".vercel.app")) return callback(null, true);
 
         return callback(new Error(`Not allowed by CORS: ${origin}`));
@@ -80,25 +80,18 @@ const corsOptions: CorsOptions = {
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 };
 
+// ✅ CORS middleware
 app.use(cors(corsOptions));
-// ✅ Explicit preflight handler (helps with some proxies/CDNs)
-app.options("*", cors(corsOptions));
+
+// ✅ Explicit preflight handler (Express/path-to-regexp safe)
+// DO NOT use "*" here (can crash in newer path-to-regexp)
+app.options(/.*/, cors(corsOptions));
 
 /**--------------------------------------------
     ✅ Body parsers (JSON, form-data)
 -----------------------------------------------*/
-app.use(
-    express.json({
-        limit: "5mb",
-    })
-);
-
-app.use(
-    express.urlencoded({
-        extended: true,
-        limit: "5mb",
-    })
-);
+app.use(express.json({ limit: "5mb" }));
+app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
 /**--------------------------------------
     🧪 Health endpoints
@@ -111,7 +104,6 @@ app.get("/api/ping", (_req: Request, res: Response) => {
  * ✅ Readiness check:
  *  - 200 when Mongo is connected
  *  - 503 when not connected
- *  (useful on Render to confirm server is up even if DB is down)
  */
 app.get("/api/ready", (_req: Request, res: Response) => {
     const ready = mongoose.connection.readyState === 1;
@@ -145,7 +137,6 @@ app.use(errorHandler);
 
 /**------------------------------------------
     🕒 Scheduler (Weekly Summary Emails)
-    Start regardless of DB; scheduler logic should handle failures safely
 ---------------------------------------------*/
 startWeeklySummaryScheduler();
 
@@ -154,7 +145,7 @@ startWeeklySummaryScheduler();
 ------------------------*/
 const port = ENV_AUTO.PORT || 8080;
 
-// ✅ Always start HTTP server first (prevents Render 502 on preflight when Mongo is down)
+// ✅ Always start HTTP server first (prevents Render 502 on preflight if Mongo is down)
 app.listen(port, () => {
     logger.info(`🚀 TrichMind Server running on port ${port}`);
     console.log(`🚀 TrichMind Server running on port ${port}`);
@@ -162,7 +153,6 @@ app.listen(port, () => {
     // ✅ Connect Mongo in background
     void connectMongo().catch((err) => {
         const msg = (err as Error)?.message ?? String(err);
-        // logger.error is 1-arg in your implementation
         logger.error(`❌ Mongo connect failed (background): ${msg}`);
     });
 });
