@@ -5,7 +5,6 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios";
 
-
 /**-------------------------------------------------------------------
     Backend ROOT (WITHOUT trailing /api).
 
@@ -18,18 +17,43 @@ const API_ROOT =
     ? "https://trichmind-api.onrender.com"
     : "http://localhost:8080");
 
-// Normalize and append `/api` → matches Express `app.use("/api", ...)`
+// Normalize and append `/api`
 const baseURL = `${API_ROOT.replace(/\/+$/, "")}/api`;
 
-// Extend Axios request config to include our internal flag
+// Extend Axios request config to include our internal flags
 type RetriableRequestConfig = InternalAxiosRequestConfig & {
   _retry?: boolean;
+  _retryCount?: number;
 };
 
 // Shape of error payload from backend
-interface ErrorResponseBody {
+export interface ErrorResponseBody {
   error?: string;
   message?: string;
+  mongoReadyState?: number;
+}
+
+/** Axios error "code" type without using `any` */
+type AxiosErrorWithCode<T = unknown> = AxiosError<T> & { code?: string };
+
+/** --- small helpers --- */
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+export function isRetryable(error: AxiosError<ErrorResponseBody>) {
+  const status = error.response?.status;
+
+  // Server says "not ready" (our requireMongo 503)
+  if (status === 503) return true;
+
+  // Gateway/proxy hiccups
+  if (status === 502 || status === 504) return true;
+
+  // Axios network / timeout (Render cold start / mobile)
+  const code = (error as AxiosErrorWithCode<ErrorResponseBody>).code;
+  if (code === "ECONNABORTED") return true; // timeout
+  if (error.message?.toLowerCase().includes("network error")) return true;
+
+  return false;
 }
 
 // Axios Client – always points at /api
@@ -37,29 +61,35 @@ export const axiosClient = axios.create({
   baseURL,
   headers: { "Content-Type": "application/json" },
   withCredentials: true,
-  timeout: 30000, // ⬅️ 30s to be kinder to Render cold starts
+  timeout: 30000, // 30s
 });
 
 // Attach access token to requests
 axiosClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("access_token");
-
-  // Attach token if available
   if (token) {
     config.headers = config.headers ?? {};
     config.headers.Authorization = `Bearer ${token}`;
   }
-
   return config;
 });
 
-// Handle expired token
 axiosClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ErrorResponseBody>) => {
     const original = error.config as RetriableRequestConfig | undefined;
 
-    // Check for token expiration and retry once
+    /** 1) Retry once on cold-start / DB not ready / transient network */
+    if (original && isRetryable(error)) {
+      const count = original._retryCount ?? 0;
+      if (count < 1) {
+        original._retryCount = count + 1;
+        await sleep(700);
+        return axiosClient(original);
+      }
+    }
+
+    /** 2) Handle expired token and retry once */
     if (
       error.response?.status === 401 &&
       error.response.data?.error === "Token expired" &&
@@ -71,7 +101,6 @@ axiosClient.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem("refresh_token");
 
-        // No refresh token, redirect to login
         if (!refreshToken) {
           localStorage.removeItem("access_token");
           localStorage.removeItem("refresh_token");
@@ -86,12 +115,12 @@ axiosClient.interceptors.response.use(
           {
             withCredentials: true,
             headers: { "Content-Type": "application/json" },
+            timeout: 20000,
           }
         );
 
         const newToken = refresh.data.token;
 
-        // No new token, redirect to login
         if (!newToken) {
           localStorage.removeItem("access_token");
           localStorage.removeItem("refresh_token");
@@ -99,13 +128,11 @@ axiosClient.interceptors.response.use(
           return Promise.reject(error);
         }
 
-        // Store new token and update headers
         localStorage.setItem("access_token", newToken);
         axiosClient.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
         original.headers = original.headers ?? {};
         original.headers.Authorization = `Bearer ${newToken}`;
 
-        // Retry original request with new token
         return axiosClient(original);
       } catch (err) {
         localStorage.removeItem("access_token");
