@@ -3,22 +3,23 @@
 import axios, {
   type AxiosError,
   type InternalAxiosRequestConfig,
+  type Method,
 } from "axios";
 
-/**-------------------------------------------------------------------
+/**--------------------------------------------------------------------
     Backend ROOT (WITHOUT trailing /api).
 
     🔹 In dev (Vite):  VITE_API_BASE_URL = "http://localhost:8080"
     🔹 In prod (Vercel): falls back to Render API if not set
-----------------------------------------------------------------------*/
-const API_ROOT =
+-----------------------------------------------------------------------*/
+export const API_ROOT =
   import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.PROD
     ? "https://trichmind-api.onrender.com"
     : "http://localhost:8080");
 
 // Normalize and append `/api`
-const baseURL = `${API_ROOT.replace(/\/+$/, "")}/api`;
+export const baseURL = `${API_ROOT.replace(/\/+$/, "")}/api`;
 
 // Extend Axios request config to include our internal flags
 type RetriableRequestConfig = InternalAxiosRequestConfig & {
@@ -39,10 +40,15 @@ type AxiosErrorWithCode<T = unknown> = AxiosError<T> & { code?: string };
 /** --- small helpers --- */
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+function isSafeToRetry(method?: Method) {
+  const m = (method || "GET").toUpperCase();
+  return m === "GET" || m === "HEAD" || m === "OPTIONS";
+}
+
 export function isRetryable(error: AxiosError<ErrorResponseBody>) {
   const status = error.response?.status;
 
-  // Server says "not ready" (our requireMongo 503)
+  // Server says "not ready" (our readiness / requireMongo 503)
   if (status === 503) return true;
 
   // Gateway/proxy hiccups
@@ -50,8 +56,18 @@ export function isRetryable(error: AxiosError<ErrorResponseBody>) {
 
   // Axios network / timeout (Render cold start / mobile)
   const code = (error as AxiosErrorWithCode<ErrorResponseBody>).code;
-  if (code === "ECONNABORTED") return true; // timeout
-  if (error.message?.toLowerCase().includes("network error")) return true;
+
+  // timeout
+  if (code === "ECONNABORTED") return true;
+
+  // Safari / mobile sometimes surfaces generic network failures
+  const msg = error.message?.toLowerCase?.() ?? "";
+  if (msg.includes("network error")) return true;
+  if (msg.includes("load failed")) return true;
+  if (msg.includes("failed to fetch")) return true;
+
+  // some environments use this (Axios 1.x sometimes)
+  if (code === "ERR_NETWORK") return true;
 
   return false;
 }
@@ -82,10 +98,21 @@ axiosClient.interceptors.response.use(
     /** 1) Retry once on cold-start / DB not ready / transient network */
     if (original && isRetryable(error)) {
       const count = original._retryCount ?? 0;
+
+      // Only retry once
       if (count < 1) {
-        original._retryCount = count + 1;
-        await sleep(700);
-        return axiosClient(original);
+        // Avoid retrying POST/PUT/PATCH/DELETE unless it's a proxy/ready issue
+        const method = original.method as Method | undefined;
+        const status = error.response?.status;
+
+        const allowRetry =
+          isSafeToRetry(method) || status === 502 || status === 503 || status === 504;
+
+        if (allowRetry) {
+          original._retryCount = count + 1;
+          await sleep(700);
+          return axiosClient(original);
+        }
       }
     }
 
