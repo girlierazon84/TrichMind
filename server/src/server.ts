@@ -29,6 +29,11 @@ import relapseOverviewRoutes from "./routes/relapseOverviewRoutes";
 ------------------------------*/
 const app = express();
 
+/** ✅ IMPORTANT: disable buffering IMMEDIATELY (before any routes)
+ *  Otherwise first requests can hang ~30s while Mongo connects.
+ */
+mongoose.set("bufferCommands", false);
+
 /**---------------------------------------------
     🔍 Simple request logger (dev only)
 ------------------------------------------------*/
@@ -65,33 +70,42 @@ if (ENV_AUTO.NODE_ENV !== "production") {
 
 const corsOptions: CorsOptions = {
     origin(origin, callback) {
-        // Allow non-browser tools (Postman/curl/server-to-server)
+        // Allow non-browser tools (Postman, curl, server-to-server)
         if (!origin) return callback(null, true);
 
-        if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+        const allowed =
+            ALLOWED_ORIGINS.includes(origin) || origin.endsWith(".vercel.app");
 
-        // Allow Vercel preview deployments (optional)
-        if (origin.endsWith(".vercel.app")) return callback(null, true);
-
-        return callback(new Error(`Not allowed by CORS: ${origin}`));
+        // IMPORTANT: don't throw errors from CORS — just deny
+        return callback(null, allowed);
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 };
 
-// ✅ CORS middleware
 app.use(cors(corsOptions));
 
-// ✅ Explicit preflight handler (Express/path-to-regexp safe)
-// DO NOT use "*" here (can crash in newer path-to-regexp)
+/** ✅ Explicit preflight handler
+ *  Use regex instead of "*" to avoid path-to-regexp crash on Render.
+ */
 app.options(/.*/, cors(corsOptions));
 
 /**--------------------------------------------
     ✅ Body parsers (JSON, form-data)
 -----------------------------------------------*/
-app.use(express.json({ limit: "5mb" }));
-app.use(express.urlencoded({ extended: true, limit: "5mb" }));
+app.use(
+    express.json({
+        limit: "5mb",
+    })
+);
+
+app.use(
+    express.urlencoded({
+        extended: true,
+        limit: "5mb",
+    })
+);
 
 /**--------------------------------------
     🧪 Health endpoints
@@ -100,11 +114,6 @@ app.get("/api/ping", (_req: Request, res: Response) => {
     res.json({ ok: true, message: "pong" });
 });
 
-/**
- * ✅ Readiness check:
- *  - 200 when Mongo is connected
- *  - 503 when not connected
- */
 app.get("/api/ready", (_req: Request, res: Response) => {
     const ready = mongoose.connection.readyState === 1;
     res.status(ready ? 200 : 503).json({
@@ -113,21 +122,35 @@ app.get("/api/ready", (_req: Request, res: Response) => {
     });
 });
 
+/**--------------------------------------
+    ✅ DB Guard (prevents 30s request hangs)
+-----------------------------------------*/
+const requireMongo: express.RequestHandler = (_req, res, next) => {
+    if (mongoose.connection.readyState === 1) return next();
+
+    return res.status(503).json({
+        ok: false,
+        error: "ServiceUnavailable",
+        message: "Database is starting up. Please retry in a few seconds.",
+        mongoReadyState: mongoose.connection.readyState,
+    });
+};
+
 /**-------------------
     ✅ API Routes
 ----------------------*/
-app.use("/api/alerts", alertRoutes);
-app.use("/api/auth", authRoutes);
-app.use("/api/health", healthRoutes);
-app.use("/api/journal", journalRoutes);
-app.use("/api/logs", loggerRoutes);
-app.use("/api/ml", predictRoutes);
-app.use("/api/summary", summaryRoutes);
-app.use("/api/trichbot", trichBotRoutes);
-app.use("/api/games", trichGameRoutes);
-app.use("/api/triggers", triggersInsightsRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/overview", relapseOverviewRoutes);
+app.use("/api/alerts", requireMongo, alertRoutes);
+app.use("/api/auth", requireMongo, authRoutes);
+app.use("/api/health", requireMongo, healthRoutes);
+app.use("/api/journal", requireMongo, journalRoutes);
+app.use("/api/logs", requireMongo, loggerRoutes);
+app.use("/api/ml", requireMongo, predictRoutes);
+app.use("/api/summary", requireMongo, summaryRoutes);
+app.use("/api/trichbot", requireMongo, trichBotRoutes);
+app.use("/api/games", requireMongo, trichGameRoutes);
+app.use("/api/triggers", requireMongo, triggersInsightsRoutes);
+app.use("/api/users", requireMongo, userRoutes);
+app.use("/api/overview", requireMongo, relapseOverviewRoutes);
 
 /**-----------------------------
     ✅ 404 + Error Handlers
@@ -145,7 +168,7 @@ startWeeklySummaryScheduler();
 ------------------------*/
 const port = ENV_AUTO.PORT || 8080;
 
-// ✅ Always start HTTP server first (prevents Render 502 on preflight if Mongo is down)
+// ✅ Always start HTTP server first (prevents Render 502 during boot)
 app.listen(port, () => {
     logger.info(`🚀 TrichMind Server running on port ${port}`);
     console.log(`🚀 TrichMind Server running on port ${port}`);
