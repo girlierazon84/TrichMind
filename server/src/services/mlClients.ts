@@ -5,6 +5,7 @@ import { ENV_AUTO } from "../config";
 import { logger } from "../utils";
 import type { RelapseFeaturesExtended } from "../types/relapseFeatures";
 
+
 /**--------------------------------------------------------
     Shape returned by the FastAPI relapse-risk endpoint
     (matches FastAPI _run_predict_core output)
@@ -49,29 +50,37 @@ const mlHttp = axios.create({
 export async function predictRelapseRisk(
     features: RelapseFeaturesExtended
 ): Promise<MlRelapseResponse> {
+    // Send POST request to ML service
     try {
+        // Log the outgoing request
         logger.info(
             `[ML] Sending relapse-overview payload to ${ML_BASE_URL}${ML_RELAPSE_PATH}`
         );
 
+        // Send request
         const { data } = await mlHttp.post<MlRelapseResponse>(
             ML_RELAPSE_PATH,
             features
         );
 
+        // Log the response
         logger.info(`[ML] Relapse-overview response: ${JSON.stringify(data)}`);
         return data;
     } catch (err: any) {
+        // Log the error details
         const status = err?.response?.status;
         const msg = err?.message ?? String(err);
 
+        // Log error
         logger.error(
             `❌ ML relapse-risk request failed (${ML_RELAPSE_PATH}) – status: ${
                 status ?? "n/a"
             }, error: ${msg}`
         );
 
+        // Log response data if available
         if (err?.response?.data) {
+            // Detailed response data
             logger.error(
                 `[ML] Response data: ${JSON.stringify(
                     err.response.data,
