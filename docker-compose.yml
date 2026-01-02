@@ -1,0 +1,84 @@
+version: "3.9"
+
+services:
+  # 🍃 MongoDB Database
+  mongo:
+    image: mongo:7
+    container_name: trichmind-mongo
+    ports:
+      - "27018:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - mongo-data:/data/db
+    restart: unless-stopped
+
+  # 🤖 FastAPI ML Inference Service
+  ml:
+    build:
+      context: ./ml
+      dockerfile: Dockerfile
+    container_name: trichmind-ml
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./ml/.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  # 🧱 Node.js Backend API
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: trichmind-server
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./server/.env.docker
+    depends_on:
+      mongo:
+        condition: service_healthy
+      ml:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  # ⚛️ Next.js Frontend (PROD)
+  web:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: trichmind-web
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      # Browser calls backend via host mapping
+      NEXT_PUBLIC_API_URL: "http://localhost:8080"
+    depends_on:
+      server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
