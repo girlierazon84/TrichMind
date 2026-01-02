@@ -1,0 +1,53 @@
+# --------------------------------------------
+# TrichMind Project Dependencies
+# --------------------------------------------
+
+# Core Python Version
+pip==25.3
+
+# Frontend (Streamlit Pitch / Dashboard)
+streamlit==1.50.0
+streamlit-autorefresh==1.0.1
+plotly==6.3.1
+matplotlib==3.10.7
+seaborn==0.13.2
+
+# Backend (API Services)
+fastapi==0.119.1
+uvicorn==0.38.0
+pydantic==2.12.3
+python-multipart==0.0.20
+
+# Data Science / Machine Learning
+pandas==2.3.3
+numpy==2.3.4
+scikit-learn==1.7.2
+joblib==1.5.2
+tensorflow-cpu==2.20.0
+keras==3.11.3
+scikeras==0.13.0
+
+# --------------------------------------------
+# Installation Instructions
+# --------------------------------------------
+# Create and activate a virtual environment:
+#   python -m venv .venv
+#   .venv\Scripts\activate         (Windows)
+#   source .venv/bin/activate      (Linux/Mac)
+#
+# Then install dependencies:
+#   pip install -r requirements.txt
+#
+# To freeze environment versions:
+#   pip freeze > requirements.lock
+# --------------------------------------------
+
+# --------------------------------------------
+# Start Docker Dev Environment
+# --------------------------------------------
+# docker compose -f docker-compose.dev.yml up --build
+
+# -------------------------------------------------------------------
+# Start Local Dev (server only) - Mongo must be started manually:
+# -------------------------------------------------------------------
+# docker run -d -p 27018:27017 --name mongo-dev mongo:7
