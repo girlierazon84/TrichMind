@@ -1,0 +1,95 @@
+# ──────────────────────────────
+# Python & Environment
+# ──────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.env
+.env.local
+.venv
+venv/
+env/
+env.bak/
+pip-wheel-metadata/
+*.spec
+
+# ──────────────────────────────
+# Jupyter / IPython
+# ──────────────────────────────
+.ipynb_checkpoints/
+*.ipynb~
+
+# ──────────────────────────────
+# Logs & Temp Files
+# ──────────────────────────────
+*.log
+*.tmp
+*.bak
+*.swp
+artifacts/logs/
+preprocessing_log.txt
+
+# ──────────────────────────────
+# Databases & Data Artifacts
+# ──────────────────────────────
+# Keep your raw CSVs safe but ignore generated DBs and exports
+artifacts/database/*.db
+artifacts/database/*.sqlite
+artifacts/enriched_exports/
+artifacts/tmp/
+*.db-journal
+*.sqlite-journal
+
+# ──────────────────────────────
+# Model Artifacts
+# ──────────────────────────────
+artifacts/models/*.pkl
+artifacts/models/*.joblib
+artifacts/models/*.sav
+artifacts/models/*.h5
+
+# ──────────────────────────────
+# Machine Learning Outputs
+# ──────────────────────────────
+artifacts/scalers/
+artifacts/predictions/
+artifacts/checkpoints/
+artifacts/cache/
+*.npy
+*.npz
+
+# ──────────────────────────────
+# IDE / Editor Settings
+# ──────────────────────────────
+.vscode/
+.idea/
+*.code-workspace
+
+# ──────────────────────────────
+# OS / System Files
+# ──────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+~$*
+
+# ──────────────────────────────
+# Streamlit / Streamlit Cloud Cache
+# ──────────────────────────────
+.streamlit/
+.streamlit/secrets.toml
+.streamlit/config.toml
+
+# ──────────────────────────────
+# Backup or Test Data
+# ──────────────────────────────
+tests/__pycache__/
+tests/*.log
+tests/output/
