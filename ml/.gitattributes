@@ -1,0 +1,51 @@
+# ──────────────────────────────
+# Core Git Configuration
+# ──────────────────────────────
+# Enforce LF (Unix-style) line endings across all systems
+* text=auto eol=lf
+# Treat Python, Markdown, JSON, and YAML files as text for diffs
+*.py text diff=python
+*.ipynb text
+*.md text
+*.yml text
+*.yaml text
+*.json text
+*.toml text
+# ──────────────────────────────
+# Git Large File Storage (LFS)
+# ──────────────────────────────
+# Use LFS for large binary files typically produced by ML pipelines
+*.db filter=lfs diff=lfs merge=lfs -text
+*.sqlite filter=lfs diff=lfs merge=lfs -text
+*.pkl filter=lfs diff=lfs merge=lfs -text
+*.joblib filter=lfs diff=lfs merge=lfs -text
+*.sav filter=lfs diff=lfs merge=lfs -text
+*.h5 filter=lfs diff=lfs merge=lfs -text
+*.npy filter=lfs diff=lfs merge=lfs -text
+*.npz filter=lfs diff=lfs merge=lfs -text
+*.csv filter=lfs diff=lfs merge=lfs -text
+# ──────────────────────────────
+# Image & Binary Assets
+# ──────────────────────────────
+# Store images and binary artifacts via LFS to keep repo small
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+*.gif filter=lfs diff=lfs merge=lfs -text
+*.svg filter=lfs diff=lfs merge=lfs -text
+*.pdf filter=lfs diff=lfs merge=lfs -text
+# ──────────────────────────────
+# Documentation & Presentations
+# ──────────────────────────────
+*.pptx filter=lfs diff=lfs merge=lfs -text
+*.docx filter=lfs diff=lfs merge=lfs -text
+*.rtf filter=lfs diff=lfs merge=lfs -text
+# ──────────────────────────────
+# Logging & Output
+# ──────────────────────────────
+*.log text
+*.txt text
+# ──────────────────────────────
+# Exclude notebooks from merge conflicts
+# ──────────────────────────────
+*.ipynb merge=union
