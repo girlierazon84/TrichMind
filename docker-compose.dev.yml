@@ -1,0 +1,95 @@
+version: "3.9"
+
+services:
+  # 🍃 MongoDB
+  mongo:
+    image: mongo:7
+    container_name: trichmind-mongo-dev
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo-data-dev:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # 🤖 ML API (FastAPI) — Dev reload
+  ml:
+    build:
+      context: ./ml
+      dockerfile: Dockerfile.dev
+    container_name: trichmind-ml-dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ml:/ml
+      - ./ml/artifacts:/ml/artifacts
+    env_file:
+      - ./ml/.env
+    command: uvicorn api.api:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # 🧱 Node Backend — Dev reload
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    container_name: trichmind-server-dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    env_file:
+      - ./server/.env.docker
+    environment:
+      DOCKERIZED: "true"
+      NODE_ENV: development
+    depends_on:
+      mongo:
+        condition: service_healthy
+      ml:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  # ⚛️ Next.js Frontend — Dev reload (port 3000)
+  web:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+    container_name: trichmind-web-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: "http://localhost:8080"
+      # ensures next dev binds correctly in containers
+      HOSTNAME: "0.0.0.0"
+      PORT: "3000"
+      WATCHPACK_POLLING: "true"
+    depends_on:
+      server:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mongo-data-dev:
