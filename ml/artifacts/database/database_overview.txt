@@ -1,0 +1,622 @@
+📋 Tables found (13): ['activities', 'coping_strategies_tried', 'demographics', 'effective_coping_strategies', 'emotions_after_pulling', 'emotions_before_pulling', 'hair_pulling_behaviours_patterns', 'other_mental_health_conditions', 'parts_of_the_body_pulled', 'pulling_environment', 'pulling_triggers', 'seasons_affect_pulling_intensity', 'relapse_risk_model_features']
+
+===== activities =====
+Columns:
+  - id (INTEGER)
+  - studying (INTEGER)
+  - working (INTEGER)
+  - reading (INTEGER)
+  - watching_tv (INTEGER)
+  - using_phone_computer (INTEGER)
+  - socializing (INTEGER)
+  - using_bathroom (INTEGER)
+  - driving (INTEGER)
+  - sitting_still_car_bus (INTEGER)
+  - sitting_laying_on_bed (INTEGER)
+  - hiking (INTEGER)
+  - playing (INTEGER)
+  - not_applicable (INTEGER)
+
+Sample rows (first 5):
+ id  studying  working  reading  watching_tv  using_phone_computer  socializing  using_bathroom  driving  sitting_still_car_bus  sitting_laying_on_bed  hiking  playing  not_applicable
+  1         1        1        1            1                     1            0               0        0                      0                      0       0        0               0
+  2         1        1        1            1                     1            1               0        0                      0                      0       0        0               0
+  3         0        0        0            0                     0            0               1        0                      0                      0       0        0               0
+  4         0        0        0            0                     0            1               0        1                      1                      0       0        0               0
+  5         1        1        1            1                     1            0               0        0                      0                      0       0        0               0
+
+===== coping_strategies_tried =====
+Columns:
+  - id (INTEGER)
+  - hats_bandana_headband_glasses (INTEGER)
+  - wigs_hair_extensions (INTEGER)
+  - gloves_tape_bandaid_glue_finger_caps (INTEGER)
+  - gel_acrylic_long_nails (INTEGER)
+  - mascara_makeup (INTEGER)
+  - fidget_toys_fidget_ring_picky_pad (INTEGER)
+  - therapy_putty (INTEGER)
+  - putting_hair_oil (INTEGER)
+  - medication (INTEGER)
+  - habit_tracking_apps (INTEGER)
+  - do_updo_hair (INTEGER)
+  - shave_head_regularly (INTEGER)
+  - keeping_hair_short (INTEGER)
+  - dyeing_hair (INTEGER)
+  - washing_hair (INTEGER)
+  - cutting_sugar (INTEGER)
+  - exercise_walking (INTEGER)
+  - redirection_distraction (INTEGER)
+  - talking_about_it (INTEGER)
+  - anxiety_coping_skills (INTEGER)
+  - support_groups (INTEGER)
+  - therapy_counseling (INTEGER)
+  - physiologist (INTEGER)
+  - hypnotherapy (INTEGER)
+  - journaling (INTEGER)
+  - hand_based_activity (INTEGER)
+  - urge_surfing (INTEGER)
+  - self_affirmations (INTEGER)
+  - mental_strength (INTEGER)
+  - none (INTEGER)
+
+Sample rows (first 5):
+ id  hats_bandana_headband_glasses  wigs_hair_extensions  gloves_tape_bandaid_glue_finger_caps  gel_acrylic_long_nails  mascara_makeup  fidget_toys_fidget_ring_picky_pad  therapy_putty  putting_hair_oil  medication  habit_tracking_apps  do_updo_hair  shave_head_regularly  keeping_hair_short  dyeing_hair  washing_hair  cutting_sugar  exercise_walking  redirection_distraction  talking_about_it  anxiety_coping_skills  support_groups  therapy_counseling  physiologist  hypnotherapy  journaling  hand_based_activity  urge_surfing  self_affirmations  mental_strength  none
+  1                              1                     1                                     1                       0               0                                  1              0                 0           1                    1             0                     0                   1            0             0              1                 0                        0                 0                      0               1                   1             0             0           0                    1             0                  0                1     0
+  2                              0                     1                                     1                       1               0                                  0              0                 0           0                    0             0                     0                   0            0             0              0                 0                        0                 0                      0               0                   0             0             0           0                    0             0                  0                0     0
+  3                              0                     0                                     0                       0               0                                  0              0                 0           0                    0             0                     0                   0            0             0              0                 0                        0                 0                      0               0                   0             0             0           0                    0             0                  1                1     0
+  4                              0                     0                                     0                       0               0                                  0              0                 0           1                    0             0                     0                   0            0             0              0                 0                        0                 0                      0               0                   0             1             1           0                    1             0                  0                0     0
+  5                              1                     0                                     1                       0               0                                  1              0                 0           1                    1             0                     0                   1            0             0              0                 0                        0                 0                      0               0                   1             0             0           0                    0             0                  0                0     0
+
+===== demographics =====
+Columns:
+  - id (INTEGER)
+  - age (INTEGER)
+  - gender (TEXT)
+  - country (TEXT)
+  - occupation (TEXT)
+  - education_level (TEXT)
+  - professionally_diagnosed (TEXT)
+  - age_of_onset (INTEGER)
+  - years_with_ttm (TEXT)
+  - family_history (TEXT)
+
+Sample rows (first 5):
+ id  age gender   country  occupation   education_level professionally_diagnosed  age_of_onset     years_with_ttm family_history
+  1   40 Female    Sweden     Student Bachelor's Degree                      Yes            27 More than 10 years             No
+  2   43 Female       USA Hairstylist         Secondary                      Yes            13 More than 10 years            Yes
+  3   26 Female       USA  Unemployed         Secondary                       No             9 More than 10 years            Yes
+  4   35 Female Australia Dog Trainer   Master's Degree                       No            27         6-10 years       Not sure
+  5   24 Female   Unknown     Unknown             Other                      Yes            11 More than 10 years       Not sure
+
+===== effective_coping_strategies =====
+Columns:
+  - id (INTEGER)
+  - hats_tegaderm_headband_bandana_silk_bonnet (INTEGER)
+  - wigs_extensions_topper (INTEGER)
+  - gloves_bandaids (INTEGER)
+  - fidget_toys_picky_pads (INTEGER)
+  - gel_acrylic_long_nails (INTEGER)
+  - false_eyelashes_eyeliner_lash_clusters (INTEGER)
+  - permanent_makeup (INTEGER)
+  - hiding_tweezers (INTEGER)
+  - hair_oil_cream (INTEGER)
+  - showering_regularly (INTEGER)
+  - sleeping_a_lot (INTEGER)
+  - eating_lot_of_sweets (INTEGER)
+  - cutting_sugar (INTEGER)
+  - setting_pulling_timeframe (INTEGER)
+  - making_hair_horrible_looking (INTEGER)
+  - dyeing_hair (INTEGER)
+  - shave_head_often (INTEGER)
+  - do_updo_hair (INTEGER)
+  - keeping_hair_short (INTEGER)
+  - hand_based_activity (INTEGER)
+  - being_around_other_people (INTEGER)
+  - exercising_walking (INTEGER)
+  - stop_talking_about_it (INTEGER)
+  - focusing_improving_causes (INTEGER)
+  - coffee (INTEGER)
+  - avoid_stressful_environments (INTEGER)
+  - lovedones_help (INTEGER)
+  - motivation_rewards (INTEGER)
+  - sensory_stimulations (INTEGER)
+  - redirection_to_oral_stimulation (INTEGER)
+  - habit_tracking_app (INTEGER)
+  - medication (INTEGER)
+  - support_groups (INTEGER)
+  - therapy_counseling_CBT (INTEGER)
+  - hypnotherapy (INTEGER)
+  - stress_anxiety_causes_learning_tools (INTEGER)
+  - be_mindful (INTEGER)
+  - self_soothing (INTEGER)
+  - self_realization_acceptance (INTEGER)
+  - journaling (INTEGER)
+  - mental_strength (INTEGER)
+  - prayer (INTEGER)
+  - none (INTEGER)
+
+Sample rows (first 5):
+ id  hats_tegaderm_headband_bandana_silk_bonnet  wigs_extensions_topper  gloves_bandaids  fidget_toys_picky_pads  gel_acrylic_long_nails  false_eyelashes_eyeliner_lash_clusters  permanent_makeup  hiding_tweezers  hair_oil_cream  showering_regularly  sleeping_a_lot  eating_lot_of_sweets  cutting_sugar  setting_pulling_timeframe  making_hair_horrible_looking  dyeing_hair  shave_head_often  do_updo_hair  keeping_hair_short  hand_based_activity  being_around_other_people  exercising_walking  stop_talking_about_it  focusing_improving_causes  coffee  avoid_stressful_environments  lovedones_help  motivation_rewards  sensory_stimulations  redirection_to_oral_stimulation  habit_tracking_app  medication  support_groups  therapy_counseling_CBT  hypnotherapy  stress_anxiety_causes_learning_tools  be_mindful  self_soothing  self_realization_acceptance  journaling  mental_strength  prayer  none
+  1                                           1                       1                1                       1                       0                                       0                 0                0               0                    0               0                     0              0                          0                             0            0                 0             1                   1                    1                          0                   0                      0                          0       0                             1               1                   0                     0                                0                   1           1               1                       1             0                                     0           1              0                            1           0                1       1     0
+  2                                           0                       0                0                       0                       0                                       0                 0                0               0                    0               0                     0              0                          0                             0            0                 0             0                   0                    0                          0                   0                      0                          0       0                             0               0                   0                     0                                0                   0           0               0                       0             0                                     0           0              0                            0           0                0       0     1
+  3                                           0                       0                0                       0                       0                                       0                 0                0               0                    0               0                     0              0                          0                             0            0                 0             0                   0                    0                          0                   0                      0                          0       0                             0               0                   0                     0                                0                   0           0               0                       0             0                                     0           0              0                            0           0                0       0     1
+  4                                           0                       0                0                       0                       0                                       0                 0                0               0                    0               0                     0              0                          0                             0            0                 0             0                   0                    0                          0                   0                      0                          0       0                             0               0                   0                     0                                0                   0           0               0                       0             0                                     0           0              0                            0           0                0       0     1
+  5                                           0                       0                0                       0                       0                                       0                 0                0               0                    0               0                     0              0                          0                             0            0                 0             0                   0                    0                          0                   0                      0                          0       0                             0               0                   0                     0                                0                   0           0               0                       0             0                                     0           0              0                            0           0                0       0     1
+
+===== emotions_after_pulling =====
+Columns:
+  - id (INTEGER)
+  - relief (INTEGER)
+  - regret (INTEGER)
+  - guilt (INTEGER)
+  - shame (INTEGER)
+  - satisfaction (INTEGER)
+  - relax (INTEGER)
+  - calm (INTEGER)
+  - upset (INTEGER)
+  - angry (INTEGER)
+  - resignation (INTEGER)
+  - disgust (INTEGER)
+  - pain (INTEGER)
+  - frustration (INTEGER)
+  - energetic (INTEGER)
+  - alive (INTEGER)
+  - sensitive (INTEGER)
+  - sad (INTEGER)
+  - disappointment (INTEGER)
+  - hate (INTEGER)
+  - panicked (INTEGER)
+  - anxious (INTEGER)
+  - scared (INTEGER)
+  - no_emotion (INTEGER)
+
+Sample rows (first 5):
+ id  relief  regret  guilt  shame  satisfaction  relax  calm  upset  angry  resignation  disgust  pain  frustration  energetic  alive  sensitive  sad  disappointment  hate  panicked  anxious  scared  no_emotion
+  1       1       1      1      1             1      0     0      0      0            0        0     0            0          0      0          0    0               0     0         0        0       0           0
+  2       0       0      0      0             0      1     0      0      0            0        0     0            0          0      0          0    0               0     0         0        0       0           0
+  3       1       1      1      1             1      0     0      0      0            0        0     0            0          0      0          0    0               0     0         0        0       0           0
+  4       0       0      0      1             0      0     0      0      0            0        0     0            0          0      0          0    0               0     0         0        0       0           0
+  5       0       1      1      1             0      0     0      0      0            0        0     0            0          0      0          0    0               0     0         0        0       0           0
+
+===== emotions_before_pulling =====
+Columns:
+  - id (INTEGER)
+  - stress (INTEGER)
+  - anxious (INTEGER)
+  - depress (INTEGER)
+  - bored (INTEGER)
+  - sad (INTEGER)
+  - lonely (INTEGER)
+  - worried (INTEGER)
+  - mindless_habit (INTEGER)
+  - hair_texture (INTEGER)
+  - overstimulation (INTEGER)
+  - understimulation (INTEGER)
+  - happy (INTEGER)
+  - social_situations (INTEGER)
+  - hormones_fluctuations (INTEGER)
+  - seeing_my_hair (INTEGER)
+  - tiredness (INTEGER)
+  - scalp_pain_itchiness (INTEGER)
+  - overwhelmed (INTEGER)
+  - nervous (INTEGER)
+  - calm_relax (INTEGER)
+  - uncomfortable (INTEGER)
+  - zoned_out (INTEGER)
+  - not_sure (INTEGER)
+
+Sample rows (first 5):
+ id  stress  anxious  depress  bored  sad  lonely  worried  mindless_habit  hair_texture  overstimulation  understimulation  happy  social_situations  hormones_fluctuations  seeing_my_hair  tiredness  scalp_pain_itchiness  overwhelmed  nervous  calm_relax  uncomfortable  zoned_out  not_sure
+  1       1        1        1      1    1       1        1               1             1                0                 0      0                  0                      0               0          0                     1            1        0           1              0          0         0
+  2       1        0        0      0    0       0        1               1             0                0                 0      0                  0                      0               0          0                     0            0        0           0              0          0         0
+  3       1        0        0      1    0       0        0               0             0                0                 0      0                  0                      0               0          0                     0            0        0           0              0          0         0
+  4       0        0        0      0    0       0        0               0             0                0                 0      0                  0                      0               0          0                     0            0        0           0              0          0         1
+  5       1        1        0      1    0       0        0               0             1                1                 0      0                  0                      0               0          0                     0            0        0           0              0          0         0
+
+===== hair_pulling_behaviours_patterns =====
+Columns:
+  - id (INTEGER)
+  - pulling_frequency (TEXT)
+  - common_pulling_time (TEXT)
+  - pulling_awareness (TEXT)
+  - pulling_during_activities (TEXT)
+  - pulling_control (TEXT)
+  - seasonal_change (TEXT)
+  - support_sought (TEXT)
+  - therapy_sought (TEXT)
+  - pulling_severity (INTEGER)
+  - successfully_stopped (TEXT)
+  - how_long_stopped (TEXT)
+
+Sample rows (first 5):
+ id    pulling_frequency common_pulling_time pulling_awareness pulling_during_activities pulling_control seasonal_change support_sought therapy_sought  pulling_severity successfully_stopped how_long_stopped
+  1 Several times a week              Varies         Sometimes                       Yes       Sometimes              No            Yes            Yes                10                  Yes         few days
+  2                Daily              Varies               Yes                       Yes              No              No            Yes            Yes                 7                   No             None
+  3                Daily               Night               Yes                       Yes       Sometimes              No             No             No                 8                   No             None
+  4                Daily              Varies               Yes                       Yes              No              No            Yes            Yes                 5                   No             None
+  5                Daily               Night                No                       Yes              No              No            Yes            Yes                 7                   No             None
+
+===== other_mental_health_conditions =====
+Columns:
+  - id (INTEGER)
+  - depressive_disorder (INTEGER)
+  - anxiety_disorder (INTEGER)
+  - OCD (INTEGER)
+  - autistic_spectrum_disorder (INTEGER)
+  - ADHD (INTEGER)
+  - C-PTSD (INTEGER)
+  - dermatillomania (INTEGER)
+  - narcolepsy (INTEGER)
+  - GAD_with_panick_attacks (INTEGER)
+  - PICA_disorder (INTEGER)
+  - lip_licker's_dermatitis (INTEGER)
+  - onychophagia_nail_biting (INTEGER)
+  -  alcohol_use_disorder (INTEGER)
+  - unknown (INTEGER)
+  - none (INTEGER)
+
+Sample rows (first 5):
+ id  depressive_disorder  anxiety_disorder  OCD  autistic_spectrum_disorder  ADHD  C-PTSD  dermatillomania  narcolepsy  GAD_with_panick_attacks  PICA_disorder  lip_licker's_dermatitis  onychophagia_nail_biting   alcohol_use_disorder  unknown  none
+  1                    1                 1    1                           0     0       0                0           0                        0              0                        0                         0                      0        0     0
+  2                    0                 1    0                           0     0       0                0           0                        0              0                        0                         0                      0        0     0
+  3                    0                 0    0                           1     1       1                1           0                        0              0                        0                         0                      0        0     0
+  4                    0                 1    0                           0     1       0                0           0                        0              0                        0                         0                      0        0     0
+  5                    0                 1    0                           0     0       0                0           0                        0              0                        0                         0                      0        0     0
+
+===== parts_of_the_body_pulled =====
+Columns:
+  - id (INTEGER)
+  - scalp (INTEGER)
+  - eyebrows (INTEGER)
+  - eyelashes (INTEGER)
+  - chin (INTEGER)
+  - neck (INTEGER)
+  - armpit (INTEGER)
+  - arms (INTEGER)
+  - legs (INTEGER)
+  - private_area (INTEGER)
+
+Sample rows (first 5):
+ id  scalp  eyebrows  eyelashes  chin  neck  armpit  arms  legs  private_area
+  1      1         0          0     0     0       0     0     0             0
+  2      1         0          0     0     0       0     0     0             0
+  3      0         0          0     0     0       0     0     0             1
+  4      1         0          0     0     0       0     0     0             0
+  5      1         1          0     0     0       0     0     0             0
+
+===== pulling_environment =====
+Columns:
+  - id (INTEGER)
+  - home (INTEGER)
+  - in_the_car (INTEGER)
+  - work/school (INTEGER)
+  - public_places (INTEGER)
+
+Sample rows (first 5):
+ id  home  in_the_car  work/school  public_places
+  1     1           0            0              0
+  2     1           1            1              1
+  3     1           0            0              0
+  4     0           1            0              0
+  5     1           0            0              0
+
+===== pulling_triggers =====
+Columns:
+  - id (INTEGER)
+  - impulse_to_pull (INTEGER)
+  - itchy_pain_scalp (INTEGER)
+  - coarse_hair (INTEGER)
+  - white_hair (INTEGER)
+  - stressful_environments (INTEGER)
+  - financial_issues (INTEGER)
+  - anxiety (INTEGER)
+  - mindless_habit (INTEGER)
+  - boredom (INTEGER)
+  - overstimulation (INTEGER)
+  - social_situations (INTEGER)
+  - understimulation (INTEGER)
+  - cold_weather (INTEGER)
+  - sensory_tingle (INTEGER)
+  - tiredness (INTEGER)
+  - frustrations (INTEGER)
+  - hair_regrowth (INTEGER)
+  - tweezers (INTEGER)
+  - seeing_someone_playing_hair (INTEGER)
+  - traumatic_events (INTEGER)
+  - not_sure (INTEGER)
+
+Sample rows (first 5):
+ id  impulse_to_pull  itchy_pain_scalp  coarse_hair  white_hair  stressful_environments  financial_issues  anxiety  mindless_habit  boredom  overstimulation  social_situations  understimulation  cold_weather  sensory_tingle  tiredness  frustrations  hair_regrowth  tweezers  seeing_someone_playing_hair  traumatic_events  not_sure
+  1                1                 1            1           1                       1                 1        1               1        1                1                  0                 1             0               1          0             0              1         0                            0                 0         0
+  2                0                 0            0           0                       1                 1        1               0        0                0                  0                 0             0               0          0             0              0         0                            0                 0         0
+  3                1                 0            0           0                       0                 0        0               0        1                0                  0                 0             0               0          0             0              0         0                            0                 0         0
+  4                0                 0            0           0                       0                 0        1               0        0                0                  0                 0             0               0          0             0              0         0                            0                 0         0
+  5                0                 0            1           1                       1                 0        1               1        1                0                  0                 0             0               0          0             0              0         0                            0                 0         0
+
+===== seasons_affect_pulling_intensity =====
+Columns:
+  - id (INTEGER)
+  - spring (INTEGER)
+  - summer (INTEGER)
+  - autumn (INTEGER)
+  - winter (INTEGER)
+  - same_intensity (INTEGER)
+
+Sample rows (first 5):
+ id  spring  summer  autumn  winter  same_intensity
+  1       0       0       0       0               1
+  2       0       0       0       0               1
+  3       0       0       0       0               1
+  4       0       0       0       0               1
+  5       0       0       0       0               1
+
+===== relapse_risk_model_features =====
+Columns:
+  - id (INTEGER)
+  - common_pulling_time (TEXT)
+  - pulling_during_activities (TEXT)
+  - pulling_control (TEXT)
+  - seasonal_change (TEXT)
+  - support_sought (TEXT)
+  - therapy_sought (TEXT)
+  - pulling_severity (REAL)
+  - age (REAL)
+  - professionally_diagnosed (TEXT)
+  - age_of_onset (REAL)
+  - years_with_ttm (TEXT)
+  - family_history (TEXT)
+  - stress (REAL)
+  - anxious_x (REAL)
+  - depress (REAL)
+  - bored (REAL)
+  - sad_x (REAL)
+  - lonely (REAL)
+  - worried (REAL)
+  - mindless_habit_x (REAL)
+  - hair_texture (REAL)
+  - overstimulation_x (REAL)
+  - understimulation_x (REAL)
+  - happy (REAL)
+  - social_situations_x (REAL)
+  - hormones_fluctuations (REAL)
+  - seeing_my_hair (REAL)
+  - tiredness_x (REAL)
+  - scalp_pain_itchiness (REAL)
+  - overwhelmed (REAL)
+  - nervous (REAL)
+  - calm_relax (REAL)
+  - uncomfortable (REAL)
+  - zoned_out (REAL)
+  - not_sure_x (REAL)
+  - relief (REAL)
+  - regret (REAL)
+  - guilt (REAL)
+  - shame (REAL)
+  - satisfaction (REAL)
+  - relax (REAL)
+  - calm (REAL)
+  - upset (REAL)
+  - angry (REAL)
+  - resignation (REAL)
+  - disgust (REAL)
+  - pain (REAL)
+  - frustration (REAL)
+  - energetic (REAL)
+  - alive (REAL)
+  - sensitive (REAL)
+  - sad_y (REAL)
+  - disappointment (REAL)
+  - hate (REAL)
+  - panicked (REAL)
+  - anxious_y (REAL)
+  - scared (REAL)
+  - no_emotion (REAL)
+  - studying (REAL)
+  - working (REAL)
+  - reading (REAL)
+  - watching_tv (REAL)
+  - using_phone_computer (REAL)
+  - socializing (REAL)
+  - using_bathroom (REAL)
+  - driving (REAL)
+  - sitting_still_car_bus (REAL)
+  - sitting_laying_on_bed (REAL)
+  - hiking (REAL)
+  - playing (REAL)
+  - not_applicable (REAL)
+  - hats_bandana_headband_glasses (REAL)
+  - wigs_hair_extensions (REAL)
+  - gloves_tape_bandaid_glue_finger_caps (REAL)
+  - gel_acrylic_long_nails_x (REAL)
+  - mascara_makeup (REAL)
+  - fidget_toys_fidget_ring_picky_pad (REAL)
+  - therapy_putty (REAL)
+  - putting_hair_oil (REAL)
+  - medication_x (REAL)
+  - habit_tracking_apps (REAL)
+  - do_updo_hair_x (REAL)
+  - shave_head_regularly (REAL)
+  - keeping_hair_short_x (REAL)
+  - dyeing_hair_x (REAL)
+  - washing_hair (REAL)
+  - cutting_sugar_x (REAL)
+  - exercise_walking (REAL)
+  - redirection_distraction (REAL)
+  - talking_about_it (REAL)
+  - anxiety_coping_skills (REAL)
+  - support_groups_x (REAL)
+  - therapy_counseling (REAL)
+  - physiologist (REAL)
+  - hypnotherapy_x (REAL)
+  - journaling_x (REAL)
+  - hand_based_activity_x (REAL)
+  - urge_surfing (REAL)
+  - self_affirmations (REAL)
+  - mental_strength_x (REAL)
+  - none_x (REAL)
+  - hats_tegaderm_headband_bandana_silk_bonnet (REAL)
+  - wigs_extensions_topper (REAL)
+  - gloves_bandaids (REAL)
+  - fidget_toys_picky_pads (REAL)
+  - gel_acrylic_long_nails_y (REAL)
+  - false_eyelashes_eyeliner_lash_clusters (REAL)
+  - permanent_makeup (REAL)
+  - hiding_tweezers (REAL)
+  - hair_oil_cream (REAL)
+  - showering_regularly (REAL)
+  - sleeping_a_lot (REAL)
+  - eating_lot_of_sweets (REAL)
+  - cutting_sugar_y (REAL)
+  - setting_pulling_timeframe (REAL)
+  - making_hair_horrible_looking (REAL)
+  - dyeing_hair_y (REAL)
+  - shave_head_often (REAL)
+  - do_updo_hair_y (REAL)
+  - keeping_hair_short_y (REAL)
+  - hand_based_activity_y (REAL)
+  - being_around_other_people (REAL)
+  - exercising_walking (REAL)
+  - stop_talking_about_it (REAL)
+  - focusing_improving_causes (REAL)
+  - coffee (REAL)
+  - avoid_stressful_environments (REAL)
+  - lovedones_help (REAL)
+  - motivation_rewards (REAL)
+  - sensory_stimulations (REAL)
+  - redirection_to_oral_stimulation (REAL)
+  - habit_tracking_app (REAL)
+  - medication_y (REAL)
+  - support_groups_y (REAL)
+  - therapy_counseling_CBT (REAL)
+  - hypnotherapy_y (REAL)
+  - stress_anxiety_causes_learning_tools (REAL)
+  - be_mindful (REAL)
+  - self_soothing (REAL)
+  - self_realization_acceptance (REAL)
+  - journaling_y (REAL)
+  - mental_strength_y (REAL)
+  - prayer (REAL)
+  - none_y (REAL)
+  - home (REAL)
+  - in_the_car (REAL)
+  - work/school (REAL)
+  - public_places (REAL)
+  - impulse_to_pull (REAL)
+  - itchy_pain_scalp (REAL)
+  - coarse_hair (REAL)
+  - white_hair (REAL)
+  - stressful_environments (REAL)
+  - financial_issues (REAL)
+  - anxiety (REAL)
+  - mindless_habit_y (REAL)
+  - boredom (REAL)
+  - overstimulation_y (REAL)
+  - social_situations_y (REAL)
+  - understimulation_y (REAL)
+  - cold_weather (REAL)
+  - sensory_tingle (REAL)
+  - tiredness_y (REAL)
+  - frustrations (REAL)
+  - hair_regrowth (REAL)
+  - tweezers (REAL)
+  - seeing_someone_playing_hair (REAL)
+  - traumatic_events (REAL)
+  - not_sure_y (REAL)
+  - spring (REAL)
+  - summer (REAL)
+  - autumn (REAL)
+  - winter (REAL)
+  - same_intensity (REAL)
+  - depressive_disorder (REAL)
+  - anxiety_disorder (REAL)
+  - OCD (REAL)
+  - autistic_spectrum_disorder (REAL)
+  - ADHD (REAL)
+  - C-PTSD (REAL)
+  - dermatillomania (REAL)
+  - narcolepsy (REAL)
+  - GAD_with_panick_attacks (REAL)
+  - PICA_disorder (REAL)
+  - lip_licker's_dermatitis (REAL)
+  - onychophagia_nail_biting (REAL)
+  -  alcohol_use_disorder (REAL)
+  - unknown (REAL)
+  - none (REAL)
+  - scalp (REAL)
+  - eyebrows (REAL)
+  - eyelashes (REAL)
+  - chin (REAL)
+  - neck (REAL)
+  - armpit (REAL)
+  - arms (REAL)
+  - legs (REAL)
+  - private_area (REAL)
+  - pulling_frequency_encoded (REAL)
+  - awareness_level_encoded (REAL)
+  - successfully_stopped_encoded (REAL)
+  - pulling_severity_raw (INTEGER)
+  - awareness_level_encoded_raw (REAL)
+  - years_since_onset (REAL)
+  - how_long_stopped_days_est (REAL)
+  - emotion_intensity_sum (REAL)
+  - coping_activity_sum (REAL)
+  - trigger_count (REAL)
+  - gender_Female (INTEGER)
+  - gender_Male (INTEGER)
+  - gender_Non-binary (INTEGER)
+  - education_level_Bachelor's Degree (INTEGER)
+  - education_level_Doctorate (INTEGER)
+  - education_level_Master's Degree (INTEGER)
+  - education_level_No formal education (INTEGER)
+  - education_level_Other (INTEGER)
+  - education_level_Primary (INTEGER)
+  - education_level_Secondary (INTEGER)
+  - occupation_Accounting (INTEGER)
+  - occupation_Babysitter, Housesitter, Student (INTEGER)
+  - occupation_Credit Staff (INTEGER)
+  - occupation_Delivery Driver (INTEGER)
+  - occupation_Dog Trainer (INTEGER)
+  - occupation_Hairstylist (INTEGER)
+  - occupation_Health Care Support Worker / Student Nurse (INTEGER)
+  - occupation_Human Resources  (INTEGER)
+  - occupation_Jobless (INTEGER)
+  - occupation_Medical Assistant (INTEGER)
+  - occupation_Mental health counselor (INTEGER)
+  - occupation_Nurse (INTEGER)
+  - occupation_Patent Examiner  (INTEGER)
+  - occupation_Registered Nurse (INTEGER)
+  - occupation_School Psychologist (INTEGER)
+  - occupation_Student (INTEGER)
+  - occupation_Supervisor (INTEGER)
+  - occupation_Support worker  (INTEGER)
+  - occupation_Teacher (INTEGER)
+  - occupation_Tech job (remote) (INTEGER)
+  - occupation_Unemployed (INTEGER)
+  - occupation_Unemployed  (INTEGER)
+  - occupation_Unknown (INTEGER)
+  - occupation_professor (INTEGER)
+  - country_Australia (INTEGER)
+  - country_Canada (INTEGER)
+  - country_Canada  (INTEGER)
+  - country_Czech Republic (INTEGER)
+  - country_Denmark (INTEGER)
+  - country_Egypt (INTEGER)
+  - country_Finland (INTEGER)
+  - country_Greece (INTEGER)
+  - country_Philippines (INTEGER)
+  - country_South Africa  (INTEGER)
+  - country_Spain (INTEGER)
+  - country_Sweden (INTEGER)
+  - country_Sweden  (INTEGER)
+  - country_UK (INTEGER)
+  - country_USA (INTEGER)
+  - country_Unknown (INTEGER)
+
+Sample rows (first 5):
+ id common_pulling_time pulling_during_activities pulling_control seasonal_change support_sought therapy_sought  pulling_severity       age professionally_diagnosed  age_of_onset     years_with_ttm family_history    stress  anxious_x   depress     bored     sad_x    lonely   worried  mindless_habit_x  hair_texture  overstimulation_x  understimulation_x  happy  social_situations_x  hormones_fluctuations  seeing_my_hair  tiredness_x  scalp_pain_itchiness  overwhelmed   nervous  calm_relax  uncomfortable  zoned_out  not_sure_x    relief    regret     guilt     shame  satisfaction     relax      calm     upset     angry  resignation   disgust      pain  frustration  energetic     alive  sensitive     sad_y  disappointment      hate  panicked  anxious_y    scared  no_emotion  studying   working   reading  watching_tv  using_phone_computer  socializing  using_bathroom   driving  sitting_still_car_bus  sitting_laying_on_bed    hiking   playing  not_applicable  hats_bandana_headband_glasses  wigs_hair_extensions  gloves_tape_bandaid_glue_finger_caps  gel_acrylic_long_nails_x  mascara_makeup  fidget_toys_fidget_ring_picky_pad  therapy_putty  putting_hair_oil  medication_x  habit_tracking_apps  do_updo_hair_x  shave_head_regularly  keeping_hair_short_x  dyeing_hair_x  washing_hair  cutting_sugar_x  exercise_walking  redirection_distraction  talking_about_it  anxiety_coping_skills  support_groups_x  therapy_counseling  physiologist  hypnotherapy_x  journaling_x  hand_based_activity_x  urge_surfing  self_affirmations  mental_strength_x    none_x  hats_tegaderm_headband_bandana_silk_bonnet  wigs_extensions_topper  gloves_bandaids  fidget_toys_picky_pads  gel_acrylic_long_nails_y  false_eyelashes_eyeliner_lash_clusters  permanent_makeup  hiding_tweezers  hair_oil_cream  showering_regularly  sleeping_a_lot  eating_lot_of_sweets  cutting_sugar_y  setting_pulling_timeframe  making_hair_horrible_looking  dyeing_hair_y  shave_head_often  do_updo_hair_y  keeping_hair_short_y  hand_based_activity_y  being_around_other_people  exercising_walking  stop_talking_about_it  focusing_improving_causes    coffee  avoid_stressful_environments  lovedones_help  motivation_rewards  sensory_stimulations  redirection_to_oral_stimulation  habit_tracking_app  medication_y  support_groups_y  therapy_counseling_CBT  hypnotherapy_y  stress_anxiety_causes_learning_tools  be_mindful  self_soothing  self_realization_acceptance  journaling_y  mental_strength_y    prayer    none_y      home  in_the_car  work/school  public_places  impulse_to_pull  itchy_pain_scalp  coarse_hair  white_hair  stressful_environments  financial_issues   anxiety  mindless_habit_y   boredom  overstimulation_y  social_situations_y  understimulation_y  cold_weather  sensory_tingle  tiredness_y  frustrations  hair_regrowth  tweezers  seeing_someone_playing_hair  traumatic_events  not_sure_y    spring    summer    autumn    winter  same_intensity  depressive_disorder  anxiety_disorder       OCD  autistic_spectrum_disorder      ADHD    C-PTSD  dermatillomania  narcolepsy  GAD_with_panick_attacks  PICA_disorder  lip_licker's_dermatitis  onychophagia_nail_biting   alcohol_use_disorder   unknown      none     scalp  eyebrows  eyelashes      chin      neck    armpit    arms    legs  private_area  pulling_frequency_encoded  awareness_level_encoded  successfully_stopped_encoded  pulling_severity_raw  awareness_level_encoded_raw  years_since_onset  how_long_stopped_days_est  emotion_intensity_sum  coping_activity_sum  trigger_count  gender_Female  gender_Male  gender_Non-binary  education_level_Bachelor's Degree  education_level_Doctorate  education_level_Master's Degree  education_level_No formal education  education_level_Other  education_level_Primary  education_level_Secondary  occupation_Accounting  occupation_Babysitter, Housesitter, Student  occupation_Credit Staff  occupation_Delivery Driver  occupation_Dog Trainer  occupation_Hairstylist  occupation_Health Care Support Worker / Student Nurse  occupation_Human Resources   occupation_Jobless  occupation_Medical Assistant  occupation_Mental health counselor  occupation_Nurse  occupation_Patent Examiner   occupation_Registered Nurse  occupation_School Psychologist  occupation_Student  occupation_Supervisor  occupation_Support worker   occupation_Teacher  occupation_Tech job (remote)  occupation_Unemployed  occupation_Unemployed   occupation_Unknown  occupation_professor  country_Australia  country_Canada  country_Canada   country_Czech Republic  country_Denmark  country_Egypt  country_Finland  country_Greece  country_Philippines  country_South Africa   country_Spain  country_Sweden  country_Sweden   country_UK  country_USA  country_Unknown
+  1              Varies                       Yes       Sometimes              No            Yes            Yes          1.585840  0.539981                      Yes      2.002570 More than 10 years             No  0.596285   0.659768 11.000000  0.791623  7.745967 11.000000  5.431390          3.774917      1.515684          -0.621582           -0.090909    0.0            -0.282216              -0.090909       -0.090909    -0.090909              7.745967     7.745967 -0.129099    6.298148      -0.090909  -0.184115   -0.246718  0.936442  1.016530  0.983739  1.285369      3.176619 -0.090909 -0.158777 -0.090909 -0.184115    -0.090909 -0.090909 -0.090909    -0.184115  -0.090909 -0.090909  -0.090909 -0.129099       -0.129099 -0.090909 -0.090909  -0.129099 -0.090909   -0.416025  0.791623  0.936442  0.805387     0.558416              0.646997    -0.429495       -0.314800 -0.246718              -0.416025              -0.330289 -0.206725 -0.282216       -0.227429                       1.016530              3.543382                                   1.0                 -0.227429       -0.090909                           0.983739      -0.090909         -0.158777      1.122167             1.875771       -0.090909             -0.090909              1.921538      -0.090909     -0.090909         7.745967         -0.129099                -0.090909         -0.090909              -0.090909          1.431782            0.967733     -0.158777       -0.158777     -0.129099               3.176619     -0.129099          -0.158777           4.837355 -0.227429                                    2.670830                3.027650         5.431390                4.396969                 -0.184115                               -0.184115         -0.129099        -0.184115       -0.158777            -0.158777       -0.129099             -0.129099        -0.129099                  -0.129099                     -0.129099      -0.129099         -0.227429        5.431390              5.431390               2.777460                  -0.206725           -0.129099              -0.129099                  -0.129099 -0.129099                      4.396969        3.774917           -0.206725             -0.129099                        -0.206725            4.053217      4.053217          3.774917                3.543382       -0.129099                             -0.184115    3.774917      -0.206725                     3.346640     -0.158777           3.346640  6.298148 -0.659768  0.158777   -0.685478    -0.596285      -0.330289         3.027650          3.543382     1.033342    1.033342                0.951972          4.396969  1.067872          1.141003  1.486784           2.670830            -0.246718            4.053217     -0.206725        4.053217    -0.206725     -0.206725       4.053217 -0.158777                    -0.129099         -0.129099   -0.158777 -0.184115 -0.090909 -0.129099 -0.158777        0.227429             3.346640          0.659768  3.774917                   -0.246718 -0.330289 -0.129099        -0.184115   -0.090909                -0.090909      -0.090909                -0.090909                 -0.090909              -0.090909 -0.469042 -0.129099  0.388514 -0.646997  -0.608922 -0.184115 -0.158777 -0.090909 -0.3148 -0.3148     -0.469042                  -1.553313                 0.160464                           1.0                    10                          0.5          -0.496970                        0.0               3.047862             1.808400       3.677473              1            0                  0                                  1                          0                                0                                    0                      0                        0                          0                      0                                            0                        0                           0                       0                       0                                                      0                            0                   0                             0                                   0                 0                            0                            0                               0                   1                      0                           0                   0                             0                      0                       0                   0                     0                  0               0                0                       0                0              0                0               0                    0                      0              0               1                0           0            0                0
+  2              Varies                       Yes              No              No            Yes            Yes          0.038060  0.752948                      Yes      0.100240 More than 10 years            Yes  0.596285  -1.515684 -0.090909 -1.263228 -0.129099 -0.090909  5.431390          3.774917     -0.659768          -0.621582           -0.090909    0.0            -0.282216              -0.090909       -0.090909    -0.090909             -0.129099    -0.129099 -0.129099   -0.158777      -0.090909  -0.184115   -0.246718 -1.067872 -0.983739 -1.016530 -0.777987     -0.314800 11.000000 -0.158777 -0.090909 -0.184115    -0.090909 -0.090909 -0.090909    -0.184115  -0.090909 -0.090909  -0.090909 -0.129099       -0.129099 -0.090909 -0.090909  -0.129099 -0.090909   -0.416025  0.791623  0.936442  0.805387     0.558416              0.646997     2.328315       -0.314800 -0.246718              -0.416025              -0.330289 -0.206725 -0.282216       -0.227429                      -0.983739              3.543382                                   1.0                  4.396969       -0.090909                          -1.016530      -0.090909         -0.158777     -0.891133            -0.533114       -0.090909             -0.090909             -0.520416      -0.090909     -0.090909        -0.129099         -0.129099                -0.090909         -0.090909              -0.090909         -0.698430           -1.033342     -0.158777       -0.158777     -0.129099              -0.314800     -0.129099          -0.158777          -0.206725 -0.227429                                   -0.374415               -0.330289        -0.184115               -0.227429                 -0.184115                               -0.184115         -0.129099        -0.184115       -0.158777            -0.158777       -0.129099             -0.129099        -0.129099                  -0.129099                     -0.129099      -0.129099         -0.227429       -0.184115             -0.184115              -0.360041                  -0.206725           -0.129099              -0.129099                  -0.129099 -0.129099                     -0.227429       -0.264906           -0.206725             -0.129099                        -0.206725           -0.246718     -0.246718         -0.264906               -0.282216       -0.129099                             -0.184115   -0.264906      -0.206725                    -0.298807     -0.158777          -0.298807 -0.158777  1.515684  0.158777    1.458837     1.677051       3.027650        -0.330289         -0.282216    -0.967733   -0.967733                0.951972          4.396969  1.067872         -0.876422 -0.672593          -0.374415            -0.246718           -0.246718     -0.206725       -0.246718    -0.206725     -0.206725      -0.246718 -0.158777                    -0.129099         -0.129099   -0.158777 -0.184115 -0.090909 -0.129099 -0.158777        0.227429            -0.298807          0.659768 -0.264906                   -0.246718 -0.330289 -0.129099        -0.184115   -0.090909                -0.090909      -0.090909                -0.090909                 -0.090909              -0.090909 -0.469042 -0.129099  0.388514 -0.646997  -0.608922 -0.184115 -0.158777 -0.090909 -0.3148 -0.3148     -0.469042                   0.286533                 1.558797                          -1.0                     7                          1.0           0.687761                        0.0              -1.032678            -0.949410       0.517954              1            0                  0                                  0                          0                                0                                    0                      0                        0                          1                      0                                            0                        0                           0                       0                       1                                                      0                            0                   0                             0                                   0                 0                            0                            0                               0                   0                      0                           0                   0                             0                      0                       0                   0                     0                  0               0                0                       0                0              0                0               0                    0                      0              0               0                0           0            1                0
+  3               Night                       Yes       Sometimes              No             No             No          0.553987 -0.453863                       No     -0.443283 More than 10 years            Yes  0.596285  -1.515684 -0.090909  0.791623 -0.129099 -0.090909 -0.184115         -0.264906     -0.659768          -0.621582           -0.090909    0.0            -0.282216              -0.090909       -0.090909    -0.090909             -0.129099    -0.129099 -0.129099   -0.158777      -0.090909  -0.184115   -0.246718  0.936442  1.016530  0.983739  1.285369      3.176619 -0.090909 -0.158777 -0.090909 -0.184115    -0.090909 -0.090909 -0.090909    -0.184115  -0.090909 -0.090909  -0.090909 -0.129099       -0.129099 -0.090909 -0.090909  -0.129099 -0.090909   -0.416025 -1.263228 -1.067872 -1.241639    -1.790781             -1.545603    -0.429495        3.176619 -0.246718              -0.416025              -0.330289 -0.206725 -0.282216       -0.227429                      -0.983739             -0.282216                                  -1.0                 -0.227429       -0.090909                          -1.016530      -0.090909         -0.158777     -0.891133            -0.533114       -0.090909             -0.090909             -0.520416      -0.090909     -0.090909        -0.129099         -0.129099                -0.090909         -0.090909              -0.090909         -0.698430           -1.033342     -0.158777       -0.158777     -0.129099              -0.314800     -0.129099           6.298148           4.837355 -0.227429                                   -0.374415               -0.330289        -0.184115               -0.227429                 -0.184115                               -0.184115         -0.129099        -0.184115       -0.158777            -0.158777       -0.129099             -0.129099        -0.129099                  -0.129099                     -0.129099      -0.129099         -0.227429       -0.184115             -0.184115              -0.360041                  -0.206725           -0.129099              -0.129099                  -0.129099 -0.129099                     -0.227429       -0.264906           -0.206725             -0.129099                        -0.206725           -0.246718     -0.246718         -0.264906               -0.282216       -0.129099                             -0.184115   -0.264906      -0.206725                    -0.298807     -0.158777          -0.298807 -0.158777  1.515684  0.158777   -0.685478    -0.596285      -0.330289         3.027650         -0.282216    -0.967733   -0.967733               -1.050451         -0.227429 -0.936442         -0.876422  1.486784          -0.374415            -0.246718           -0.246718     -0.206725       -0.246718    -0.206725     -0.206725      -0.246718 -0.158777                    -0.129099         -0.129099   -0.158777 -0.184115 -0.090909 -0.129099 -0.158777        0.227429            -0.298807         -1.515684 -0.264906                    4.053217  3.027650  7.745967         5.431390   -0.090909                -0.090909      -0.090909                -0.090909                 -0.090909              -0.090909 -0.469042 -0.129099 -2.573908 -0.646997  -0.608922 -0.184115 -0.158777 -0.090909 -0.3148 -0.3148      2.132007                   0.286533                 1.558797                          -1.0                     8                          1.0          -0.218210                        0.0               0.497525            -0.949410       0.517954              1            0                  0                                  0                          0                                0                                    0                      0                        0                          1                      0                                            0                        0                           0                       0                       0                                                      0                            0                   0                             0                                   0                 0                            0                            0                               0                   0                      0                           0                   0                             0                      1                       0                   0                     0                  0               0                0                       0                0              0                0               0                    0                      0              0               0                0           0            1                0
+  4              Varies                       Yes              No              No            Yes            Yes         -0.993793  0.185037                       No      2.002570         6-10 years       Not sure -1.677051  -1.515684 -0.090909 -1.263228 -0.129099 -0.090909 -0.184115         -0.264906     -0.659768          -0.621582           -0.090909    0.0            -0.282216              -0.090909       -0.090909    -0.090909             -0.129099    -0.129099 -0.129099   -0.158777      -0.090909  -0.184115    4.053217 -1.067872 -0.983739 -1.016530  1.285369     -0.314800 -0.090909 -0.158777 -0.090909 -0.184115    -0.090909 -0.090909 -0.090909    -0.184115  -0.090909 -0.090909  -0.090909 -0.129099       -0.129099 -0.090909 -0.090909  -0.129099 -0.090909   -0.416025 -1.263228 -1.067872 -1.241639    -1.790781             -1.545603     2.328315       -0.314800  4.053217               2.403701              -0.330289 -0.206725 -0.282216       -0.227429                      -0.983739             -0.282216                                  -1.0                 -0.227429       -0.090909                          -1.016530      -0.090909         -0.158777      1.122167            -0.533114       -0.090909             -0.090909             -0.520416      -0.090909     -0.090909        -0.129099         -0.129099                -0.090909         -0.090909              -0.090909         -0.698430           -1.033342      6.298148        6.298148     -0.129099               3.176619     -0.129099          -0.158777          -0.206725 -0.227429                                   -0.374415               -0.330289        -0.184115               -0.227429                 -0.184115                               -0.184115         -0.129099        -0.184115       -0.158777            -0.158777       -0.129099             -0.129099        -0.129099                  -0.129099                     -0.129099      -0.129099         -0.227429       -0.184115             -0.184115              -0.360041                  -0.206725           -0.129099              -0.129099                  -0.129099 -0.129099                     -0.227429       -0.264906           -0.206725             -0.129099                        -0.206725           -0.246718     -0.246718         -0.264906               -0.282216       -0.129099                             -0.184115   -0.264906      -0.206725                    -0.298807     -0.158777          -0.298807 -0.158777  1.515684 -6.298148    1.458837    -0.596285      -0.330289        -0.330289         -0.282216    -0.967733   -0.967733               -1.050451         -0.227429  1.067872         -0.876422 -0.672593          -0.374415            -0.246718           -0.246718     -0.206725       -0.246718    -0.206725     -0.206725      -0.246718 -0.158777                    -0.129099         -0.129099   -0.158777 -0.184115 -0.090909 -0.129099 -0.158777        0.227429            -0.298807          0.659768 -0.264906                   -0.246718  3.027650 -0.129099        -0.184115   -0.090909                -0.090909      -0.090909                -0.090909                 -0.090909              -0.090909 -0.469042 -0.129099  0.388514 -0.646997  -0.608922 -0.184115 -0.158777 -0.090909 -0.3148 -0.3148     -0.469042                   0.286533                 1.558797                          -1.0                     5                          1.0          -0.845421                        0.0              -2.052813             0.429495      -1.061806              1            0                  0                                  0                          0                                1                                    0                      0                        0                          0                      0                                            0                        0                           0                       1                       0                                                      0                            0                   0                             0                                   0                 0                            0                            0                               0                   0                      0                           0                   0                             0                      0                       0                   0                     0                  1               0                0                       0                0              0                0               0                    0                      0              0               0                0           0            0                0
+  5               Night                       Yes              No              No            Yes            Yes          0.038060 -0.595841                      Yes     -0.171522 More than 10 years       Not sure  0.596285   0.659768 -0.090909  0.791623 -0.129099 -0.090909 -0.184115         -0.264906      1.515684           1.608799           -0.090909    0.0            -0.282216              -0.090909       -0.090909    -0.090909             -0.129099    -0.129099 -0.129099   -0.158777      -0.090909  -0.184115   -0.246718 -1.067872  1.016530  0.983739  1.285369     -0.314800 -0.090909 -0.158777 -0.090909 -0.184115    -0.090909 -0.090909 -0.090909    -0.184115  -0.090909 -0.090909  -0.090909 -0.129099       -0.129099 -0.090909 -0.090909  -0.129099 -0.090909   -0.416025  0.791623  0.936442  0.805387     0.558416              0.646997    -0.429495       -0.314800 -0.246718              -0.416025              -0.330289 -0.206725 -0.282216       -0.227429                       1.016530             -0.282216                                   1.0                 -0.227429       -0.090909                           0.983739      -0.090909         -0.158777      1.122167             1.875771       -0.090909             -0.090909              1.921538      -0.090909     -0.090909        -0.129099         -0.129099                -0.090909         -0.090909              -0.090909         -0.698430            0.967733     -0.158777       -0.158777     -0.129099              -0.314800     -0.129099          -0.158777          -0.206725 -0.227429                                   -0.374415               -0.330289        -0.184115               -0.227429                 -0.184115                               -0.184115         -0.129099        -0.184115       -0.158777            -0.158777       -0.129099             -0.129099        -0.129099                  -0.129099                     -0.129099      -0.129099         -0.227429       -0.184115             -0.184115              -0.360041                  -0.206725           -0.129099              -0.129099                  -0.129099 -0.129099                     -0.227429       -0.264906           -0.206725             -0.129099                        -0.206725           -0.246718     -0.246718         -0.264906               -0.282216       -0.129099                             -0.184115   -0.264906      -0.206725                    -0.298807     -0.158777          -0.298807 -0.158777  1.515684  0.158777   -0.685478    -0.596285      -0.330289        -0.330289         -0.282216     1.033342    1.033342                0.951972         -0.227429  1.067872          1.141003  1.486784          -0.374415            -0.246718           -0.246718     -0.206725       -0.246718    -0.206725     -0.206725      -0.246718 -0.158777                    -0.129099         -0.129099   -0.158777 -0.184115 -0.090909 -0.129099 -0.158777        0.227429            -0.298807          0.659768 -0.264906                   -0.246718 -0.330289 -0.129099        -0.184115   -0.090909                -0.090909      -0.090909                -0.090909                 -0.090909              -0.090909 -0.469042 -0.129099  0.388514  1.545603  -0.608922 -0.184115 -0.158777 -0.090909 -0.3148 -0.3148     -0.469042                   0.286533                -1.237868                          -1.0                     7                          0.0          -0.496970                        0.0               1.517660             0.429495       0.517954              1            0                  0                                  0                          0                                0                                    0                      1                        0                          0                      0                                            0                        0                           0                       0                       0                                                      0                            0                   0                             0                                   0                 0                            0                            0                               0                   0                      0                           0                   0                             0                      0                       0                   1                     0                  0               0                0                       0                0              0                0               0                    0                      0              0               0                0           0            0                1
+
