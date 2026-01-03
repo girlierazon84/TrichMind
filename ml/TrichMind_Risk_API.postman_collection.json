@@ -1,0 +1,235 @@
+{
+    "info": {
+        "_postman_id": "b1b7a3c5-1e12-4cb4-83ce-ttm-api-tests",
+        "name": "TrichMind Relapse Risk API Tests (All Endpoints)",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "_exporter_id": "chatgpt"
+    },
+    "item": [
+        {
+            "name": "Live - GET /live",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:8000/live",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "live"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Health - GET /healthz",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:8000/healthz",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "healthz"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Low Risk - POST /predict (raw)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"pulling_severity\": 2,\n  \"pulling_frequency_encoded\": 1,\n  \"awareness_level_encoded\": 0.9,\n  \"how_long_stopped_days_est\": 180,\n  \"successfully_stopped_encoded\": 1,\n  \"years_since_onset\": 2,\n  \"age\": 25,\n  \"age_of_onset\": 23,\n  \"emotion_intensity_sum\": 1.0,\n  \"anxiety_level\": 0.2,\n  \"depression_level\": 0.2,\n  \"coping_strategies_effective\": 1,\n  \"sleep_quality_score\": 9,\n\n  \"avg_urge_7d\": 0.0,\n  \"avg_urge_30d\": 0.0,\n  \"max_urge_7d\": 0.0,\n  \"high_urge_events_7d\": 0.0,\n  \"avg_sleep_7d\": 8.0,\n  \"short_sleep_nights_7d\": 0.0,\n  \"avg_health_stress_7d\": 1.0,\n  \"high_stress_days_7d\": 0.0,\n  \"high_urge_and_high_stress_days_7d\": 0.0\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:8000/predict",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "predict"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Medium Risk - POST /predict (raw)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"pulling_severity\": 6.9,\n  \"pulling_frequency_encoded\": 3,\n  \"awareness_level_encoded\": 0.5,\n  \"how_long_stopped_days_est\": 30,\n  \"successfully_stopped_encoded\": 0,\n  \"years_since_onset\": 6,\n  \"age\": 29,\n  \"age_of_onset\": 23,\n  \"emotion_intensity_sum\": 5.0,\n  \"anxiety_level\": 0.6,\n  \"depression_level\": 0.5,\n  \"coping_strategies_effective\": 0,\n  \"sleep_quality_score\": 6,\n\n  \"avg_urge_7d\": 5.0,\n  \"avg_urge_30d\": 4.0,\n  \"max_urge_7d\": 7.0,\n  \"high_urge_events_7d\": 2.0,\n  \"avg_sleep_7d\": 6.0,\n  \"short_sleep_nights_7d\": 2.0,\n  \"avg_health_stress_7d\": 5.0,\n  \"high_stress_days_7d\": 2.0,\n  \"high_urge_and_high_stress_days_7d\": 1.0\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:8000/predict",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "predict"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "High Risk - POST /predict (raw)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"pulling_severity\": 9,\n  \"pulling_frequency_encoded\": 5,\n  \"awareness_level_encoded\": 0.2,\n  \"how_long_stopped_days_est\": 1,\n  \"successfully_stopped_encoded\": 0,\n  \"years_since_onset\": 12,\n  \"age\": 32,\n  \"age_of_onset\": 20,\n  \"emotion_intensity_sum\": 9.0,\n  \"anxiety_level\": 0.9,\n  \"depression_level\": 0.8,\n  \"coping_strategies_effective\": 0,\n  \"sleep_quality_score\": 3,\n\n  \"avg_urge_7d\": 9.0,\n  \"avg_urge_30d\": 7.0,\n  \"max_urge_7d\": 10.0,\n  \"high_urge_events_7d\": 6.0,\n  \"avg_sleep_7d\": 4.5,\n  \"short_sleep_nights_7d\": 5.0,\n  \"avg_health_stress_7d\": 8.0,\n  \"high_stress_days_7d\": 5.0,\n  \"high_urge_and_high_stress_days_7d\": 3.0\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:8000/predict",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "predict"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Predict Friendly - POST /predict_friendly",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"age\": 29,\n  \"age_of_onset\": 23,\n  \"years_since_onset\": 6,\n  \"pulling_severity\": 6,\n  \"pulling_frequency\": \"weekly\",\n  \"pulling_awareness\": \"sometimes\",\n  \"successfully_stopped\": false,\n  \"how_long_stopped_days\": 30,\n  \"emotion\": \"stress\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:8000/predict_friendly",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "predict_friendly"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Relapse Overview - POST /predict_relapse_overview",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"age\": 29,\n  \"age_of_onset\": 23,\n  \"years_since_onset\": 6,\n\n  \"pulling_severity\": 7,\n  \"pulling_frequency\": \"several times a week\",\n  \"pulling_awareness\": \"sometimes\",\n  \"successfully_stopped\": false,\n  \"how_long_stopped_days\": 14,\n  \"emotion\": \"anxious\",\n\n  \"avg_urge_7d\": 7.5,\n  \"avg_urge_30d\": 5.5,\n  \"max_urge_7d\": 9.0,\n  \"high_urge_events_7d\": 4,\n  \"num_journal_entries_7d\": 3,\n  \"num_journal_entries_30d\": 10,\n  \"days_since_last_entry\": 1,\n\n  \"pct_stress_moods_30d\": 0.6,\n  \"pct_calm_moods_30d\": 0.2,\n  \"pct_happy_moods_30d\": 0.2,\n\n  \"count_trigger_stress_30d\": 5,\n  \"count_trigger_boredom_30d\": 2,\n  \"count_trigger_anxiety_30d\": 6,\n  \"count_trigger_fatigue_30d\": 1,\n  \"count_trigger_bodyfocus_30d\": 2,\n  \"count_trigger_screentime_30d\": 3,\n  \"count_trigger_social_30d\": 2,\n  \"count_trigger_other_30d\": 0,\n\n  \"avg_sleep_7d\": 5.5,\n  \"avg_sleep_30d\": 6.2,\n  \"min_sleep_7d\": 4.0,\n  \"short_sleep_nights_7d\": 4,\n\n  \"avg_health_stress_7d\": 7.0,\n  \"avg_health_stress_30d\": 6.0,\n  \"max_health_stress_7d\": 9.0,\n  \"high_stress_days_7d\": 5,\n\n  \"avg_exercise_7d\": 0.5,\n  \"avg_exercise_30d\": 1.2,\n  \"days_with_any_exercise_7d\": 1,\n  \"num_health_logs_7d\": 3,\n  \"num_health_logs_30d\": 12,\n  \"days_since_last_health_log\": 2,\n\n  \"high_urge_and_high_stress_days_7d\": 3\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:8000/predict_relapse_overview",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "predict_relapse_overview"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Debug Rule Breakdown - POST /debug_relapse_overview",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"age\": 29,\n  \"age_of_onset\": 23,\n  \"years_since_onset\": 6,\n\n  \"pulling_severity\": 7,\n  \"pulling_frequency\": \"several times a week\",\n  \"pulling_awareness\": \"sometimes\",\n  \"successfully_stopped\": false,\n  \"how_long_stopped_days\": 14,\n  \"emotion\": \"anxious\",\n\n  \"avg_urge_7d\": 7.5,\n  \"avg_urge_30d\": 5.5,\n  \"max_urge_7d\": 9.0,\n  \"high_urge_events_7d\": 4,\n\n  \"avg_sleep_7d\": 5.5,\n  \"short_sleep_nights_7d\": 4,\n\n  \"avg_health_stress_7d\": 7.0,\n  \"high_stress_days_7d\": 5,\n\n  \"high_urge_and_high_stress_days_7d\": 3\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:8000/debug_relapse_overview",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "debug_relapse_overview"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Debug Feature Vector - POST /debug_vector",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"pulling_severity\": 6,\n  \"pulling_frequency_encoded\": 3,\n  \"awareness_level_encoded\": 0.5,\n  \"how_long_stopped_days_est\": 30,\n  \"successfully_stopped_encoded\": 0,\n  \"years_since_onset\": 6,\n  \"age\": 29,\n  \"age_of_onset\": 23,\n\n  \"avg_urge_7d\": 5.0,\n  \"avg_urge_30d\": 4.0,\n  \"max_urge_7d\": 7.0,\n  \"high_urge_events_7d\": 2.0,\n  \"avg_sleep_7d\": 6.0,\n  \"short_sleep_nights_7d\": 2.0,\n  \"avg_health_stress_7d\": 5.0,\n  \"high_stress_days_7d\": 2.0,\n  \"high_urge_and_high_stress_days_7d\": 1.0\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:8000/debug_vector",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8000",
+                    "path": [
+                        "debug_vector"
+                    ]
+                }
+            }
+        }
+    ]
+}
