@@ -1,0 +1,13 @@
+{
+  "best_model": "rf",
+  "best_cv_f1_weighted": 1.0,
+  "best_params": {
+    "clf__n_estimators": 700,
+    "clf__min_samples_split": 4,
+    "clf__min_samples_leaf": 1,
+    "clf__max_features": null,
+    "clf__max_depth": 6
+  },
+  "timestamp": "2026-01-03T01:04:45.459445",
+  "label_strategy": "rule_based_raw"
+}
