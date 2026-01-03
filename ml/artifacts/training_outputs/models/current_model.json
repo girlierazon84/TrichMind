@@ -1,0 +1,32 @@
+{
+  "active": {
+    "filename": "best_tuned_model_v1.pkl",
+    "name": "rf_tuned",
+    "path": "C:\\Users\\girli\\OneDrive\\Desktop\\Portfolio-Projects\\TrichMind\\ml\\artifacts\\tuning_outputs\\best\\best_tuned_model_v1.pkl",
+    "version": 1
+  },
+  "artifacts": {
+    "encoder_path": "C:\\Users\\girli\\OneDrive\\Desktop\\Portfolio-Projects\\TrichMind\\ml\\artifacts\\training_outputs\\label_encoder\\label_encoder.pkl",
+    "features_json": "C:\\Users\\girli\\OneDrive\\Desktop\\Portfolio-Projects\\TrichMind\\ml\\artifacts\\preprocessed_outputs\\metadata\\features.json",
+    "scaler_path": "C:\\Users\\girli\\OneDrive\\Desktop\\Portfolio-Projects\\TrichMind\\ml\\artifacts\\preprocessed_outputs\\scaler_model\\scaler.pkl"
+  },
+  "hashes": {
+    "encoder_sha256": "90266f1c682ab9cfc04598c0a07ded2583c4be14f723c152d8bbd4e488e1b106",
+    "features_sha256": "0bf039f941b14c31523f6d790cdd6ef294a8acbbba0f6ccd573cfa94ba36911c",
+    "model_sha256": "0d2cede1b5f7a78183df2539d3820015dbdca2287308e009c85e6eb22dc5f65a",
+    "scaler_sha256": "16f3bfcbf190843c9a0efd64e2b9b5ce6dd7b4efa90ee1b79936e082b64acec2"
+  },
+  "meta": {
+    "best_params": {
+      "clf__max_depth": 6,
+      "clf__max_features": null,
+      "clf__min_samples_leaf": 1,
+      "clf__min_samples_split": 4,
+      "clf__n_estimators": 700
+    },
+    "label_strategy": "rule_based_raw",
+    "tuned_model_path": "C:\\Users\\girli\\OneDrive\\Desktop\\Portfolio-Projects\\TrichMind\\ml\\artifacts\\tuning_outputs\\best\\best_tuned_model_v1.pkl",
+    "tuning_cv_f1_weighted": 1.0
+  },
+  "updated_at_utc": "2026-01-03T00:04:45.760602+00:00"
+}
