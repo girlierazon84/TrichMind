@@ -2,22 +2,10 @@
 
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import styled, { keyframes, css } from "styled-components";
 import type { PredictionResponse } from "@/types/ml";
 
-
-/**-------------------------------------------------------------
-    Extended PredictionResponse with optional model version.
-----------------------------------------------------------------*/
-export interface RiskResultData extends PredictionResponse {
-    model_version?: string;
-}
-
-/**--------------------------
-    Type for risk levels.
------------------------------*/
-type RiskLevel = "low" | "medium" | "high";
 
 /**----------------------
     Styled Components
@@ -197,6 +185,12 @@ const ModelVersionTag = styled.span`
     color: #fdfdfd;
 `;
 
+export interface RiskResultData extends PredictionResponse {
+    model_version?: string;
+}
+
+type RiskLevel = "low" | "medium" | "high";
+
 /**---------------------
     Helper Functions
 ------------------------*/
@@ -207,15 +201,13 @@ function clamp(n: number, min: number, max: number) {
 
 // Accepts either 0–1 or 0–100 and returns 0–100
 function toPct(value: unknown): number {
-    // Treat non-numeric or infinite values as 0
     if (typeof value !== "number" || !Number.isFinite(value)) return 0;
-    const v = value <= 1.5 ? value * 100 : value; // treat <=1.5 as fraction
+    const v = value <= 1.5 ? value * 100 : value; // 0..1 -> 0..100
     return clamp(v, 0, 100);
 }
 
 // Normalizes risk bucket value to "low", "medium", or "high"
 function normalizeRiskBucket(v: unknown): RiskLevel {
-    // Default to "medium" for invalid inputs
     const s = String(v ?? "medium").toLowerCase();
     if (s === "low" || s === "medium" || s === "high") return s;
     return "medium";
@@ -224,59 +216,29 @@ function normalizeRiskBucket(v: unknown): RiskLevel {
 /**-------------------
     Main Component
 ----------------------*/
-export const RiskResultCard: React.FC<{ data: RiskResultData; compact?: boolean; quote?: string }> = ({
-    data,
-    compact = false,
-    quote,
-}) => {
-    // Determine risk band
-    const band = normalizeRiskBucket(data.risk_bucket);
+export const RiskResultCard: React.FC<{
+    data: RiskResultData;
+    compact?: boolean;
+    quote?: string;
+}> = ({ data, compact = false, quote }) => {
+    const band = useMemo(() => normalizeRiskBucket(data.risk_bucket), [data.risk_bucket]);
 
-    // State for animated score and confidence
+    // ✅ derive stable numeric targets
+    const targetScore = useMemo(() => toPct(data.risk_score), [data.risk_score]);
+    const targetConf = useMemo(() => toPct(data.confidence), [data.confidence]);
+
     const [score, setScore] = useState(0);
     const [conf, setConf] = useState(0);
+
     const cardRef = useRef<HTMLDivElement>(null);
 
-    // Handle mouse movement for 3D tilt effect
-    const handleMove = (e: React.MouseEvent) => {
-        // Get card dimensions and mouse position
-        const card = cardRef.current;
-        if (!card) return;
-
-        // Calculate position relative to center
-        const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left - rect.width / 2;
-        const y = e.clientY - rect.top - rect.height / 2;
-
-        // Calculate rotation angles
-        const rotateX = (y / rect.height) * -12;
-        const rotateY = (x / rect.width) * 12;
-
-        // Apply transform
-        card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.01)`;
-    };
-
-    // Reset tilt effect on mouse leave
-    const resetTilt = () => {
-        // Get card element
-        const card = cardRef.current;
-        if (!card) return;
-        card.style.transform = `rotateX(0deg) rotateY(0deg) scale(1)`;
-    };
-
-    // Animate score and confidence on data change
     useEffect(() => {
-        // Ensure code runs only in browser
         if (typeof window === "undefined") return;
 
-        // Animation parameters
         const duration = 900;
         const start = performance.now();
 
-        // Target values
-        const targetScore = toPct((data as Partial<RiskResultData>).risk_score);
-        const targetConf = toPct((data as Partial<RiskResultData>).confidence);
-
+        // ✅ use stable targets (not whole data object)
         let frameId = requestAnimationFrame(function animate(time) {
             const t = Math.min(1, (time - start) / duration);
             const eased = 1 - Math.pow(1 - t, 3);
@@ -288,7 +250,7 @@ export const RiskResultCard: React.FC<{ data: RiskResultData; compact?: boolean;
         });
 
         return () => cancelAnimationFrame(frameId);
-    }, [data]);
+    }, [targetScore, targetConf]);
 
     const fallback = {
         low: "Your calm foundation is strong — keep nurturing it 🌿",
@@ -296,15 +258,31 @@ export const RiskResultCard: React.FC<{ data: RiskResultData; compact?: boolean;
         high: "Pause. Breathe. You are in control, even now ❤️",
     } as const;
 
+    // ... return JSX exactly like you already have ...
     return (
         <TiltWrapper>
             <Card
                 ref={cardRef}
                 $risk={band}
                 $compact={compact}
-                onMouseMove={handleMove}
-                onMouseLeave={resetTilt}
-                aria-label={`Relapse risk summary: ${band}, score ${score.toFixed(1)} percent, confidence ${conf.toFixed(1)} percent.`}
+                onMouseMove={(e) => {
+                    const card = cardRef.current;
+                    if (!card) return;
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left - rect.width / 2;
+                    const y = e.clientY - rect.top - rect.height / 2;
+                    const rotateX = (y / rect.height) * -12;
+                    const rotateY = (x / rect.width) * 12;
+                    card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.01)`;
+                }}
+                onMouseLeave={() => {
+                    const card = cardRef.current;
+                    if (!card) return;
+                    card.style.transform = `rotateX(0deg) rotateY(0deg) scale(1)`;
+                }}
+                aria-label={`Relapse risk summary: ${band}, score ${score.toFixed(
+                    1
+                )} percent, confidence ${conf.toFixed(1)} percent.`}
             >
                 <Shine />
 
