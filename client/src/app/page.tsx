@@ -1,10 +1,10 @@
 // client/src/app/page.tsx
 
-import LoginPage from "./(auth)/login/page";
+import HomePage from "./(protected)/home/page";
 
 
 export default function Login() {
     return (
-        <LoginPage />
+        <HomePage />
     );
 }
