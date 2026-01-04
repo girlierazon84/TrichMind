@@ -12,9 +12,10 @@ export const getRelapseOverviewController = asyncHandler(async (req: Request, re
     const userId = req.auth?.userId;
     if (!userId) return res.status(401).json({ ok: false, error: "Unauthorized" });
 
-    // Fetch the relapse overview data
     const overview = await getRelapseOverviewForUser(userId);
-    return res.status(200).json({ ok: true, overview });
+
+    // ✅ return the actual overview shape (already has ok/enoughData/etc)
+    return res.status(200).json(overview);
 });
 
 export default getRelapseOverviewController;
