@@ -3,16 +3,9 @@
 import type { NextConfig } from "next";
 
 
-// Next.js configuration object
 const nextConfig: NextConfig = {
   output: "standalone",
-  compiler: {
-    styledComponents: true,
-  },
-  turbopack: {
-    root: __dirname,
-  },
+  compiler: { styledComponents: true },
 };
 
-// Export the Next.js configuration object
 export default nextConfig;
