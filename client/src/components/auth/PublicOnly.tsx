@@ -2,35 +2,51 @@
 
 "use client";
 
-import React, { useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import React, { useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks";
 
 
-// Component that restricts access to unauthenticated users only
 type Props = { children: React.ReactNode };
 
-// If the user is authenticated, they are redirected to the home page or a specified "from" page
+/**--------------------------------------------------------------------------------------------
+    PublicOnly
+        - Shows children ONLY when the user is NOT authenticated.
+        - If authenticated, redirects to `?next=` (preferred) or `?from=` (legacy) or "/".
+    NOTE: Avoids `useSearchParams()` to prevent prerender/build issues on Vercel.
+-----------------------------------------------------------------------------------------------*/
 export const PublicOnly: React.FC<Props> = ({ children }) => {
-    // Get authentication status and loading state
-    const { isAuthenticated, loading } = useAuth();
     const router = useRouter();
-    const searchParams = useSearchParams();
+    const { isAuthenticated, loading } = useAuth();
 
-    // Redirect authenticated users
+    // ✅ Read query params only on the client, without setState in an effect
+    const redirectTo = useMemo(() => {
+        if (typeof window === "undefined") return "/";
+
+        const params = new URLSearchParams(window.location.search);
+
+        // Prefer new "next" param; fall back to legacy "from"
+        const next = params.get("next") ?? params.get("from");
+
+        // Safely decode if it's URL-encoded
+        if (!next) return "/";
+
+        try {
+            return decodeURIComponent(next);
+        } catch {
+            return next;
+        }
+    }, []);
+
     useEffect(() => {
         if (!loading && isAuthenticated) {
-            // Check for a "from" query parameter to redirect back to the intended page
-            const from = searchParams.get("from");
-            router.replace(from ? decodeURIComponent(from) : "/");
+            router.replace(redirectTo);
         }
-    }, [loading, isAuthenticated, router, searchParams]);
+    }, [loading, isAuthenticated, router, redirectTo]);
 
-    // While loading, show a loading indicator
-    if (loading) return <div>Loading...</div>;
+    if (loading) return null; // keep it simple; avoids inline styles + UI flashes
     if (isAuthenticated) return null; // redirecting
 
-    // Render children for unauthenticated users
     return <>{children}</>;
 };
 
