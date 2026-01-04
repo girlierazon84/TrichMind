@@ -9,34 +9,37 @@ import { useAuth } from "@/hooks";
 
 type Props = { children: React.ReactNode };
 
-/**--------------------------------------------------------------------------------------------
+/**-----------------------------------------------------------------------------------------------
     PublicOnly
         - Shows children ONLY when the user is NOT authenticated.
         - If authenticated, redirects to `?next=` (preferred) or `?from=` (legacy) or "/".
     NOTE: Query params are read via `window.location.search` (client-only) to avoid prerender
-            issues on Vercel.
------------------------------------------------------------------------------------------------*/
+        issues on Vercel (no useSearchParams()).
+--------------------------------------------------------------------------------------------------*/
 export const PublicOnly: React.FC<Props> = ({ children }) => {
     const router = useRouter();
     const { isAuthenticated, loading } = useAuth();
 
-    // ✅ Read query params only on the client, without setState in an effect
+    // Read query params only on the client (no useSearchParams -> avoids prerender errors)
     const redirectTo = useMemo(() => {
         if (typeof window === "undefined") return "/";
 
         const params = new URLSearchParams(window.location.search);
+        const raw = params.get("next") ?? params.get("from") ?? "/";
 
-        // Prefer new "next" param; fall back to legacy "from"
-        const next = params.get("next") ?? params.get("from");
-
-        // Safely decode if it's URL-encoded
-        if (!next) return "/";
-
+        let decoded = raw;
         try {
-            return decodeURIComponent(next);
+            decoded = decodeURIComponent(raw);
         } catch {
-            return next;
+            // keep raw if decoding fails
         }
+
+        // Basic open-redirect protection:
+        // only allow internal app paths like "/home", "/dashboard?x=1"
+        if (!decoded.startsWith("/")) return "/";
+        if (decoded.startsWith("//")) return "/";
+
+        return decoded;
     }, []);
 
     useEffect(() => {
@@ -45,7 +48,7 @@ export const PublicOnly: React.FC<Props> = ({ children }) => {
         }
     }, [loading, isAuthenticated, router, redirectTo]);
 
-    if (loading) return null; // keep it simple; avoids inline styles + UI flashes
+    if (loading) return null;
     if (isAuthenticated) return null; // redirecting
 
     return <>{children}</>;
