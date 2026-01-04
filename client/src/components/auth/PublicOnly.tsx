@@ -13,7 +13,8 @@ type Props = { children: React.ReactNode };
     PublicOnly
         - Shows children ONLY when the user is NOT authenticated.
         - If authenticated, redirects to `?next=` (preferred) or `?from=` (legacy) or "/".
-    NOTE: Avoids `useSearchParams()` to prevent prerender/build issues on Vercel.
+    NOTE: Query params are read via `window.location.search` (client-only) to avoid prerender
+            issues on Vercel.
 -----------------------------------------------------------------------------------------------*/
 export const PublicOnly: React.FC<Props> = ({ children }) => {
     const router = useRouter();
