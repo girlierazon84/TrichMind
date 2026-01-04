@@ -2,7 +2,12 @@
 
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+    useEffect,
+    useMemo,
+    useRef,
+    useState
+} from "react";
 import styled, { keyframes, css } from "styled-components";
 import type { PredictionResponse } from "@/types/ml";
 
