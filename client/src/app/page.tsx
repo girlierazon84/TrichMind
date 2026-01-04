@@ -2,11 +2,11 @@
 
 "use client";
 
-import HomePage from "./(protected)/home/page";
+import LoginPage from "./(auth)/login/page";
 
 
-export default function Home() {
+export default function Login() {
     return (
-        <HomePage />
+        <LoginPage />
     );
 }
