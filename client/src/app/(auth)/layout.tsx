@@ -1,12 +1,14 @@
-// client/src/app/(public)/layout.tsx
+// client/src/app/(auth)/layout.tsx
 
-"use client";
-
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { PublicOnly } from "@/components/auth";
 
 
-// Layout component that wraps public pages, ensuring only unauthenticated users can access them
+// Server layout (default) + Suspense boundary to avoid CSR bailout build errors
 export default function PublicLayout({ children }: { children: ReactNode }) {
-    return <PublicOnly>{children}</PublicOnly>;
+    return (
+        <Suspense fallback={null}>
+            <PublicOnly>{children}</PublicOnly>
+        </Suspense>
+    );
 }
