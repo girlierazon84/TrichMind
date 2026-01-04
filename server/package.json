@@ -16,7 +16,7 @@
     "test:openai": "tsx test-openai.ts"
   },
   "engines": {
-    "node": ">=20.11.0"
+    "node": "22.x"
   },
   "dependencies": {
     "axios": "^1.13.2",
