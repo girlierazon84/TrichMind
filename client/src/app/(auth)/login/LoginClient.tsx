@@ -205,7 +205,9 @@ export default function LoginClient({ redirectTo }: Props) {
                             name="email"
                             value={email}
                             autoComplete="email"
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                setEmail(e.target.value)
+                            }
                             required
                         />
 
@@ -216,7 +218,9 @@ export default function LoginClient({ redirectTo }: Props) {
                                 name="password"
                                 value={password}
                                 autoComplete="current-password"
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                    setPassword(e.target.value)
+                                }
                                 required
                             />
                             <EyeButton
@@ -225,8 +229,7 @@ export default function LoginClient({ redirectTo }: Props) {
                                 aria-label={showPassword ? "Hide password" : "Show password"}
                                 title={showPassword ? "Hide password" : "Show password"}
                             >
-                                {/* off=true should show "eye-off" when password is hidden */}
-                                <EyeIcon off={!showPassword} />
+                                <EyeIcon off={showPassword} />
                             </EyeButton>
                         </PasswordField>
 

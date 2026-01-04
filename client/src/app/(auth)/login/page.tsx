@@ -3,18 +3,11 @@
 import LoginClient from "./LoginClient";
 
 
-type PageProps = {
-    searchParams?: Record<string, string | string[] | undefined>;
+type Props = {
+    searchParams?: { next?: string };
 };
 
-function safeNext(nextValue: unknown) {
-    // Avoid open-redirects; allow only internal paths
-    if (typeof nextValue !== "string") return "/home";
-    if (!nextValue.startsWith("/")) return "/home";
-    return nextValue;
-}
-
-export default function LoginPage({ searchParams }: PageProps) {
-    const redirectTo = safeNext(searchParams?.next);
+export default function LoginPage({ searchParams }: Props) {
+    const redirectTo = searchParams?.next ?? "/home";
     return <LoginClient redirectTo={redirectTo} />;
 }
