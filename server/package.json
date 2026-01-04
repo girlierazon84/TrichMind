@@ -1,20 +1,23 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "description": "TrichMind backend (Node + Express + TypeScript)",
+  "type": "commonjs",
+  "main": "dist/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch src/server.ts",
+    "clean": "rimraf dist",
+    "prebuild": "npm run clean",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
-    "clean": "rimraf dist",
+    "start:prod": "node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:openai": "tsx test-openai.ts"
   },
-  "keywords": [],
-  "author": "Girlie Q. Razon",
-  "license": "ISC",
-  "type": "commonjs",
+  "engines": {
+    "node": ">=20.11.0"
+  },
   "dependencies": {
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
