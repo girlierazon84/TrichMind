@@ -132,17 +132,7 @@ const EyeButton = styled.button`
 
 function EyeIcon({ off }: { off?: boolean }) {
     return off ? (
-        <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-10-8-10-8a21.77 21.77 0 0 1 5.06-6.94" />
             <path d="M1 1l22 22" />
             <path d="M9.9 9.9A3 3 0 0 0 12 15a3 3 0 0 0 2.12-.88" />
@@ -150,35 +140,18 @@ function EyeIcon({ off }: { off?: boolean }) {
             <path d="M6.23 6.23A10.94 10.94 0 0 1 12 4c7 0 10 8 10 8a21.77 21.77 0 0 1-3.18 4.34" />
         </svg>
     ) : (
-        <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M2 12s3-8 10-8 10 8 10 8-3 8-10 8-10-8-10-8Z" />
             <circle cx="12" cy="12" r="3" />
         </svg>
     );
 }
 
-function getRedirectTo(): string {
-    // This file is "use client" so window exists at runtime.
-    // Lazy initializer prevents effect + setState warnings.
-    try {
-        const next = new URLSearchParams(window.location.search).get("next");
-        return next ?? "/home";
-    } catch {
-        return "/home";
-    }
-}
+type Props = {
+    redirectTo: string;
+};
 
-export default function LoginClient() {
+export default function LoginClient({ redirectTo }: Props) {
     const router = useRouter();
 
     const { user, login, loading } = useAuth();
@@ -189,9 +162,6 @@ export default function LoginClient() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-    // ✅ computed once, no setState inside effect
-    const [redirectTo] = useState<string>(() => getRedirectTo());
 
     useEffect(() => {
         const t = setTimeout(() => setCardVisible(true), 50);
@@ -235,9 +205,7 @@ export default function LoginClient() {
                             name="email"
                             value={email}
                             autoComplete="email"
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                setEmail(e.target.value)
-                            }
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                             required
                         />
 
@@ -248,9 +216,7 @@ export default function LoginClient() {
                                 name="password"
                                 value={password}
                                 autoComplete="current-password"
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                    setPassword(e.target.value)
-                                }
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                                 required
                             />
                             <EyeButton
@@ -259,7 +225,8 @@ export default function LoginClient() {
                                 aria-label={showPassword ? "Hide password" : "Show password"}
                                 title={showPassword ? "Hide password" : "Show password"}
                             >
-                                <EyeIcon off={showPassword} />
+                                {/* off=true should show "eye-off" when password is hidden */}
+                                <EyeIcon off={!showPassword} />
                             </EyeButton>
                         </PasswordField>
 
