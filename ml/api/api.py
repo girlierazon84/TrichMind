@@ -39,7 +39,7 @@ from fastapi.middleware.cors import CORSMiddleware
 #   🛠️ Setup module path FIRST
 # ----------------------------
 HERE = Path(__file__).resolve()
-ML_ROOT = HERE.parents[0]  # assumes this file sits under <repo>/ml/...
+ML_ROOT = HERE.parents[1]  # ✅ points to ml/
 if str(ML_ROOT) not in sys.path:
     sys.path.insert(0, str(ML_ROOT))
 
