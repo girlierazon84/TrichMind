@@ -1,40 +1,30 @@
 // client/src/components/RiskResultCard.tsx
-
 "use client";
 
-import React, {
-    useEffect,
-    useMemo,
-    useRef,
-    useState
-} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import styled, { keyframes, css } from "styled-components";
-import type { PredictionResponse } from "@/types/ml";
+import type { PredictionResponse, RiskBucket } from "@/types/ml";
 
 
 /**----------------------
     Styled Components
 -------------------------*/
-// Fade-in animation for the card
 const fadeIn = keyframes`
     from { opacity: 0; transform: translateY(12px) scale(.97); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
 `;
 
-// Shimmer animation for the risk label
 const shimmer = keyframes`
     0% { opacity:.5; }
     50% { opacity:1; }
     100% { opacity:.5; }
 `;
 
-// Shine sweep animation for the card
 const shineSweep = keyframes`
     0% { left:-120%; }
     100% { left:120%; }
 `;
 
-// Wrapper to provide perspective for 3D tilt effect
 const TiltWrapper = styled.div`
     perspective: 900px;
     width: 100%;
@@ -42,8 +32,7 @@ const TiltWrapper = styled.div`
     margin: 2rem 0 0 0;
 `;
 
-// Main card styling with dynamic background and border based on risk level
-const Card = styled.div<{ $risk: RiskLevel; $compact?: boolean }>`
+const Card = styled.div<{ $risk: RiskBucket; $compact?: boolean }>`
     position: relative;
     padding: ${({ $compact }) => ($compact ? "1.2rem" : "2rem")};
     border-radius: ${({ theme }) => theme.radius.lg};
@@ -79,14 +68,17 @@ const Card = styled.div<{ $risk: RiskLevel; $compact?: boolean }>`
                 position: absolute;
                 inset: 0;
                 border-radius: inherit;
-                background: linear-gradient(145deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 50%);
+                background: linear-gradient(
+                    145deg,
+                    rgba(255, 255, 255, 0.22) 0%,
+                    rgba(255, 255, 255, 0) 50%
+                );
                 pointer-events: none;
             }
         `;
     }}
 `;
 
-// Shine effect overlay
 const Shine = styled.div`
     position: absolute;
     top: 0;
@@ -104,7 +96,6 @@ const Shine = styled.div`
     pointer-events: none;
 `;
 
-// Title styling
 const Title = styled.h3<{ $compact?: boolean }>`
     font-size: ${({ $compact }) => ($compact ? "1rem" : "1.4rem")};
     font-weight: 700;
@@ -112,7 +103,6 @@ const Title = styled.h3<{ $compact?: boolean }>`
     color: white;
 `;
 
-// Risk label with shimmer effect
 const RiskLabel = styled.div<{ $compact?: boolean }>`
     font-size: ${({ $compact }) => ($compact ? "1.4rem" : "2.1rem")};
     font-weight: 900;
@@ -123,7 +113,6 @@ const RiskLabel = styled.div<{ $compact?: boolean }>`
     animation: ${shimmer} 2.3s ease-in-out infinite;
 `;
 
-// Score line styling
 const ScoreLine = styled.div<{ $compact?: boolean }>`
     font-size: ${({ $compact }) => ($compact ? ".85rem" : "1rem")};
     margin-bottom: 0.6rem;
@@ -134,14 +123,12 @@ const ScoreLine = styled.div<{ $compact?: boolean }>`
     }
 `;
 
-// Confidence bar components
 const ConfidenceWrapper = styled.div`
     width: 100%;
     max-width: 260px;
     margin: 0.5rem auto;
 `;
 
-// Header for confidence bar
 const ConfidenceHeader = styled.div`
     display: flex;
     justify-content: space-between;
@@ -150,15 +137,13 @@ const ConfidenceHeader = styled.div`
     opacity: 0.9;
 `;
 
-// Track for confidence bar
 const ConfidenceTrack = styled.div`
     height: 8px;
     background: rgba(255, 255, 255, 0.25);
     border-radius: 9999px;
 `;
 
-// Dynamic confidence bar based on confidence percentage and risk level
-const ConfidenceBar = styled.div<{ $w: number; $risk: RiskLevel }>`
+const ConfidenceBar = styled.div<{ $w: number; $risk: RiskBucket }>`
     height: 8px;
     border-radius: 9999px;
     width: ${({ $w }) => $w}%;
@@ -172,7 +157,6 @@ const ConfidenceBar = styled.div<{ $w: number; $risk: RiskLevel }>`
                 : `background: ${theme.colors.high_risk};`}
 `;
 
-// Quote styling
 const Quote = styled.p<{ $compact?: boolean }>`
     margin-top: 1rem;
     opacity: 0.9;
@@ -181,7 +165,6 @@ const Quote = styled.p<{ $compact?: boolean }>`
     font-size: ${({ $compact }) => ($compact ? ".8rem" : "0.95rem")};
 `;
 
-// Model version tag styling
 const ModelVersionTag = styled.span`
     display: block;
     margin-top: 0.2rem;
@@ -190,16 +173,9 @@ const ModelVersionTag = styled.span`
     color: #fdfdfd;
 `;
 
-export interface RiskResultData extends PredictionResponse {
-    model_version?: string;
-}
-
-type RiskLevel = "low" | "medium" | "high";
-
 /**---------------------
     Helper Functions
 ------------------------*/
-// Clamps a number between min and max
 function clamp(n: number, min: number, max: number) {
     return Math.min(max, Math.max(min, n));
 }
@@ -216,28 +192,25 @@ function toPct(value: unknown): number {
 
     if (n === null) return 0;
 
-    const v = n <= 1.5 ? n * 100 : n; // 0..1 -> 0..100
+    const v = n <= 1.5 ? n * 100 : n;
     return clamp(v, 0, 100);
 }
 
-// Normalizes risk bucket value to "low", "medium", or "high"
-function normalizeRiskBucket(v: unknown): RiskLevel {
+function normalizeRiskBucket(v: unknown): RiskBucket {
     const s = String(v ?? "medium").toLowerCase();
-    if (s === "low" || s === "medium" || s === "high") return s;
-    return "medium";
+    return s === "low" || s === "medium" || s === "high" ? (s as RiskBucket) : "medium";
 }
 
 /**-------------------
     Main Component
 ----------------------*/
 export const RiskResultCard: React.FC<{
-    data: RiskResultData;
+    data: PredictionResponse;
     compact?: boolean;
     quote?: string;
 }> = ({ data, compact = false, quote }) => {
     const band = useMemo(() => normalizeRiskBucket(data.risk_bucket), [data.risk_bucket]);
 
-    // ✅ derive stable numeric targets
     const targetScore = useMemo(() => toPct(data.risk_score), [data.risk_score]);
     const targetConf = useMemo(() => toPct(data.confidence), [data.confidence]);
 
@@ -252,7 +225,6 @@ export const RiskResultCard: React.FC<{
         const duration = 900;
         const start = performance.now();
 
-        // ✅ use stable targets (not whole data object)
         let frameId = requestAnimationFrame(function animate(time) {
             const t = Math.min(1, (time - start) / duration);
             const eased = 1 - Math.pow(1 - t, 3);
@@ -266,13 +238,12 @@ export const RiskResultCard: React.FC<{
         return () => cancelAnimationFrame(frameId);
     }, [targetScore, targetConf]);
 
-    const fallback = {
+    const fallback: Record<RiskBucket, string> = {
         low: "Your calm foundation is strong — keep nurturing it 🌿",
         medium: "Small mindful choices today shape your tomorrow ✨",
         high: "Pause. Breathe. You are in control, even now ❤️",
-    } as const;
+    };
 
-    // ... return JSX exactly like you already have ...
     return (
         <TiltWrapper>
             <Card
