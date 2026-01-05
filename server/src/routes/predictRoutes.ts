@@ -99,34 +99,49 @@ router.get(
 ---------------------------------------*/
 router.post(
     "/",
+    authentication({ required: true }),
     validate(PredictSchema),
     asyncHandler(async (req, res) => {
-        if (!hasMlBackend) return res.status(200).json(mlOfflinePayload("ML backend not configured"));
+        const userId = req.auth!.userId;
+        const doc = await predictService.predict(userId, req.body);
 
-        try {
-            const data = await forwardPredictFriendly(req.body);
-            return res.status(200).json({ ok: true, prediction: data });
-        } catch (err: unknown) {
-            return res.status(200).json(mlOfflinePayload(axiosErrorReason(err)));
-        }
+        return res.status(201).json({
+            ok: true,
+            prediction: {
+                risk_score: doc.risk_score,
+                risk_bucket: doc.risk_bucket,
+                confidence: doc.confidence,
+                model_version: doc.model_version,
+                risk_code: doc.risk_bucket,
+            },
+        });
     })
 );
 
 /**-------------------------------------------------
-    POST /api/ml/predict_friendly — raw friendly
+    POST /api/ml/predict_friendly — STORED friendly
+    ✅ uses Mongo + saves Predict + HealthLog snapshot
 ----------------------------------------------------*/
 router.post(
     "/predict_friendly",
+    authentication({ required: true }),
     validate(PredictSchema),
     asyncHandler(async (req, res) => {
-        if (!hasMlBackend) return res.status(200).json(mlOfflinePayload("ML backend not configured"));
+        const userId = req.auth!.userId;
 
-        try {
-            const data = await forwardPredictFriendly(req.body);
-            return res.status(200).json(data);
-        } catch (err: unknown) {
-            return res.status(200).json(mlOfflinePayload(axiosErrorReason(err)));
-        }
+        // ✅ this calls FastAPI AND stores Predict + HealthLog
+        const doc = await predictService.predict(userId, req.body);
+
+        return res.status(201).json({
+            ok: true,
+            prediction: {
+                risk_score: doc.risk_score,
+                risk_bucket: doc.risk_bucket,
+                confidence: doc.confidence,
+                model_version: doc.model_version,
+                risk_code: doc.risk_bucket, // optional
+            },
+        });
     })
 );
 
