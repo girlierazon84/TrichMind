@@ -2,13 +2,7 @@
 
 "use client";
 
-import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState
-} from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import styled, { css, keyframes } from "styled-components";
 import { useRouter } from "next/navigation";
@@ -48,9 +42,9 @@ const Shell = styled.main`
     animation: ${pageEnter} 0.45s ease-out;
     background: ${({ theme }) =>
         `linear-gradient(180deg,
-            rgba(226, 244, 247, 1) 0%,
-            rgba(230, 247, 247, 1) 120px,
-            ${theme.colors.page_bg || "#f4fbfc"} 320px
+        rgba(226, 244, 247, 1) 0%,
+        rgba(230, 247, 247, 1) 120px,
+        ${theme.colors.page_bg || "#f4fbfc"} 320px
     )`};
 
     display: flex;
@@ -103,6 +97,10 @@ const TopTitle = styled.h1`
     letter-spacing: 0.01em;
     flex: 1;
     text-align: center;
+`;
+
+const TopSpacer = styled.div`
+    width: 42px;
 `;
 
 const Sheet = styled.section`
@@ -258,10 +256,6 @@ const ActionsRow = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
-
-    @media (min-width: 560px) {
-        grid-template-columns: 1fr 1fr;
-    }
 `;
 
 const PrimarySaveButton = styled(ThemeButton) <{ $pulse?: boolean }>`
@@ -285,14 +279,12 @@ const StatusText = styled.p<{ $tone?: "ok" | "warn" }>`
     font-size: 0.9rem;
     line-height: 1.35;
 
-    color: ${({ theme, $tone }) =>
-        $tone === "ok" ? "#0a7a3a" : theme.colors.text_primary};
-
+    color: ${({ theme, $tone }) => ($tone === "ok" ? "#0a7a3a" : theme.colors.text_primary)};
     background: ${({ $tone }) =>
         $tone === "ok" ? "rgba(10,122,58,0.06)" : "rgba(0,0,0,0.03)"};
 
     border: 1px solid
-    ${({ $tone }) => ($tone === "ok" ? "rgba(10,122,58,0.14)" : "rgba(0,0,0,0.06)")};
+        ${({ $tone }) => ($tone === "ok" ? "rgba(10,122,58,0.14)" : "rgba(0,0,0,0.06)")};
 `;
 
 const LoadingText = styled.div`
@@ -341,15 +333,27 @@ const CropArea = styled.div`
     border-radius: 50%;
     margin: 0 auto 14px;
     overflow: hidden;
-    background: #000;
+
+    /* ✅ don’t hide the preview behind pure black if anything loads slowly */
+    background: radial-gradient(circle at 30% 30%, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.10));
+    border: 1px solid rgba(0, 0, 0, 0.08);
+
     display: grid;
     place-items: center;
 `;
 
 const CropPreview = styled.img<{ $zoom: number }>`
-    width: ${({ $zoom }) => $zoom * 100}%;
-    height: ${({ $zoom }) => $zoom * 100}%;
+    width: 100%;
+    height: 100%;
     object-fit: cover;
+
+    /* ✅ zoom without “reflow” sizing issues */
+    transform: scale(${({ $zoom }) => $zoom});
+    transform-origin: center;
+    will-change: transform;
+
+    /* some mobile browsers benefit from this */
+    backface-visibility: hidden;
 `;
 
 const SliderRow = styled.div`
@@ -426,8 +430,7 @@ export default function ProfilePage() {
     const router = useRouter();
     const { isAuthenticated, logout, refreshUser, user } = useAuth();
 
-    const { worked: copingWorked, notWorked: copingNotWorked, setFromBackend } =
-        useCopingStrategies();
+    const { worked: copingWorked, notWorked: copingNotWorked, setFromBackend } = useCopingStrategies();
 
     const [profile, setProfile] = useState<ExtendedUser | null>(null);
     const [initialProfile, setInitialProfile] = useState<ExtendedUser | null>(null);
@@ -435,10 +438,12 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
-    const [avatarPreview, setAvatarPreview] = useState<string>(
-        user?.avatarUrl || toImgSrc(UserIcon)
-    );
+    const [avatarPreview, setAvatarPreview] = useState<string>(user?.avatarUrl || toImgSrc(UserIcon));
     const [avatarSource, setAvatarSource] = useState<HTMLImageElement | null>(null);
+
+    // ✅ Keep the object URL alive while cropping; revoke on close/apply
+    const [avatarObjectUrl, setAvatarObjectUrl] = useState<string | null>(null);
+
     const [zoom, setZoom] = useState(1);
     const [showCropper, setShowCropper] = useState(false);
 
@@ -454,6 +459,13 @@ export default function ProfilePage() {
         setFromBackendRef.current = setFromBackend;
     }, [setFromBackend]);
 
+    // cleanup any remaining object URL on unmount
+    useEffect(() => {
+        return () => {
+            if (avatarObjectUrl) URL.revokeObjectURL(avatarObjectUrl);
+        };
+    }, [avatarObjectUrl]);
+
     useEffect(() => {
         if (!isAuthenticated) {
             router.replace("/login?next=/profile");
@@ -467,8 +479,8 @@ export default function ProfilePage() {
             try {
                 const res = await axiosClient.get<{ ok: boolean; user: ExtendedUser }>("/auth/me");
                 if (cancelled) return;
-                const u = res.data.user;
 
+                const u = res.data.user;
                 setProfile(u);
                 setInitialProfile(u);
                 setAvatarPreview(u.avatarUrl || toImgSrc(UserIcon));
@@ -488,7 +500,6 @@ export default function ProfilePage() {
         if (!profile || !initialProfile) return false;
         if (!profilesEqual(profile, initialProfile)) return true;
 
-        // Coping strategies live in the coping hook state
         const initialWorked = initialProfile.coping_worked ?? [];
         const initialNotWorked = initialProfile.coping_not_worked ?? [];
         if (!eqStringArray(copingWorked, initialWorked)) return true;
@@ -497,25 +508,18 @@ export default function ProfilePage() {
         return false;
     }, [profile, initialProfile, copingWorked, copingNotWorked]);
 
-    const handleProfileChange = useCallback(
-        (e: React.ChangeEvent<HTMLInputElement>) => {
-            setProfile((prev) => {
-                if (!prev) return prev;
+    const handleProfileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setProfile((prev) => {
+            if (!prev) return prev;
 
-                const { name, value } = e.target;
+            const { name, value } = e.target;
 
-                if (name === "age") {
-                    return { ...prev, age: toNumberOrUndef(value) };
-                }
-                if (name === "years_since_onset") {
-                    return { ...prev, years_since_onset: toNumberOrUndef(value) };
-                }
+            if (name === "age") return { ...prev, age: toNumberOrUndef(value) };
+            if (name === "years_since_onset") return { ...prev, years_since_onset: toNumberOrUndef(value) };
 
-                return { ...prev, [name]: value };
-            });
-        },
-        []
-    );
+            return { ...prev, [name]: value };
+        });
+    }, []);
 
     const handleCopingInputChange = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -528,31 +532,47 @@ export default function ProfilePage() {
         [copingNotWorked, copingWorked]
     );
 
-    const handleAvatarUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        const img = new globalThis.Image();
-        const url = URL.createObjectURL(file);
-
-        img.onload = () => {
-            URL.revokeObjectURL(url);
-            setAvatarSource(img);
-            setZoom(1);
-            setShowCropper(true);
-        };
-
-        img.onerror = () => {
-            URL.revokeObjectURL(url);
-        };
-
-        img.src = url;
-    }, []);
-
     const closeCropper = useCallback(() => {
         setShowCropper(false);
         setAvatarSource(null);
+
+        setAvatarObjectUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+        });
     }, []);
+
+    const handleAvatarUpload = useCallback(
+        (e: React.ChangeEvent<HTMLInputElement>) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+
+            // allow re-selecting the same file
+            e.target.value = "";
+
+            // revoke old URL if any
+            setAvatarObjectUrl((prev) => {
+                if (prev) URL.revokeObjectURL(prev);
+                return prev;
+            });
+
+            const url = URL.createObjectURL(file);
+            setAvatarObjectUrl(url);
+
+            const img = new globalThis.Image();
+            img.onload = () => {
+                setAvatarSource(img);
+                setZoom(1);
+                setShowCropper(true);
+            };
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+                setAvatarObjectUrl(null);
+            };
+            img.src = url;
+        },
+        []
+    );
 
     const applyAvatarCrop = useCallback(() => {
         if (!avatarSource) return;
@@ -581,36 +601,30 @@ export default function ProfilePage() {
         ctx.clip();
         ctx.drawImage(avatarSource, x, y, w, h);
 
-        const url = canvas.toDataURL("image/jpeg", 0.85);
+        const url = canvas.toDataURL("image/jpeg", 0.88);
 
         setAvatarPreview(url);
         setProfile((p) => (p ? { ...p, avatarUrl: url } : p));
-        setShowCropper(false);
-    }, [avatarSource, zoom]);
+
+        // ✅ close + revoke object URL AFTER we no longer need it
+        closeCropper();
+    }, [avatarSource, zoom, closeCropper]);
 
     const handleSave = useCallback(async () => {
         if (!profile) return;
 
         setSaving(true);
         try {
-            const payload: ExtendedUser & {
-                coping_worked: string[];
-                coping_not_worked: string[];
-            } = {
+            const payload: ExtendedUser & { coping_worked: string[]; coping_not_worked: string[] } = {
                 ...profile,
                 coping_worked: copingWorked,
                 coping_not_worked: copingNotWorked,
             };
 
-            const res = await axiosClient.patch<{ ok: boolean; user: ExtendedUser }>(
-                "/users/profile",
-                payload
-            );
-
+            const res = await axiosClient.patch<{ ok: boolean; user: ExtendedUser }>("/users/profile", payload);
             setProfile(res.data.user);
             setInitialProfile(res.data.user);
 
-            // ensure header avatar + user data refresh everywhere
             await refreshUser();
         } finally {
             setSaving(false);
@@ -651,8 +665,7 @@ export default function ProfilePage() {
     if (!isAuthenticated) return <LoadingText>Please login…</LoadingText>;
     if (loading) return <LoadingText>Loading your profile…</LoadingText>;
 
-    const avatarSrc =
-        avatarPreview || profile?.avatarUrl || user?.avatarUrl || toImgSrc(UserIcon);
+    const avatarSrc = avatarPreview || profile?.avatarUrl || user?.avatarUrl || toImgSrc(UserIcon);
 
     return (
         <>
@@ -663,15 +676,20 @@ export default function ProfilePage() {
                             <Image src={BackIcon} alt="Go back" width={26} height={26} />
                         </BackButton>
                         <TopTitle>Your profile</TopTitle>
-                        {/* spacer for centered title */}
-                        <div style={{ width: 42 }} aria-hidden="true" />
+                        <TopSpacer aria-hidden="true" />
                     </TopBar>
 
                     <Sheet>
                         <Hero>
                             <AvatarRow>
                                 <AvatarOuter>
-                                    <AvatarImg src={avatarSrc} alt="Avatar" width={108} height={108} />
+                                    <AvatarImg
+                                        src={avatarSrc}
+                                        alt="Avatar"
+                                        width={108}
+                                        height={108}
+                                        unoptimized
+                                    />
                                 </AvatarOuter>
 
                                 <ChangeAvatarButton>
@@ -816,7 +834,12 @@ export default function ProfilePage() {
                         <ModalTitle>Adjust your avatar</ModalTitle>
 
                         <CropArea>
-                            <CropPreview src={avatarSource.src} alt="crop preview" $zoom={zoom} />
+                            {/* ✅ Use the object URL, don’t revoke until close/apply */}
+                            <CropPreview
+                                src={avatarObjectUrl ?? avatarSource.src}
+                                alt="crop preview"
+                                $zoom={zoom}
+                            />
                         </CropArea>
 
                         <SliderRow>
