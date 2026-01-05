@@ -26,11 +26,13 @@ import type { PredictionResponse, RiskBucket } from "@/types/ml";
 import { HeaderAvatar } from "@/components/common";
 
 
-/**------------------------
+/**----------
     Types
----------------------------*/
+-------------*/
+// Uppercase risk level type
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 
+// Response type for /auth/me API
 export interface MeResponse {
     user?: {
         email: string;
@@ -164,10 +166,6 @@ const StatusPill = styled.span<{ $variant?: "ok" | "warning" }>`
 
 const Card = styled.section`
     width: 100%;
-    background: ${({ theme }) => theme.colors.card_bg};
-    border-radius: ${({ theme }) => theme.radius.lg};
-    box-shadow: ${({ theme }) => theme.colors.card_shadow};
-    border: 1px solid rgba(0, 0, 0, 0.06);
     padding: 14px;
 
     @media (min-width: 768px) {
@@ -217,9 +215,9 @@ const SkeletonSpacer = styled.div<{ $height?: string }>`
     height: ${({ $height }) => $height || "10px"};
 `;
 
-/**------------------------
+/**------------------
     Welcome modal
----------------------------*/
+---------------------*/
 const WelcomeOverlay = styled.div`
     position: fixed;
     inset: 0;
