@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styled, { keyframes } from "styled-components";
@@ -13,92 +13,181 @@ import Image from "next/image";
 
 
 /**-----------------------------------
-    Styled Components & Animations
+    Animations
 --------------------------------------*/
-// Animations
 const fadeIn = keyframes`
   from { opacity: 0; }
   to { opacity: 1; }
 `;
 
-// Slide-up animation for form
 const slideUp = keyframes`
-  from { opacity: 0; transform: translateY(22px); }
+  from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
 `;
 
-// Popup appear animation
 const popupAppear = keyframes`
-  from { opacity: 0; transform: translateY(30px) scale(0.97); }
+  from { opacity: 0; transform: translateY(22px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 `;
 
-// Form container styling
-const FormContainer = styled.form`
+/**-----------------------------------
+    Layout (mobile-first)
+--------------------------------------*/
+const Card = styled.div`
+  background: ${({ theme }) => theme.colors.card_bg};
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+  animation: ${slideUp} 0.5s ease-out;
+
+  @media (min-width: 768px) {
+    padding: 18px;
+  }
+`;
+
+const Form = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  border-radius: 18px;
-  animation: ${slideUp} 0.55s ease-out;
+  gap: 14px;
+`;
 
-  .submit-button {
-    margin-top: 1rem;
-  }
+const Section = styled.section`
+  border-radius: 16px;
+  padding: 14px;
+  background: ${({ theme }) => theme.colors.card_bg || "rgba(0,0,0,0.02)"};
 
-  label {
-    font-weight: 600;
-    color: ${({ theme }) => theme.colors.fifthly};
+  @media (min-width: 768px) {
+    padding: 16px;
   }
 `;
 
-// Section title styling
+const SectionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+`;
+
 const SectionTitle = styled.h3`
-  margin-bottom: 1rem;
-  animation: ${fadeIn} 0.6s ease-out;
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: ${({ theme }) => theme.colors.text_primary};
+  text-transform: uppercase;
+`;
 
-  .user-account,
-  .behaviour-emotions,
-  .coping-strategies {
-    display: inline;
-    font-size: 1rem;
-    font-weight: 600;
-    text-align: left;
-    color: ${({ theme }) => theme.colors.text_primary};
-  }
+const IconWrap = styled.div`
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.05);
+`;
 
-  .user-icon,
-  .brain-icon{
-    width: 1.2rem;
-    height: 1.2rem;
-    margin-right: 0.5rem;
-  }
+const Grid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
 
-  .strategy-icon {
-    width: 2rem;
-    height: 1.7rem;
+  @media (min-width: 820px) {
+    grid-template-columns: 1fr 1fr;
   }
 `;
 
-// Error message styling
+const Full = styled.div`
+  grid-column: 1 / -1;
+`;
+
+const Hint = styled.p`
+  margin: 6px 2px 0;
+  font-size: 0.85rem;
+  color: ${({ theme }) => theme.colors.text_secondary};
+  line-height: 1.35;
+`;
+
+/**-----------------------------------
+    Chips (quick picks)
+--------------------------------------*/
+const ChipsRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 2px;
+`;
+
+const Chip = styled.button<{ $active?: boolean }>`
+  border: 1px solid ${({ theme, $active }) => ($active ? theme.colors.primary : "rgba(0,0,0,0.12)")};
+  background: ${({ $active }) => ($active ? "rgba(0,0,0,0.04)" : "transparent")};
+  color: ${({ theme }) => theme.colors.text_primary};
+  border-radius: 999px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    border-color: ${({ theme }) => theme.colors.primary};
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.primary};
+    outline-offset: 2px;
+  }
+`;
+
+/**-----------------------------------
+    Sticky mobile CTA (no inline styles)
+--------------------------------------*/
+const StickyBar = styled.div`
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin-top: 6px;
+  padding-top: 10px;
+
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0),
+    ${({ theme }) => theme.colors.card_bg} 35%
+  );
+
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+
+  @media (min-width: 820px) {
+    position: static;
+    padding-bottom: 0;
+    background: none;
+  }
+`;
+
+const FullWidthButton = styled(ThemeButton)`
+  width: 100%;
+`;
+
+const ErrorWrap = styled.div`
+  margin-top: 10px;
+`;
+
 const ErrorMessage = styled.p`
   color: ${({ theme }) => theme.colors.high_risk};
-  font-weight: 500;
-  animation: ${fadeIn} 0.4s ease-out;
+  font-weight: 650;
+  margin: 0;
+  animation: ${fadeIn} 0.35s ease-out;
 `;
 
-// Footer text styling
 const FooterText = styled.p`
-  margin: 2rem 0;
+  margin: 8px 0 0;
   font-size: 0.9rem;
   text-align: center;
   color: ${({ theme }) => theme.colors.text_secondary};
-  animation: ${fadeIn} 1s ease-out;
+  animation: ${fadeIn} 0.6s ease-out;
 
   a {
     color: ${({ theme }) => theme.colors.primary};
-    font-weight: 600;
+    font-weight: 700;
     text-decoration: none;
-    transition: color 0.2s ease;
 
     &:hover {
       color: ${({ theme }) => theme.colors.fifthly};
@@ -106,57 +195,56 @@ const FooterText = styled.p`
   }
 `;
 
-// Popup overlay and box styling
+/**-----------------------------------
+    Popup
+--------------------------------------*/
 const PopupOverlay = styled.div`
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.45);
+  background: rgba(0, 0, 0, 0.46);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 2000;
-  animation: ${fadeIn} 0.25s ease-out;
+  animation: ${fadeIn} 0.22s ease-out;
 `;
 
-// Popup box styling
 const PopupBox = styled.div`
   background: ${({ theme }) => theme.colors.card_bg};
-  padding: 2.2rem;
+  padding: 2rem;
   border-radius: 18px;
   max-width: 420px;
   width: 92%;
   text-align: center;
-  box-shadow: 0 10px 32px rgba(0,0,0,0.25);
-  animation: ${popupAppear} 0.45s ease-out;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.25);
+  animation: ${popupAppear} 0.42s ease-out;
 `;
 
-// Popup title styling
 const PopupTitle = styled.h2`
-  font-size: 1.45rem;
+  font-size: 1.35rem;
   color: ${({ theme }) => theme.colors.primary};
-  margin-bottom: 1rem;
+  margin: 0 0 0.8rem;
 `;
 
-// Popup text styling
 const PopupText = styled.p`
   font-size: 1rem;
   color: ${({ theme }) => theme.colors.text_primary};
-  margin-bottom: 1.5rem;
+  margin: 0 0 1.35rem;
   line-height: 1.5;
 `;
 
-// Password input wrapper + eye button styling
+/**--------------------------------------------
+    Password with eye icon
+-----------------------------------------------*/
 const PasswordField = styled.div`
   position: relative;
   width: 100%;
 
-  /* Make room for the eye button inside the input */
   input {
     padding-right: 44px !important;
   }
 `;
 
-// Eye button styling
 const EyeButton = styled.button`
   position: absolute;
   right: 10px;
@@ -183,11 +271,7 @@ const EyeButton = styled.button`
   }
 `;
 
-/**--------------------------------------------
-    Minimal inline eye icon (no extra deps)
------------------------------------------------*/
 function EyeIcon({ off }: { off?: boolean }) {
-  // Simple eye icon SVGs
   return off ? (
     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-10-8-10-8a21.77 21.77 0 0 1 5.06-6.94" />
@@ -205,131 +289,167 @@ function EyeIcon({ off }: { off?: boolean }) {
 }
 
 /**--------------------------------------
-    Interfaces & Component Definition
+    Interfaces
 -----------------------------------------*/
-// Form state interface
 interface RegisterFormState {
   email: string;
   password: string;
   displayName: string;
   date_of_birth: string;
+
   age_of_onset: string;
   years_since_onset: string;
+
   pulling_severity: string;
   pulling_frequency: string;
   pulling_awareness: string;
   successfully_stopped: string;
   how_long_stopped_days: string;
+
   emotion: string;
+
   coping_worked: string;
   coping_not_worked: string;
 }
 
-// Payload interface for register and predict
-interface RegisterPredictPayload
-  extends Omit<RegisterFormState, "coping_worked" | "coping_not_worked"> {
+interface RegisterPredictPayload extends Omit<RegisterFormState, "coping_worked" | "coping_not_worked"> {
   coping_worked: string[];
   coping_not_worked: string[];
 }
 
 /**--------------------------------------
-    Register & Predict Form Component
+    Helpers
+-----------------------------------------*/
+function safeNumber(raw: string): number | null {
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+function computeYearsSinceOnset(dobISO: string, onsetRaw: string): string {
+  if (!dobISO) return "";
+  const onset = safeNumber(onsetRaw);
+  if (onset === null) return "";
+
+  const dob = new Date(dobISO);
+  if (Number.isNaN(dob.getTime())) return "";
+
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const hadBirthday =
+    today.getMonth() > dob.getMonth() ||
+    (today.getMonth() === dob.getMonth() && today.getDate() >= dob.getDate());
+  if (!hadBirthday) age -= 1;
+
+  return String(Math.max(0, age - onset));
+}
+
+const freqQuick = ["Daily", "Several times/week", "Weekly", "Monthly", "Rarely"];
+const awarenessQuick = ["Yes", "Sometimes", "No"];
+const stoppedQuick = ["Yes", "No"];
+
+/**--------------------------------------
+    Component
 -----------------------------------------*/
 export const RegisterPredictForm: React.FC = () => {
-  // Hooks
   const { registerAndPredict, submitting, submitError } = useRegisterAndPredict();
   const router = useRouter();
 
-  // Form state
   const [form, setForm] = useState<RegisterFormState>({
     email: "",
     password: "",
     displayName: "",
     date_of_birth: "",
+
     age_of_onset: "",
     years_since_onset: "",
+
     pulling_severity: "",
     pulling_frequency: "",
     pulling_awareness: "",
     successfully_stopped: "",
     how_long_stopped_days: "",
+
     emotion: "",
+
     coping_worked: "",
     coping_not_worked: "",
   });
 
-  // Popup state
   const [showPopup, setShowPopup] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Handlers
+  // If user manually edits years_since_onset, we stop auto-syncing it
+  const [yearsTouched, setYearsTouched] = useState(false);
+
+  const applyAutoYears = (next: RegisterFormState): RegisterFormState => {
+    if (yearsTouched) return next;
+    const computed = computeYearsSinceOnset(next.date_of_birth, next.age_of_onset);
+    // prevent unnecessary state churn:
+    if (next.years_since_onset === computed) return next;
+    return { ...next, years_since_onset: computed };
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Update form state
     const { name, value } = e.target;
+
+    if (name === "years_since_onset") {
+      setYearsTouched(true);
+      setForm((prev) => ({ ...prev, [name]: value }));
+      return;
+    }
+
+    setForm((prev) => applyAutoYears({ ...prev, [name]: value } as RegisterFormState));
+  };
+
+  const setQuick = (name: keyof RegisterFormState, value: string) => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Parse coping strategies from comma-separated string
   const parseStrategies = (raw: string): string[] =>
     raw.split(",").map((s) => s.trim()).filter(Boolean);
 
-  // Form submission handler
-  const handleSubmit = async (e: React.FormEvent) => {
-    // Prevent default form submission
-    e.preventDefault();
-
-    // Prepare payload
+  const payload: RegisterPredictPayload = useMemo(() => {
     const workedList = parseStrategies(form.coping_worked);
     const notWorkedList = parseStrategies(form.coping_not_worked);
 
-    // Save coping strategies to localStorage
-    try {
-      // Save to localStorage for future pre-filling
-      localStorage.setItem("tm_coping_worked", JSON.stringify(workedList));
-      localStorage.setItem("tm_coping_not_worked", JSON.stringify(notWorkedList));
-    } catch {}
-
-    // Create payload
-    const payload: RegisterPredictPayload = {
+    return {
       ...form,
       coping_worked: workedList,
       coping_not_worked: notWorkedList,
     };
+  }, [form]);
 
-    // Call register and predict
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      localStorage.setItem("tm_coping_worked", JSON.stringify(payload.coping_worked));
+      localStorage.setItem("tm_coping_not_worked", JSON.stringify(payload.coping_not_worked));
+    } catch {}
+
     const success = await registerAndPredict(payload);
 
-    // If registration successful, handle streak and show popup
     if (success) {
-      // Handle sober streak in localStorage
       try {
-        // Determine streak based on form data
         const rawDays = Number(form.how_long_stopped_days);
         const stoppedDays = Number.isFinite(rawDays) && rawDays > 0 ? rawDays : 0;
 
-        // Update streak in localStorage
         const stoppedNow = form.successfully_stopped.trim().toLowerCase() === "yes";
         const todayIsoDate = new Date().toISOString().slice(0, 10);
 
-        // Set streak object
         const streak = stoppedNow
           ? { currentStreak: stoppedDays, previousStreak: 0, longestStreak: stoppedDays, lastEntryDate: todayIsoDate }
           : { currentStreak: 0, previousStreak: stoppedDays, longestStreak: stoppedDays, lastEntryDate: todayIsoDate };
 
-        // Save streak to localStorage
         localStorage.setItem("tm_sober_streak", JSON.stringify(streak));
       } catch {}
 
-      // Show success popup
       setShowPopup(true);
     }
   };
 
-  // Close popup and redirect to login
   const closePopup = () => {
-    // Hide popup
     setShowPopup(false);
-    // ✅ Send to login with next=/home so after login user lands on home
     router.replace("/login?next=/home");
   };
 
@@ -345,130 +465,230 @@ export const RegisterPredictForm: React.FC = () => {
               <br />
               Please <strong>log in</strong> to view your personalized relapse risk prediction and continue your mindful recovery journey.
             </PopupText>
-
             <ThemeButton onClick={closePopup}>Go to Login</ThemeButton>
           </PopupBox>
         </PopupOverlay>
       )}
 
-      <FormContainer onSubmit={handleSubmit}>
-        <SectionTitle>
-          <Image src={UserIcon as never} className="user-icon" alt="User Icon" />
-          <span className="user-account">ACCOUNT DETAILS</span>
-        </SectionTitle>
+      <Card>
+        <Form onSubmit={handleSubmit}>
+          {/* ACCOUNT */}
+          <Section>
+            <SectionHeader>
+              <IconWrap>
+                <Image src={UserIcon as never} width={18} height={18} alt="User Icon" />
+              </IconWrap>
+              <SectionTitle>Account</SectionTitle>
+            </SectionHeader>
 
-        <FormInput name="email" label="Email" type="email" value={form.email} onChange={handleChange} required />
+            <Grid>
+              <Full>
+                <FormInput name="email" label="Email" type="email" value={form.email} onChange={handleChange} required autoComplete="email" />
+              </Full>
 
-        {/* ✅ Password with show/hide */}
-        <PasswordField>
-          <FormInput
-            name="password"
-            label="Password"
-            type={showPassword ? "text" : "password"}
-            value={form.password}
-            onChange={handleChange}
-            required
-            autoComplete="new-password"
-          />
-          <EyeButton
-            type="button"
-            onClick={() => setShowPassword((v) => !v)}
-            aria-label={showPassword ? "Hide password" : "Show password"}
-            title={showPassword ? "Hide password" : "Show password"}
-          >
-            <EyeIcon off={showPassword} />
-          </EyeButton>
-        </PasswordField>
+              <Full>
+                <PasswordField>
+                  <FormInput
+                    name="password"
+                    label="Password"
+                    type={showPassword ? "text" : "password"}
+                    value={form.password}
+                    onChange={handleChange}
+                    required
+                    autoComplete="new-password"
+                  />
+                  <EyeButton
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
+                    <EyeIcon off={showPassword} />
+                  </EyeButton>
+                </PasswordField>
+              </Full>
 
-        <FormInput name="displayName" label="Display Name" type="text" value={form.displayName} onChange={handleChange} />
-        <FormInput name="date_of_birth" label="Date of Birth" type="date" value={form.date_of_birth} onChange={handleChange} required />
+              <FormInput name="displayName" label="Display Name" type="text" value={form.displayName} onChange={handleChange} autoComplete="nickname" />
 
-        <SectionTitle>
-          <Image src={BrainIcon as never} className="brain-icon" alt="Brain Icon" />
-          <span className="behaviour-emotions">BEHAVIOR & EMOTIONS</span>
-        </SectionTitle>
+              <FormInput
+                name="date_of_birth"
+                label="Date of Birth"
+                type="date"
+                value={form.date_of_birth}
+                onChange={handleChange}
+                required
+              />
+            </Grid>
+          </Section>
 
-        <FormInput name="age_of_onset" label="Age of Onset" type="number" min={0} max={120} value={form.age_of_onset} onChange={handleChange} required />
-        <FormInput name="years_since_onset" label="Years Since Onset" type="number" min={0} max={120} value={form.years_since_onset} onChange={handleChange} required />
-        <FormInput name="pulling_severity" label="Pulling Severity (1–10)" type="number" min={1} max={10} value={form.pulling_severity} onChange={handleChange} required />
+          {/* BEHAVIOR */}
+          <Section>
+            <SectionHeader>
+              <IconWrap>
+                <Image src={BrainIcon as never} width={18} height={18} alt="Brain Icon" />
+              </IconWrap>
+              <SectionTitle>Behavior & emotions</SectionTitle>
+            </SectionHeader>
 
-        <FormInput
-          name="pulling_frequency"
-          label="How often do you pull?"
-          placeholder="e.g. daily, weekly, several times a week, monthly, rarely"
-          value={form.pulling_frequency}
-          onChange={handleChange}
-          required
-        />
+            <Grid>
+              <FormInput name="age_of_onset" label="Age of Onset" type="number" min={0} max={120} value={form.age_of_onset} onChange={handleChange} required inputMode="numeric" />
 
-        <FormInput
-          name="pulling_awareness"
-          label="Are you aware while pulling?"
-          placeholder="e.g. yes, sometimes, no"
-          value={form.pulling_awareness}
-          onChange={handleChange}
-          required
-        />
+              <FormInput
+                name="years_since_onset"
+                label="Years Since Onset"
+                type="number"
+                min={0}
+                max={120}
+                value={form.years_since_onset}
+                onChange={handleChange}
+                required
+                inputMode="numeric"
+              />
 
-        <FormInput
-          name="successfully_stopped"
-          label="Have you successfully stopped?"
-          placeholder="e.g. yes, no"
-          value={form.successfully_stopped}
-          onChange={handleChange}
-          required
-        />
+              <Full>
+                <Hint>
+                  Tip: “Years since onset” is auto-calculated from your birth date + onset age. You can still edit it if you want.
+                </Hint>
+              </Full>
 
-        <FormInput
-          name="how_long_stopped_days"
-          label="How long you stopped pulling? (days)"
-          type="number"
-          min={0}
-          value={form.how_long_stopped_days}
-          onChange={handleChange}
-          required
-        />
+              <FormInput
+                name="pulling_severity"
+                label="Pulling Severity (1–10)"
+                type="number"
+                min={1}
+                max={10}
+                value={form.pulling_severity}
+                onChange={handleChange}
+                required
+                inputMode="numeric"
+              />
 
-        <FormInput
-          name="emotion"
-          label="Current Emotion"
-          placeholder="e.g. anxious, calm, stressed"
-          value={form.emotion}
-          onChange={handleChange}
-          required
-        />
+              <Full>
+                <FormInput
+                  name="pulling_frequency"
+                  label="How often do you pull?"
+                  placeholder="e.g. daily, weekly, monthly"
+                  value={form.pulling_frequency}
+                  onChange={handleChange}
+                  required
+                />
+                <ChipsRow>
+                  {freqQuick.map((x) => (
+                    <Chip key={x} type="button" $active={form.pulling_frequency.toLowerCase() === x.toLowerCase()} onClick={() => setQuick("pulling_frequency", x)}>
+                      {x}
+                    </Chip>
+                  ))}
+                </ChipsRow>
+              </Full>
 
-        <SectionTitle>
-          <Image src={StrategyIcon as never} className="strategy-icon" alt="Strategy Icon" />
-          <span className="coping-strategies">COPING STRATEGIES</span>
-        </SectionTitle>
+              <Full>
+                <FormInput
+                  name="pulling_awareness"
+                  label="Are you aware while pulling?"
+                  placeholder="e.g. yes, sometimes, no"
+                  value={form.pulling_awareness}
+                  onChange={handleChange}
+                  required
+                />
+                <ChipsRow>
+                  {awarenessQuick.map((x) => (
+                    <Chip key={x} type="button" $active={form.pulling_awareness.toLowerCase() === x.toLowerCase()} onClick={() => setQuick("pulling_awareness", x)}>
+                      {x}
+                    </Chip>
+                  ))}
+                </ChipsRow>
+              </Full>
 
-        <FormInput
-          name="coping_worked"
-          label="Coping strategies that helped you."
-          placeholder="e.g. fidget toy, deep breathing, wearing gloves"
-          value={form.coping_worked}
-          onChange={handleChange}
-        />
+              <Full>
+                <FormInput
+                  name="successfully_stopped"
+                  label="Have you successfully stopped?"
+                  placeholder="e.g. yes, no"
+                  value={form.successfully_stopped}
+                  onChange={handleChange}
+                  required
+                />
+                <ChipsRow>
+                  {stoppedQuick.map((x) => (
+                    <Chip key={x} type="button" $active={form.successfully_stopped.toLowerCase() === x.toLowerCase()} onClick={() => setQuick("successfully_stopped", x)}>
+                      {x}
+                    </Chip>
+                  ))}
+                </ChipsRow>
+              </Full>
 
-        <FormInput
-          name="coping_not_worked"
-          label="Coping strategies that did not help you."
-          placeholder="e.g. journaling, stress ball"
-          value={form.coping_not_worked}
-          onChange={handleChange}
-        />
+              <FormInput
+                name="how_long_stopped_days"
+                label="How long have you stopped? (days)"
+                type="number"
+                min={0}
+                value={form.how_long_stopped_days}
+                onChange={handleChange}
+                required
+                inputMode="numeric"
+              />
 
-        <ThemeButton className="submit-button" type="submit" disabled={submitting}>
-          {submitting ? "Submitting..." : "Register & Predict Relapse Risk"}
-        </ThemeButton>
+              <FormInput
+                name="emotion"
+                label="Current Emotion"
+                placeholder="e.g. anxious, calm, stressed"
+                value={form.emotion}
+                onChange={handleChange}
+                required
+              />
+            </Grid>
+          </Section>
 
-        {submitError && <ErrorMessage>{submitError}</ErrorMessage>}
+          {/* COPING */}
+          <Section>
+            <SectionHeader>
+              <IconWrap>
+                <Image src={StrategyIcon as never} width={20} height={20} alt="Strategy Icon" />
+              </IconWrap>
+              <SectionTitle>Coping strategies</SectionTitle>
+            </SectionHeader>
 
-        <FooterText>
-          Already have an account? <Link href="/login?next=/home">Login</Link>
-        </FooterText>
-      </FormContainer>
+            <Grid>
+              <Full>
+                <FormInput
+                  name="coping_worked"
+                  label="Coping strategies that helped (comma-separated)"
+                  placeholder="e.g. fidget toy, deep breathing, wearing gloves"
+                  value={form.coping_worked}
+                  onChange={handleChange}
+                />
+              </Full>
+
+              <Full>
+                <FormInput
+                  name="coping_not_worked"
+                  label="Coping strategies that didn’t help (comma-separated)"
+                  placeholder="e.g. journaling, stress ball"
+                  value={form.coping_not_worked}
+                  onChange={handleChange}
+                />
+              </Full>
+            </Grid>
+          </Section>
+
+          {/* Sticky CTA */}
+          <StickyBar>
+            <FullWidthButton type="submit" disabled={submitting}>
+              {submitting ? "Submitting..." : "Register & Predict Relapse Risk"}
+            </FullWidthButton>
+
+            {submitError && (
+              <ErrorWrap aria-live="polite">
+                <ErrorMessage>{submitError}</ErrorMessage>
+              </ErrorWrap>
+            )}
+
+            <FooterText>
+              Already have an account? <Link href="/login?next=/home">Login</Link>
+            </FooterText>
+          </StickyBar>
+        </Form>
+      </Card>
     </>
   );
 };
