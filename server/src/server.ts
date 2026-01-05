@@ -93,21 +93,19 @@ if (ENV_AUTO.NODE_ENV !== "production") {
 
 // CORS options
 const corsOptions: CorsOptions = {
-    // Dynamic origin validation
     origin(origin, callback) {
-        // Allow non-browser tools (Postman, curl, server-to-server)
         if (!origin) return callback(null, true);
 
-        // Check if origin is in allowed list or matches wildcard subdomain patterns
         const allowed =
             ALLOWED_ORIGINS.includes(origin) ||
             origin.endsWith(".vercel.app") ||
             origin.endsWith(".netlify.app");
 
-        // ✅ IMPORTANT: do not throw inside CORS callback
-        return callback(null, allowed);
+        if (allowed) return callback(null, true);
+
+        // Explicit rejection (clearer than callback(null, false))
+        return callback(new Error(`CORS blocked for origin: ${origin}`));
     },
-    // CORS settings
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
