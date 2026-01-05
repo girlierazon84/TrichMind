@@ -37,7 +37,7 @@ export interface HistoryPoint {
 }
 
 type ChartRow = {
-    date: string;
+    date: string; // normalized key for x-axis
     risk_score: number; // 0–100
 };
 
@@ -330,15 +330,40 @@ function toNumber(value: unknown): number | null {
     return null;
 }
 
+/**
+ * Avoid timezone shifting for date-only strings like "2026-01-05".
+ * We parse them as local midday by appending "T12:00:00".
+ */
+function parseDateSafe(v: string): Date | null {
+    const s = String(v);
+    const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(s);
+    const d = new Date(isDateOnly ? `${s}T12:00:00` : s);
+    if (!Number.isFinite(d.getTime())) return null;
+    return d;
+}
+
+/**
+ * Normalize to a stable key for the x-axis.
+ * If parseable, we keep "YYYY-MM-DD" to avoid inconsistent labels.
+ */
+function normalizeDateKey(v: string): string {
+    const d = parseDateSafe(v);
+    if (!d) return String(v);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+}
+
 function formatTickDate(v: string): string {
-    const d = new Date(v);
-    if (!Number.isFinite(d.getTime())) return v;
+    const d = parseDateSafe(v);
+    if (!d) return v;
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 function formatFullDate(v: string): string {
-    const d = new Date(v);
-    if (!Number.isFinite(d.getTime())) return v;
+    const d = parseDateSafe(v);
+    if (!d) return v;
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
@@ -346,10 +371,6 @@ function pct(n: number): string {
     return `${n.toFixed(1)}%`;
 }
 
-/**
- * Click state for Recharts CategoricalChart
- * (we avoid importing Recharts internal types to stay version-safe)
- */
 type ChartClickState = {
     activeLabel?: string | number;
     activePayload?: Array<{ payload?: ChartRow }>;
@@ -393,21 +414,37 @@ export const RiskTrendChart: React.FC<Props> = ({ history }) => {
     const textSecondary = theme.colors.text_secondary;
 
     const { data: fetchedHistory, loading, error } = useRiskTrendChart();
-
     const baseHistory = history ?? fetchedHistory;
 
-    const chartData: ChartRow[] = useMemo(
-        () =>
-            (baseHistory ?? []).map((item) => ({
-                date: item.date,
-                risk_score: item.score * 100,
-            })),
-        [baseHistory]
-    );
+    const chartData: ChartRow[] = useMemo(() => {
+        const rows = (baseHistory ?? [])
+            .map((item) => {
+                const scoreNum = typeof item.score === "number" ? item.score : Number(item.score);
+                if (!Number.isFinite(scoreNum)) return null;
+
+                const dateKey = normalizeDateKey(item.date);
+                const dt = parseDateSafe(dateKey);
+                if (!dt) return null;
+
+                return {
+                    date: dateKey,
+                    risk_score: scoreNum * 100,
+                };
+            })
+            .filter((x): x is ChartRow => x !== null);
+
+        // ✅ ensure newest is actually last, regardless of backend ordering
+        rows.sort((a, b) => {
+            const ta = parseDateSafe(a.date)?.getTime() ?? 0;
+            const tb = parseDateSafe(b.date)?.getTime() ?? 0;
+            return ta - tb;
+        });
+
+        return rows;
+    }, [baseHistory]);
 
     const isMini = chartData.length <= 3;
 
-    // Tap-to-pin (great for mobile)
     const [pinned, setPinned] = useState<ChartRow | null>(null);
 
     const onChartClick = useCallback(
@@ -415,19 +452,17 @@ export const RiskTrendChart: React.FC<Props> = ({ history }) => {
             if (!isChartClickState(evt)) return;
 
             const payloadRow = evt.activePayload?.[0]?.payload;
-            const label = evt.activeLabel != null ? String(evt.activeLabel) : null;
+            const label = evt.activeLabel != null ? normalizeDateKey(String(evt.activeLabel)) : null;
 
             const next =
                 payloadRow ?? (label ? chartData.find((d) => d.date === label) ?? null : null);
 
             if (!next) return;
-
             setPinned((prev) => (prev?.date === next.date ? null : next));
         },
         [chartData]
     );
 
-    // ✅ IMPORTANT: this hook must be declared BEFORE any early return
     const dotRenderer = useCallback(
         (props: unknown) => {
             if (!props || typeof props !== "object") return null;
@@ -454,7 +489,6 @@ export const RiskTrendChart: React.FC<Props> = ({ history }) => {
         [pinned, primary, textSecondary]
     );
 
-    // ✅ now early returns are safe
     if (!history && loading) return <CenterMessage>Loading your trend…</CenterMessage>;
     if (!history && error) return <ErrorText>⚠️ Couldn’t load your risk history.</ErrorText>;
     if (!chartData.length) {
@@ -465,10 +499,11 @@ export const RiskTrendChart: React.FC<Props> = ({ history }) => {
         );
     }
 
-    // Summary stats
-    const latest = chartData[chartData.length - 1]?.risk_score ?? 0;
-    const prev =
-        chartData.length > 1 ? chartData[chartData.length - 2]?.risk_score ?? latest : latest;
+    const latestRow = chartData[chartData.length - 1];
+    const prevRow = chartData.length > 1 ? chartData[chartData.length - 2] : latestRow;
+
+    const latest = latestRow?.risk_score ?? 0;
+    const prev = prevRow?.risk_score ?? latest;
     const delta = latest - prev;
 
     const deltaDir: "up" | "down" | "flat" =
@@ -479,10 +514,8 @@ export const RiskTrendChart: React.FC<Props> = ({ history }) => {
     const lastN = Math.min(7, chartData.length);
     const lastSlice = chartData.slice(-lastN);
     const avg7 =
-        lastSlice.reduce(
-            (acc, x) => acc + (Number.isFinite(x.risk_score) ? x.risk_score : 0),
-            0
-        ) / (lastSlice.length || 1);
+        lastSlice.reduce((acc, x) => acc + (Number.isFinite(x.risk_score) ? x.risk_score : 0), 0) /
+        (lastSlice.length || 1);
 
     const best = chartData.reduce((min, x) => (x.risk_score < min ? x.risk_score : min), latest);
     const worst = chartData.reduce((max, x) => (x.risk_score > max ? x.risk_score : max), latest);
