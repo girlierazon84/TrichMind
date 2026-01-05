@@ -10,84 +10,79 @@ import { AppLogo } from "@/assets/images";
 /**-------------------------------------
     Animations and Styled Components
 ----------------------------------------*/
-// Fade-in animation for the entire container
 const fadeIn = keyframes`
     from { opacity: 0; }
     to { opacity: 1; }
 `;
 
-// Float-up animation for logo and title
 const floatUp = keyframes`
     0%   { transform: translateY(18px); opacity: 0; }
     100% { transform: translateY(0); opacity: 1; }
 `;
 
-// Soft pop animation for the card
-const softPop = keyframes`
-    from { transform: scale(0.95); opacity: 0; }
-    to   { transform: scale(1); opacity: 1; }
-`;
-
-// Registration Container styled component
-const RegistrationContainer = styled.main`
+const Shell = styled.main`
     width: 100%;
-    display: flex;
-    flex-direction: column;
-    animation: ${fadeIn} 0.6s ease-out;
-`;
-
-// Logo Wrapper styled component
-const LogoWrapper = styled.div`
+    min-height: 100dvh;
     display: flex;
     justify-content: center;
-    margin: 3rem 0 0 0;
-    animation: ${floatUp} 0.8s ease-out;
+    padding: 18px 14px 28px;
+    animation: ${fadeIn} 0.5s ease-out;
+
+    /* mobile safe-area friendly */
+    padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
 `;
 
-// Logo styled component
+const Wrap = styled.div`
+    width: 100%;
+    max-width: 560px;
+`;
+
+const LogoRow = styled.div`
+    display: flex;
+    justify-content: center;
+    margin: 18px 0 10px;
+    animation: ${floatUp} 0.7s ease-out;
+`;
+
 const Logo = styled.img`
-    width: 110px;
-    height: 120px;
+    width: 96px;
+    height: 104px;
     opacity: 0.95;
     user-select: none;
 `;
 
-// Page Card styled component
-const PageCard = styled.div`
-    border-radius: 20px;
-    width: 100%;
-    animation: ${softPop} 0.5s ease-out;
-
-    @media (max-width: 768px) {
-        padding: 1.5rem;
-    }
-`;
-
-// Title styled component
 const Title = styled.h1`
-    font-size: 1.9rem;
-    font-weight: 700;
+    font-size: 1.55rem;
+    font-weight: 800;
     color: ${({ theme }) => theme.colors.primary};
     text-align: center;
-    margin: 0 0 2.5rem 0;
+    margin: 6px 0 16px;
     animation: ${floatUp} 0.7s ease-out;
 `;
 
-/**----------------------------
-    Register Page Component
--------------------------------*/
-export default function RegisterPage() {
-    // Render the registration page with logo, title, and registration form
-    return (
-        <RegistrationContainer>
-            <LogoWrapper>
-                <Logo src={AppLogo.src} alt="TrichMind Logo" />
-            </LogoWrapper>
+const SubTitle = styled.p`
+    text-align: center;
+    margin: 0 0 18px;
+    color: ${({ theme }) => theme.colors.text_secondary};
+    font-size: 0.95rem;
+    line-height: 1.45;
+`;
 
-            <PageCard>
-                <Title>Create Your Account</Title>
+export default function RegisterPage() {
+    return (
+        <Shell>
+            <Wrap>
+                <LogoRow>
+                    <Logo src={AppLogo.src} alt="TrichMind Logo" />
+                </LogoRow>
+
+                <Title>Create your account</Title>
+                <SubTitle>
+                    Quick onboarding — then log in to view your personalized relapse risk prediction.
+                </SubTitle>
+
                 <RegisterPredictForm />
-            </PageCard>
-        </RegistrationContainer>
+            </Wrap>
+        </Shell>
     );
 }
