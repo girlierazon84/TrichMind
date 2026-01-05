@@ -1,9 +1,6 @@
 // server/src/models/UserModel.ts
 
-import mongoose, {
-    Schema,
-    type HydratedDocument
-} from "mongoose";
+import mongoose, { Schema, type HydratedDocument } from "mongoose";
 import bcrypt from "bcryptjs";
 
 
@@ -29,7 +26,7 @@ export interface IUser {
     age_of_onset?: number;
     years_since_onset?: number;
 
-    pulling_severity?: number;
+    pulling_severity?: number; // 1-10 recommended
     pulling_frequency?: string;
     pulling_awareness?: string;
     successfully_stopped?: string | boolean;
@@ -53,24 +50,30 @@ export type UserDocument = HydratedDocument<IUser, IUserMethods>;
 /**-------------------------
     User Schema
 ----------------------------*/
-// Define schema
 const UserSchema = new Schema<IUser, mongoose.Model<IUser, {}, IUserMethods>, IUserMethods>(
     {
-        email: { type: String, unique: true, required: true, lowercase: true, trim: true },
+        email: {
+            type: String,
+            unique: true,
+            required: true,
+            lowercase: true,
+            trim: true,
+        },
         password: { type: String, required: true },
 
         displayName: { type: String, trim: true },
 
         date_of_birth: { type: Date },
-        age: { type: Number },
-        age_of_onset: { type: Number },
-        years_since_onset: { type: Number },
 
-        pulling_severity: { type: Number },
+        age: { type: Number, min: 0, max: 120 },
+        age_of_onset: { type: Number, min: 0, max: 120 },
+        years_since_onset: { type: Number, min: 0, max: 120 },
+
+        pulling_severity: { type: Number, min: 1, max: 10 },
         pulling_frequency: { type: String, trim: true },
         pulling_awareness: { type: String, trim: true },
         successfully_stopped: { type: Schema.Types.Mixed },
-        how_long_stopped_days: { type: Number },
+        how_long_stopped_days: { type: Number, min: 0, max: 100000 },
 
         pulling_frequency_encoded: { type: Number },
         awareness_level_encoded: { type: Number },
@@ -94,20 +97,20 @@ UserSchema.pre("save", async function () {
 });
 
 // 🔑 Compare password
-UserSchema.method("compare", function (pw: string) {
+UserSchema.methods.compare = function (pw: string) {
     return bcrypt.compare(pw, (this as UserDocument).password);
-});
+};
 
 // 🔑 Compare password (alias)
-UserSchema.method("comparePassword", function (pw: string) {
+UserSchema.methods.comparePassword = function (pw: string) {
     return bcrypt.compare(pw, (this as UserDocument).password);
-});
+};
 
-// 🧮 Auto-calc years_since_onset (best-effort)
+// 🧮 Auto-calc years_since_onset + (best-effort) age
 UserSchema.pre("save", function () {
     const self = this as UserDocument;
 
-    if (self.date_of_birth && typeof self.age_of_onset === "number") {
+    if (self.date_of_birth) {
         const today = new Date();
         const dob = new Date(self.date_of_birth);
 
@@ -117,7 +120,11 @@ UserSchema.pre("save", function () {
             (today.getMonth() === dob.getMonth() && today.getDate() >= dob.getDate());
 
         if (!hadBirthday) age -= 1;
-        self.years_since_onset = Math.max(0, age - self.age_of_onset);
+        self.age = Math.max(0, age);
+
+        if (typeof self.age_of_onset === "number") {
+            self.years_since_onset = Math.max(0, self.age - self.age_of_onset);
+        }
     }
 });
 
