@@ -1,7 +1,13 @@
 // client/src/app/(protected)/home/page.tsx
+
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+    useEffect,
+    useMemo,
+    useRef,
+    useState
+} from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -21,13 +27,10 @@ import { HeaderAvatar } from "@/components/common";
 
 
 /**------------------------
-    Risk level buckets (UI)
+    Types
 ---------------------------*/
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 
-/**---------------------------
-    Me response interface.
-------------------------------*/
 export interface MeResponse {
     user?: {
         email: string;
@@ -38,161 +41,221 @@ export interface MeResponse {
     };
 }
 
-/**-----------------------
-    Styled components.
---------------------------*/
-const PageWrapper = styled.main`
-  width: 100%;
-  min-height: 100vh;
-  padding: 1.25rem 1.2rem 100px;
-  background: linear-gradient(
-    180deg,
-    #e2f4f7 0%,
-    #e6f7f7 120px,
-    ${({ theme }) => theme.colors.page_bg || "#f4fbfc"} 300px
-  );
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+/**-------------------------
+    Mobile-first styling
+----------------------------*/
+const Page = styled.main`
+    width: 100%;
+    min-height: 100dvh;
+    padding: 14px 12px 110px;
+    background: linear-gradient(
+        180deg,
+        #e7f7f8 0%,
+        ${({ theme }) => theme.colors.page_bg || "#f4fbfc"} 280px
+    );
 
-  @media (max-width: 768px) {
-    padding: 1rem 0.9rem 110px;
-  }
+    /* safe-area friendly bottom padding */
+    padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
+
+    @media (min-width: 768px) {
+        padding: 18px 18px 90px;
+        padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+    }
 `;
 
-const Content = styled.div`
-  width: 100%;
-  max-width: 960px;
+const Container = styled.div`
+    width: 100%;
+    max-width: 980px;
+    margin: 0 auto;
 `;
 
-const Header = styled.header`
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.25rem;
+const TopBar = styled.header`
+    position: sticky;
+    top: 0;
+    z-index: 50;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+
+    padding: 10px 4px 12px;
+    backdrop-filter: blur(10px);
+    background: rgba(244, 251, 252, 0.65);
+
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+
+    @media (min-width: 768px) {
+        position: static;
+        background: transparent;
+        border-bottom: none;
+        padding: 6px 0 16px;
+    }
+`;
+
+const LogoWrap = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
 `;
 
 const Logo = styled(Image)`
-  width: auto;
-  height: 90px;
+    width: auto;
+    height: 56px;
+
+    @media (min-width: 768px) {
+        height: 74px;
+    }
 `;
 
-const Section = styled.section`
-  width: 100%;
-  padding: ${({ theme }) => theme.spacing(5)};
-  margin-bottom: ${({ theme }) => theme.spacing(4)};
-
-  @media (max-width: 768px) {
-    padding: ${({ theme }) => theme.spacing(3)};
-  }
+const TitleStack = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 `;
 
-const WelcomeText = styled.h2`
-  font-size: 1.65rem;
-  text-align: center;
-  margin-bottom: ${({ theme }) => theme.spacing(3)};
-  color: ${({ theme }) => theme.colors.text_primary};
+const Hello = styled.h1`
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 900;
+    color: ${({ theme }) => theme.colors.text_primary};
+
+    @media (min-width: 768px) {
+        font-size: 1.2rem;
+    }
 `;
 
-const OverviewStatusRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: ${({ theme }) => theme.spacing(3)};
-  flex-wrap: wrap;
-  justify-content: center;
+const Meta = styled.p`
+    margin: 0;
+    font-size: 0.82rem;
+    color: ${({ theme }) => theme.colors.text_secondary};
+    line-height: 1.3;
+`;
+
+const StatusRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    margin: 10px 0 14px;
 `;
 
 const StatusPill = styled.span<{ $variant?: "ok" | "warning" }>`
-  padding: 0.2rem 0.7rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  background: ${({ $variant }) =>
-        $variant === "warning"
-            ? "rgba(255, 173, 120, 0.18)"
-            : "rgba(120, 255, 190, 0.18)"};
-  color: ${({ theme, $variant }) =>
-        $variant === "warning"
-            ? theme.colors.medium_risk_gradient || "#ff9a3c"
-            : theme.colors.low_risk_gradient || "#26c485"};
-  border: 1px solid
-    ${({ $variant }) =>
-        $variant === "warning"
-            ? "rgba(255, 173, 120, 0.6)"
-            : "rgba(120, 255, 190, 0.6)"};
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+
+    background: ${({ $variant }) =>
+            $variant === "warning" ? "rgba(255, 173, 120, 0.18)" : "rgba(120, 255, 190, 0.18)"};
+
+    color: ${({ theme, $variant }) =>
+            $variant === "warning"
+                ? theme.colors.medium_risk_gradient || "#ff9a3c"
+                : theme.colors.low_risk_gradient || "#26c485"};
+
+    border: 1px solid
+            ${({ $variant }) =>
+                $variant === "warning" ? "rgba(255, 173, 120, 0.6)" : "rgba(120, 255, 190, 0.6)"};
 `;
 
-const StatusText = styled.span`
-  font-size: 0.8rem;
-  color: ${({ theme }) => theme.colors.text_secondary};
-  max-width: 520px;
-  text-align: center;
+const Card = styled.section`
+    width: 100%;
+    background: ${({ theme }) => theme.colors.card_bg};
+    border-radius: ${({ theme }) => theme.radius.lg};
+    box-shadow: ${({ theme }) => theme.colors.card_shadow};
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    padding: 14px;
+
+    @media (min-width: 768px) {
+        padding: 16px;
+    }
 `;
 
+const Stack = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+
+    @media (min-width: 900px) {
+        gap: 16px;
+    }
+`;
+
+const TwoCol = styled.div`
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+
+    @media (min-width: 920px) {
+        grid-template-columns: 1.2fr 0.8fr;
+        align-items: start;
+    }
+`;
+
+/**------------------------
+    Skeleton UI
+---------------------------*/
 const SkeletonCircle = styled.div`
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.08);
 `;
 
 const SkeletonBar = styled.div<{ $width?: string; $height?: string }>`
-  width: ${({ $width }) => $width || "100%"};
-  height: ${({ $height }) => $height || "16px"};
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
-`;
-
-const SkeletonCard = styled.div`
-  width: 100%;
-  background: ${({ theme }) => theme.colors.card_bg};
-  border-radius: ${({ theme }) => theme.radius.lg};
-  padding: ${({ theme }) => theme.spacing(4)};
-  margin-bottom: ${({ theme }) => theme.spacing(4)};
-  box-shadow: ${({ theme }) => theme.colors.card_shadow};
+    width: ${({ $width }) => $width || "100%"};
+    height: ${({ $height }) => $height || "14px"};
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.08);
 `;
 
 const SkeletonSpacer = styled.div<{ $height?: string }>`
-  height: ${({ $height }) => $height || "16px"};
+    height: ${({ $height }) => $height || "10px"};
 `;
 
+/**------------------------
+    Welcome modal
+---------------------------*/
 const WelcomeOverlay = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(9, 20, 45, 0.45);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 5500;
+    position: fixed;
+    inset: 0;
+    background: rgba(9, 20, 45, 0.45);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 5500;
 `;
 
 const WelcomeCard = styled.div`
-  background: ${({ theme }) => theme.colors.card_bg};
-  border-radius: 22px;
-  padding: 1.9rem 1.8rem 1.6rem;
-  max-width: 420px;
-  width: 90%;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
-  text-align: center;
+    background: ${({ theme }) => theme.colors.card_bg};
+    border-radius: 22px;
+    padding: 1.9rem 1.8rem 1.6rem;
+    max-width: 420px;
+    width: 92%;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+    text-align: center;
 `;
 
 const WelcomeTitle = styled.h2`
-  font-size: 1.35rem;
-  margin: 0 0 0.75rem;
-  color: ${({ theme }) => theme.colors.primary};
+    font-size: 1.35rem;
+    margin: 0 0 0.75rem;
+    color: ${({ theme }) => theme.colors.primary};
 `;
 
 const WelcomeBody = styled.p`
-  font-size: 0.98rem;
-  margin: 0 0 1.5rem;
-  color: ${({ theme }) => theme.colors.text_primary};
-  line-height: 1.5;
+    font-size: 0.98rem;
+    margin: 0 0 1.5rem;
+    color: ${({ theme }) => theme.colors.text_primary};
+    line-height: 1.5;
 `;
 
+/**------------------------
+    Helpers
+---------------------------*/
 function formatOverviewUpdatedLabel(lastUpdated: Date | null): string {
     if (!lastUpdated) return "Getting your latest overview…";
     const now = new Date();
@@ -211,8 +274,7 @@ function formatOverviewUpdatedLabel(lastUpdated: Date | null): string {
 }
 
 function toFiniteNumber(v: unknown, fallback = 0): number {
-    const n =
-        typeof v === "number" ? v : typeof v === "string" ? Number(v) : Number.NaN;
+    const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : Number.NaN;
     return Number.isFinite(n) ? n : fallback;
 }
 
@@ -342,7 +404,6 @@ export default function HomePage() {
                             const score = toFiniteNumber(p.risk_score, 0);
                             const conf = toFiniteNumber(p.confidence, 0);
 
-                            // risk_bucket is already "low|medium|high" in PredictionResponse
                             const rb: RiskBucket =
                                 p.risk_bucket === "low" || p.risk_bucket === "medium" || p.risk_bucket === "high"
                                     ? p.risk_bucket
@@ -372,7 +433,7 @@ export default function HomePage() {
         };
     }, [hydrated, token, isAuthenticated, router]);
 
-    // Apply fresh overview result (but don’t overwrite with placeholder 0/0)
+    // Apply fresh overview result
     useEffect(() => {
         if (!overview?.relapseSummary) return;
 
@@ -381,7 +442,6 @@ export default function HomePage() {
         const score = toFiniteNumber((rs as unknown as { risk_score?: unknown }).risk_score, 0);
         const conf = toFiniteNumber((rs as unknown as { confidence?: unknown }).confidence, 0);
 
-        // rs.risk_bucket should already be "low|medium|high", but we normalize anyway:
         const rbRaw = (rs as unknown as { risk_bucket?: unknown }).risk_bucket;
         const rbStr = String(rbRaw ?? "medium").toLowerCase();
         const rb: RiskBucket =
@@ -405,15 +465,13 @@ export default function HomePage() {
 
         safeLocalStorageSet(
             "tm_last_prediction",
-            JSON.stringify(
-                {
-                    risk_score: score,
-                    confidence: conf,
-                    risk_bucket: rb,
-                    model_version: mv,
-                    risk_code: "auto",
-                } satisfies PredictionResponse
-            )
+            JSON.stringify({
+                risk_score: score,
+                confidence: conf,
+                risk_bucket: rb,
+                model_version: mv,
+                risk_code: "auto",
+            } satisfies PredictionResponse)
         );
     }, [overview]);
 
@@ -433,30 +491,38 @@ export default function HomePage() {
 
     if (shouldShowSkeleton) {
         return (
-            <PageWrapper>
-                <Content>
-                    <Header>
-                        <Logo src={AppLogo} alt="TrichMind Logo" width={260} height={90} priority />
+            <Page>
+                <Container>
+                    <TopBar>
+                        <LogoWrap>
+                            <Logo src={AppLogo} alt="TrichMind Logo" width={220} height={74} priority />
+                            <TitleStack>
+                                <Hello>Loading…</Hello>
+                                <Meta>Preparing your dashboard</Meta>
+                            </TitleStack>
+                        </LogoWrap>
                         <SkeletonCircle />
-                    </Header>
+                    </TopBar>
 
-                    <SkeletonCard>
-                        <SkeletonBar $width="60%" $height="20px" />
-                        <SkeletonSpacer $height="16px" />
-                        <SkeletonBar $width="100%" $height="12px" />
-                        <SkeletonSpacer $height="10px" />
-                        <SkeletonBar $width="90%" $height="12px" />
-                    </SkeletonCard>
+                    <Stack>
+                        <Card>
+                            <SkeletonBar $width="56%" $height="18px" />
+                            <SkeletonSpacer $height="12px" />
+                            <SkeletonBar $width="100%" $height="12px" />
+                            <SkeletonSpacer $height="10px" />
+                            <SkeletonBar $width="92%" $height="12px" />
+                        </Card>
 
-                    <SkeletonCard>
-                        <SkeletonBar $width="50%" $height="16px" />
-                        <SkeletonSpacer $height="14px" />
-                        <SkeletonBar $width="100%" $height="10px" />
-                        <SkeletonSpacer $height="8px" />
-                        <SkeletonBar $width="96%" $height="10px" />
-                    </SkeletonCard>
-                </Content>
-            </PageWrapper>
+                        <Card>
+                            <SkeletonBar $width="48%" $height="16px" />
+                            <SkeletonSpacer $height="12px" />
+                            <SkeletonBar $width="100%" $height="12px" />
+                            <SkeletonSpacer $height="10px" />
+                            <SkeletonBar $width="94%" $height="12px" />
+                        </Card>
+                    </Stack>
+                </Container>
+            </Page>
         );
     }
 
@@ -474,60 +540,66 @@ export default function HomePage() {
 
     return (
         <>
-            <PageWrapper>
-                <Content>
-                    <Header>
-                        <Link href="/home" aria-label="Go to home">
-                            <Logo src={AppLogo} alt="TrichMind Logo" width={260} height={90} priority />
-                        </Link>
+            <Page>
+                <Container>
+                    <TopBar>
+                        <LogoWrap>
+                            <Link href="/home" aria-label="Go to home">
+                                <Logo src={AppLogo} alt="TrichMind Logo" width={220} height={74} priority />
+                            </Link>
+
+                            <TitleStack>
+                                <Hello>Welcome back, {user?.displayName || user?.email || "Friend"} 👋</Hello>
+                                <Meta>Take it slow — check in and use the tools at your pace.</Meta>
+                            </TitleStack>
+                        </LogoWrap>
 
                         <HeaderAvatar onClick={() => router.push("/profile")} />
-                    </Header>
+                    </TopBar>
 
-                    <Section>
-                        <WelcomeText>
-                            Welcome back, {user?.displayName || user?.email || "Friend"} 👋
-                        </WelcomeText>
+                    <StatusRow>
+                        <StatusPill $variant={overviewError ? "warning" : "ok"}>
+                            {overviewError ? "Using saved data" : "Auto-updating"}
+                        </StatusPill>
+                        <Meta>
+                            {overviewError
+                                ? "We couldn’t refresh right now — you’re seeing your last saved prediction."
+                                : formatOverviewUpdatedLabel(lastUpdated)}
+                        </Meta>
+                    </StatusRow>
 
-                        <OverviewStatusRow>
-                            <StatusPill $variant={overviewError ? "warning" : "ok"}>
-                                {overviewError ? "Using saved data" : "Auto-updating"}
-                            </StatusPill>
-                            <StatusText>
-                                {overviewError
-                                    ? "We couldn’t refresh your automatic overview this time, so you’re seeing your last saved prediction."
-                                    : formatOverviewUpdatedLabel(lastUpdated)}
-                            </StatusText>
-                        </OverviewStatusRow>
+                    <Stack>
+                        {/* Top dashboard row: Risk + Trend (stacks on mobile) */}
+                        <TwoCol>
+                            <Card>
+                                <RiskResultCard data={predictionData} quote={quote} compact={isMobile} />
+                            </Card>
 
-                        <RiskResultCard data={predictionData} quote={quote} compact={isMobile} />
-                    </Section>
+                            <RiskTrendChart history={historyFromOverview} />
+                        </TwoCol>
 
-                    <Section>
-                        <DailyProgressCardAuto />
-                    </Section>
+                        <Card>
+                            <DailyProgressCardAuto />
+                        </Card>
 
-                    <Section>
-                        <CopingStrategiesCard
-                            worked={copingWorked}
-                            notWorked={copingNotWorked}
-                            onToggle={toggleStrategy}
-                        />
-                    </Section>
-
-                    <Section>
-                        <RiskTrendChart history={historyFromOverview} />
-                    </Section>
-                </Content>
-            </PageWrapper>
+                        <Card>
+                            <CopingStrategiesCard
+                                worked={copingWorked}
+                                notWorked={copingNotWorked}
+                                onToggle={toggleStrategy}
+                            />
+                        </Card>
+                    </Stack>
+                </Container>
+            </Page>
 
             {showWelcome && (
                 <WelcomeOverlay role="dialog" aria-modal="true" aria-label="Welcome back message">
                     <WelcomeCard>
                         <WelcomeTitle>Welcome back, {user?.displayName || "TrichMind friend"} 💜</WelcomeTitle>
                         <WelcomeBody>
-                            Your dashboard has been refreshed with your latest relapse risk prediction and progress data.
-                            Take a slow breath, notice how you feel, and move through the tools at your own pace.
+                            Your dashboard has been refreshed with your latest prediction and progress data. Take a slow breath,
+                            notice how you feel, and move through the tools at your own pace.
                         </WelcomeBody>
                         <ThemeButton onClick={() => setShowWelcome(false)}>Let&apos;s begin</ThemeButton>
                     </WelcomeCard>
