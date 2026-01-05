@@ -248,7 +248,7 @@ const PasswordField = styled.div`
 const EyeButton = styled.button`
   position: absolute;
   right: 10px;
-  top: 55%;
+  top: 60%;
   transform: translateY(-50%);
   height: 32px;
   width: 32px;
