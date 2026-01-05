@@ -1,7 +1,7 @@
 // server/src/services/predictService.ts
 
 import axios from "axios";
-import { Predict, HealthLog } from "../models";
+import { Predict, HealthLog, User } from "../models";
 import type { PredictDTO } from "../schemas";
 import { ENV_AUTO } from "../config";
 import { loggerService } from "./loggerService";
@@ -40,6 +40,27 @@ export const predictService = {
             "ml",
             userId
         );
+
+        // ✅ keep User profile fields in sync so overview can build features
+        try {
+            await User.findByIdAndUpdate(
+                userId,
+                {
+                    age: input.age,
+                    age_of_onset: input.age_of_onset,
+                    years_since_onset: input.years_since_onset ?? Math.max(input.age - input.age_of_onset, 0),
+                    pulling_severity: input.pulling_severity,
+                    pulling_frequency: input.pulling_frequency,
+                    pulling_awareness: input.pulling_awareness,
+                    successfully_stopped: input.successfully_stopped,
+                    how_long_stopped_days: input.how_long_stopped_days,
+                    emotion: input.emotion,
+                },
+                { new: false }
+            );
+        } catch {
+            // ignore
+        }
 
         // Call ML service
         try {
