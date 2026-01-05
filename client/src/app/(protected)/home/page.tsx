@@ -1,5 +1,4 @@
 // client/src/app/(protected)/home/page.tsx
-
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -17,12 +16,12 @@ import {
 } from "@/components";
 import { useAuth, useCopingStrategies, useRelapseOverview } from "@/hooks";
 import { AppLogo } from "@/assets/images";
-import type { PredictionResponse } from "@/types";
+import type { PredictionResponse, RiskBucket } from "@/types/ml";
 import { HeaderAvatar } from "@/components/common";
 
 
 /**------------------------
-    Risk level buckets.
+    Risk level buckets (UI)
 ---------------------------*/
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 
@@ -43,152 +42,155 @@ export interface MeResponse {
     Styled components.
 --------------------------*/
 const PageWrapper = styled.main`
-    width: 100%;
-    min-height: 100vh;
-    padding: 1.25rem 1.2rem 100px;
-    background: linear-gradient(
-        180deg,
-        #e2f4f7 0%,
-        #e6f7f7 120px,
-        ${({ theme }) => theme.colors.page_bg || "#f4fbfc"} 300px
-    );
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+  width: 100%;
+  min-height: 100vh;
+  padding: 1.25rem 1.2rem 100px;
+  background: linear-gradient(
+    180deg,
+    #e2f4f7 0%,
+    #e6f7f7 120px,
+    ${({ theme }) => theme.colors.page_bg || "#f4fbfc"} 300px
+  );
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 
-    @media (max-width: 768px) {
-        padding: 1rem 0.9rem 110px;
-    }
+  @media (max-width: 768px) {
+    padding: 1rem 0.9rem 110px;
+  }
 `;
 
 const Content = styled.div`
-    width: 100%;
-    max-width: 960px;
+  width: 100%;
+  max-width: 960px;
 `;
 
 const Header = styled.header`
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.25rem;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
 `;
 
-// Keep logo sized via width/height (Next/Image requirement)
 const Logo = styled(Image)`
-    width: auto;
-    height: 90px;
+  width: auto;
+  height: 90px;
 `;
 
 const Section = styled.section`
-    width: 100%;
-    padding: ${({ theme }) => theme.spacing(5)};
-    margin-bottom: ${({ theme }) => theme.spacing(4)};
+  width: 100%;
+  padding: ${({ theme }) => theme.spacing(5)};
+  margin-bottom: ${({ theme }) => theme.spacing(4)};
 
-    @media (max-width: 768px) {
-        padding: ${({ theme }) => theme.spacing(3)};
-    }
+  @media (max-width: 768px) {
+    padding: ${({ theme }) => theme.spacing(3)};
+  }
 `;
 
 const WelcomeText = styled.h2`
-    font-size: 1.65rem;
-    text-align: center;
-    margin-bottom: ${({ theme }) => theme.spacing(3)};
-    color: ${({ theme }) => theme.colors.text_primary};
+  font-size: 1.65rem;
+  text-align: center;
+  margin-bottom: ${({ theme }) => theme.spacing(3)};
+  color: ${({ theme }) => theme.colors.text_primary};
 `;
 
 const OverviewStatusRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: ${({ theme }) => theme.spacing(3)};
-    flex-wrap: wrap;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: ${({ theme }) => theme.spacing(3)};
+  flex-wrap: wrap;
+  justify-content: center;
 `;
 
 const StatusPill = styled.span<{ $variant?: "ok" | "warning" }>`
-    padding: 0.2rem 0.7rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    background: ${({ $variant }) =>
-        $variant === "warning" ? "rgba(255, 173, 120, 0.18)" : "rgba(120, 255, 190, 0.18)"};
-    color: ${({ theme, $variant }) =>
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: ${({ $variant }) =>
+        $variant === "warning"
+            ? "rgba(255, 173, 120, 0.18)"
+            : "rgba(120, 255, 190, 0.18)"};
+  color: ${({ theme, $variant }) =>
         $variant === "warning"
             ? theme.colors.medium_risk_gradient || "#ff9a3c"
             : theme.colors.low_risk_gradient || "#26c485"};
-    border: 1px solid
-        ${({ $variant }) =>
-            $variant === "warning" ? "rgba(255, 173, 120, 0.6)" : "rgba(120, 255, 190, 0.6)"};
+  border: 1px solid
+    ${({ $variant }) =>
+        $variant === "warning"
+            ? "rgba(255, 173, 120, 0.6)"
+            : "rgba(120, 255, 190, 0.6)"};
 `;
 
 const StatusText = styled.span`
-    font-size: 0.8rem;
-    color: ${({ theme }) => theme.colors.text_secondary};
-    max-width: 520px;
-    text-align: center;
+  font-size: 0.8rem;
+  color: ${({ theme }) => theme.colors.text_secondary};
+  max-width: 520px;
+  text-align: center;
 `;
 
 const SkeletonCircle = styled.div`
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
 `;
 
 const SkeletonBar = styled.div<{ $width?: string; $height?: string }>`
-    width: ${({ $width }) => $width || "100%"};
-    height: ${({ $height }) => $height || "16px"};
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.18);
+  width: ${({ $width }) => $width || "100%"};
+  height: ${({ $height }) => $height || "16px"};
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
 `;
 
 const SkeletonCard = styled.div`
-    width: 100%;
-    background: ${({ theme }) => theme.colors.card_bg};
-    border-radius: ${({ theme }) => theme.radius.lg};
-    padding: ${({ theme }) => theme.spacing(4)};
-    margin-bottom: ${({ theme }) => theme.spacing(4)};
-    box-shadow: ${({ theme }) => theme.colors.card_shadow};
+  width: 100%;
+  background: ${({ theme }) => theme.colors.card_bg};
+  border-radius: ${({ theme }) => theme.radius.lg};
+  padding: ${({ theme }) => theme.spacing(4)};
+  margin-bottom: ${({ theme }) => theme.spacing(4)};
+  box-shadow: ${({ theme }) => theme.colors.card_shadow};
 `;
 
 const SkeletonSpacer = styled.div<{ $height?: string }>`
-    height: ${({ $height }) => $height || "16px"};
+  height: ${({ $height }) => $height || "16px"};
 `;
 
 const WelcomeOverlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background: rgba(9, 20, 45, 0.45);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 5500;
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 20, 45, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 5500;
 `;
 
 const WelcomeCard = styled.div`
-    background: ${({ theme }) => theme.colors.card_bg};
-    border-radius: 22px;
-    padding: 1.9rem 1.8rem 1.6rem;
-    max-width: 420px;
-    width: 90%;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
-    text-align: center;
+  background: ${({ theme }) => theme.colors.card_bg};
+  border-radius: 22px;
+  padding: 1.9rem 1.8rem 1.6rem;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+  text-align: center;
 `;
 
 const WelcomeTitle = styled.h2`
-    font-size: 1.35rem;
-    margin: 0 0 0.75rem;
-    color: ${({ theme }) => theme.colors.primary};
+  font-size: 1.35rem;
+  margin: 0 0 0.75rem;
+  color: ${({ theme }) => theme.colors.primary};
 `;
 
 const WelcomeBody = styled.p`
-    font-size: 0.98rem;
-    margin: 0 0 1.5rem;
-    color: ${({ theme }) => theme.colors.text_primary};
-    line-height: 1.5;
+  font-size: 0.98rem;
+  margin: 0 0 1.5rem;
+  color: ${({ theme }) => theme.colors.text_primary};
+  line-height: 1.5;
 `;
 
 function formatOverviewUpdatedLabel(lastUpdated: Date | null): string {
@@ -208,6 +210,37 @@ function formatOverviewUpdatedLabel(lastUpdated: Date | null): string {
     return `Updated on ${dateStr} at ${timeStr}.`;
 }
 
+function toFiniteNumber(v: unknown, fallback = 0): number {
+    const n =
+        typeof v === "number" ? v : typeof v === "string" ? Number(v) : Number.NaN;
+    return Number.isFinite(n) ? n : fallback;
+}
+
+function normalizeUpperBucket(v: unknown): RiskLevel {
+    const s = String(v ?? "MEDIUM").toUpperCase();
+    return s === "LOW" || s === "MEDIUM" || s === "HIGH" ? (s as RiskLevel) : "MEDIUM";
+}
+
+function toRiskBucket(level: RiskLevel): RiskBucket {
+    switch (level) {
+        case "LOW":
+            return "low";
+        case "HIGH":
+            return "high";
+        default:
+            return "medium";
+    }
+}
+
+function safeLocalStorageSet(key: string, value: string) {
+    if (typeof window === "undefined") return;
+    try {
+        window.localStorage.setItem(key, value);
+    } catch {
+        // ignore
+    }
+}
+
 export default function HomePage() {
     const router = useRouter();
     const { user, token, isAuthenticated } = useAuth();
@@ -225,7 +258,7 @@ export default function HomePage() {
     const [riskScore, setRiskScore] = useState(0);
     const [confidence, setConfidence] = useState(0);
     const [bucket, setBucket] = useState<RiskLevel>("MEDIUM");
-    const [riskCode, setRiskCode] = useState("1");
+    const [riskCode, setRiskCode] = useState("auto");
     const [modelVersion, setModelVersion] = useState<string | undefined>();
     const [loading, setLoading] = useState(true);
 
@@ -249,6 +282,7 @@ export default function HomePage() {
     }, [hydrated, token, isAuthenticated, router]);
 
     useEffect(() => {
+        if (typeof window === "undefined") return;
         const mq = window.matchMedia("(max-width: 768px)");
         const update = () => setIsMobile(mq.matches);
         update();
@@ -258,6 +292,7 @@ export default function HomePage() {
 
     useEffect(() => {
         if (!overviewEnabled) return;
+        if (typeof window === "undefined") return;
         const seen = sessionStorage.getItem("tm_welcome_seen");
         if (!seen) {
             setShowWelcome(true);
@@ -265,6 +300,7 @@ export default function HomePage() {
         }
     }, [overviewEnabled]);
 
+    // Load /auth/me + local fallback prediction
     useEffect(() => {
         if (!hydrated) return;
 
@@ -286,9 +322,6 @@ export default function HomePage() {
         const loadDashboard = async () => {
             setLoading(true);
             try {
-                // NOTE: keep path consistent with your axiosClient baseURL setup.
-                // If your axiosClient already prefixes /api, then "/auth/me" is fine.
-                // If not, use "/api/auth/me".
                 const meRes = await axiosClient.get<MeResponse>("/auth/me");
                 if (cancelled) return;
 
@@ -301,12 +334,27 @@ export default function HomePage() {
                 try {
                     const stored = localStorage.getItem("tm_last_prediction");
                     if (stored) {
-                        const parsed = JSON.parse(stored) as PredictionResponse;
-                        setRiskScore(parsed.risk_score);
-                        setConfidence(parsed.confidence);
-                        setBucket((parsed.risk_bucket ?? "medium").toUpperCase() as RiskLevel);
-                        if (parsed.risk_code) setRiskCode(parsed.risk_code);
-                        if (parsed.model_version) setModelVersion(parsed.model_version);
+                        const parsedUnknown: unknown = JSON.parse(stored);
+
+                        if (parsedUnknown && typeof parsedUnknown === "object") {
+                            const p = parsedUnknown as Partial<PredictionResponse>;
+
+                            const score = toFiniteNumber(p.risk_score, 0);
+                            const conf = toFiniteNumber(p.confidence, 0);
+
+                            // risk_bucket is already "low|medium|high" in PredictionResponse
+                            const rb: RiskBucket =
+                                p.risk_bucket === "low" || p.risk_bucket === "medium" || p.risk_bucket === "high"
+                                    ? p.risk_bucket
+                                    : "medium";
+
+                            setRiskScore(score);
+                            setConfidence(conf);
+                            setBucket(normalizeUpperBucket(rb));
+
+                            if (typeof p.risk_code === "string") setRiskCode(p.risk_code);
+                            if (typeof p.model_version === "string") setModelVersion(p.model_version);
+                        }
                     }
                 } catch {
                     // ignore
@@ -324,14 +372,49 @@ export default function HomePage() {
         };
     }, [hydrated, token, isAuthenticated, router]);
 
+    // Apply fresh overview result (but don’t overwrite with placeholder 0/0)
     useEffect(() => {
         if (!overview?.relapseSummary) return;
+
         const rs = overview.relapseSummary;
-        setRiskScore(rs.risk_score);
-        setConfidence(rs.confidence);
-        setBucket(rs.risk_bucket.toUpperCase() as RiskLevel);
-        setModelVersion(rs.model_version ?? "live");
+
+        const score = toFiniteNumber((rs as unknown as { risk_score?: unknown }).risk_score, 0);
+        const conf = toFiniteNumber((rs as unknown as { confidence?: unknown }).confidence, 0);
+
+        // rs.risk_bucket should already be "low|medium|high", but we normalize anyway:
+        const rbRaw = (rs as unknown as { risk_bucket?: unknown }).risk_bucket;
+        const rbStr = String(rbRaw ?? "medium").toLowerCase();
+        const rb: RiskBucket =
+            rbStr === "low" || rbStr === "medium" || rbStr === "high" ? (rbStr as RiskBucket) : "medium";
+
+        const b = normalizeUpperBucket(rb);
+
+        const mv =
+            typeof (rs as unknown as { model_version?: unknown }).model_version === "string"
+                ? ((rs as unknown as { model_version?: string }).model_version ?? "live")
+                : "live";
+
+        const looksPlaceholder = b === "MEDIUM" && score === 0 && conf === 0;
+        if (looksPlaceholder) return;
+
+        setRiskScore(score);
+        setConfidence(conf);
+        setBucket(b);
+        setModelVersion(mv);
         setRiskCode("auto");
+
+        safeLocalStorageSet(
+            "tm_last_prediction",
+            JSON.stringify(
+                {
+                    risk_score: score,
+                    confidence: conf,
+                    risk_bucket: rb,
+                    model_version: mv,
+                    risk_code: "auto",
+                } satisfies PredictionResponse
+            )
+        );
     }, [overview]);
 
     const quote = useMemo(() => {
@@ -381,7 +464,7 @@ export default function HomePage() {
 
     const predictionData: PredictionResponse = {
         risk_score: riskScore,
-        risk_bucket: bucket.toLowerCase() as "low" | "medium" | "high",
+        risk_bucket: toRiskBucket(bucket),
         confidence,
         model_version: modelVersion ?? "live",
         risk_code: riskCode,
@@ -441,16 +524,12 @@ export default function HomePage() {
             {showWelcome && (
                 <WelcomeOverlay role="dialog" aria-modal="true" aria-label="Welcome back message">
                     <WelcomeCard>
-                        <WelcomeTitle>
-                            Welcome back, {user?.displayName || "TrichMind friend"} 💜
-                        </WelcomeTitle>
+                        <WelcomeTitle>Welcome back, {user?.displayName || "TrichMind friend"} 💜</WelcomeTitle>
                         <WelcomeBody>
-                            Your dashboard has been refreshed with your latest relapse risk prediction and progress data. Take a slow
-                            breath, notice how you feel, and move through the tools at your own pace.
+                            Your dashboard has been refreshed with your latest relapse risk prediction and progress data.
+                            Take a slow breath, notice how you feel, and move through the tools at your own pace.
                         </WelcomeBody>
-                        <ThemeButton onClick={() => setShowWelcome(false)}>
-                            Let&apos;s begin
-                        </ThemeButton>
+                        <ThemeButton onClick={() => setShowWelcome(false)}>Let&apos;s begin</ThemeButton>
                     </WelcomeCard>
                 </WelcomeOverlay>
             )}
