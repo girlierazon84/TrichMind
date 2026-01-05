@@ -6,15 +6,13 @@ import { getRelapseOverviewForUser } from "../services";
 
 
 /**--------------------------------------
-    GET /api/relapse-overview/relapse
+    GET /api/overview/relapse
 -----------------------------------------*/
 export const getRelapseOverviewController = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.auth?.userId;
     if (!userId) return res.status(401).json({ ok: false, error: "Unauthorized" });
 
     const overview = await getRelapseOverviewForUser(userId);
-
-    // ✅ return the actual overview shape (already has ok/enoughData/etc)
     return res.status(200).json(overview);
 });
 
