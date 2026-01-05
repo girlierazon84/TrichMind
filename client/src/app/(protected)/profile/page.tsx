@@ -2,7 +2,13 @@
 
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState
+} from "react";
 import Image from "next/image";
 import styled, { css, keyframes } from "styled-components";
 import { useRouter } from "next/navigation";
@@ -13,115 +19,248 @@ import { BackIcon, UserIcon } from "@/assets/icons";
 import { toImgSrc } from "@/utils";
 
 
-/**-------------------------------------
-    Styled Components and Animations
-----------------------------------------*/
-const pageFade = keyframes`
-    from { opacity: 0; transform: translateY(18px); }
+/**---------------
+    Animations
+------------------*/
+const pageEnter = keyframes`
+    from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: translateY(0); }
 `;
 
+const sheetIn = keyframes`
+    from { opacity: 0; transform: translateY(18px) scale(0.99); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+`;
+
 const pulse = keyframes`
-    0%   { box-shadow: 0 0 0 0 rgba(91, 138, 255, 0.5); transform: translateY(0); }
+    0%   { box-shadow: 0 0 0 0 rgba(91, 138, 255, 0.45); transform: translateY(0); }
     70%  { box-shadow: 0 0 0 12px rgba(91, 138, 255, 0); transform: translateY(-1px); }
     100% { box-shadow: 0 0 0 0 rgba(91, 138, 255, 0); transform: translateY(0); }
 `;
 
-const Wrapper = styled.main`
-    margin: 2.5rem auto;
-    padding: 2.2rem 2rem 2.5rem;
-    animation: ${pageFade} 0.45s ease-out;
-    max-width: 780px;
+/**--------------------------
+    Layout (mobile-first)
+-----------------------------*/
+const Shell = styled.main`
+    width: 100%;
+    min-height: 100dvh;
+    padding: 14px 14px calc(96px + env(safe-area-inset-bottom, 0px));
+    animation: ${pageEnter} 0.45s ease-out;
+    background: ${({ theme }) =>
+        `linear-gradient(180deg,
+            rgba(226, 244, 247, 1) 0%,
+            rgba(230, 247, 247, 1) 120px,
+            ${theme.colors.page_bg || "#f4fbfc"} 320px
+    )`};
+
+    display: flex;
+    justify-content: center;
+
+    @media (min-width: 900px) {
+        padding: 22px 18px 26px;
+    }
 `;
 
-const Header = styled.header`
+const Wrap = styled.div`
+    width: 100%;
+    max-width: 780px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+`;
+
+const TopBar = styled.header`
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.4rem;
+    gap: 10px;
+    padding: 8px 6px;
 `;
 
 const BackButton = styled.button`
-    background: none;
     border: none;
-    padding: 0.25rem;
+    background: transparent;
+    padding: 8px;
+    border-radius: 14px;
     cursor: pointer;
+    display: grid;
+    place-items: center;
+
+    &:hover {
+        background: rgba(0, 0, 0, 0.04);
+    }
+
+    &:focus-visible {
+        outline: 2px solid ${({ theme }) => theme.colors.primary};
+        outline-offset: 2px;
+    }
 `;
 
-const Title = styled.h1`
-    font-size: 1.9rem;
-    font-weight: 700;
-    color: ${({ theme }) => theme.colors.primary};
+const TopTitle = styled.h1`
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: ${({ theme }) => theme.colors.text_primary};
+    letter-spacing: 0.01em;
     flex: 1;
     text-align: center;
 `;
 
-const AvatarWrapper = styled.div`
+const Sheet = styled.section`
+    width: 100%;
+    background: ${({ theme }) => theme.colors.card_bg};
+    border-radius: 22px;
+    padding: 14px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: ${({ theme }) => theme.colors.card_shadow};
+    animation: ${sheetIn} 0.35s ease-out;
+
+    @media (min-width: 768px) {
+        padding: 16px;
+    }
+`;
+
+const Hero = styled.div`
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    align-items: center;
+`;
+
+const AvatarRow = styled.div`
     display: flex;
     justify-content: center;
-    margin-bottom: 1.8rem;
     position: relative;
+    margin-top: 2px;
 `;
 
 const AvatarOuter = styled.div`
-    width: 126px;
-    height: 126px;
+    width: 118px;
+    height: 118px;
     border-radius: 50%;
     padding: 3px;
     background: radial-gradient(circle at 30% 0, #fff, transparent 55%),
         radial-gradient(circle at 80% 110%, rgba(140, 189, 255, 0.7), transparent 60%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: grid;
+    place-items: center;
 `;
 
 const AvatarImg = styled(Image)`
-    width: 116px;
-    height: 116px;
+    width: 108px;
+    height: 108px;
     border-radius: 50%;
     object-fit: cover;
 `;
 
-const EditAvatarButton = styled.label`
+const ChangeAvatarButton = styled.label`
     position: absolute;
-    bottom: 4px;
-    right: calc(50% - 60px);
+    bottom: 2px;
+    right: calc(50% - 58px);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
     background: ${({ theme }) => theme.colors.primary};
-    color: white;
-    padding: 0.35rem 0.75rem;
+    color: #fff;
+    padding: 0.38rem 0.72rem;
     border-radius: 999px;
-    font-size: 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 800;
     cursor: pointer;
-    font-weight: 600;
-`;
+    user-select: none;
 
-const SectionRow = styled.div`
-    display: grid;
-    grid-template-columns: 1.3fr 1.1fr;
-    gap: 2rem;
+    &:hover {
+        filter: brightness(0.98);
+    }
 
-    @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-        gap: 1.25rem;
+    &:focus-within {
+        outline: 2px solid rgba(0, 0, 0, 0.14);
+        outline-offset: 2px;
     }
 `;
 
-const Section = styled.section`
-    padding: 1.25rem;
+const SectionTitle = styled.h2`
+    margin: 12px 2px 10px;
+    font-size: 0.95rem;
+    font-weight: 950;
+    color: ${({ theme }) => theme.colors.text_primary};
+    letter-spacing: 0.01em;
 `;
 
-const SectionTitle = styled.h3`
-    margin-bottom: 0.75rem;
-    color: ${({ theme }) => theme.colors.primary};
+const SectionHint = styled.p`
+    margin: 0 2px 10px;
+    font-size: 0.85rem;
+    color: ${({ theme }) => theme.colors.text_secondary};
+    line-height: 1.45;
 `;
 
-const ButtonRow = styled.div`
-    margin-top: 2rem;
-    display: flex;
-    gap: 1rem;
+const Grid = styled.div`
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
 
-    button {
-        flex: 1;
+    @media (min-width: 900px) {
+        grid-template-columns: 1.2fr 1fr;
+        gap: 14px;
+    }
+`;
+
+const Card = styled.div`
+    border-radius: 18px;
+    padding: 14px;
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+
+    @media (min-width: 768px) {
+        padding: 16px;
+    }
+`;
+
+const Row = styled.div`
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+
+    @media (min-width: 560px) {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+`;
+
+const Full = styled.div`
+    grid-column: 1 / -1;
+`;
+
+/**------------------------------
+    Sticky CTA (mobile-first)
+---------------------------------*/
+const StickyBar = styled.div`
+    position: sticky;
+    bottom: 0;
+    z-index: 8;
+
+    margin-top: 10px;
+    padding-top: 10px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0),
+        ${({ theme }) => theme.colors.page_bg || "#f4fbfc"} 35%
+    );
+
+    @media (min-width: 900px) {
+        position: static;
+        padding: 0;
+        background: transparent;
+    }
+`;
+
+const ActionsRow = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+
+    @media (min-width: 560px) {
+        grid-template-columns: 1fr 1fr;
     }
 `;
 
@@ -131,62 +270,80 @@ const PrimarySaveButton = styled(ThemeButton) <{ $pulse?: boolean }>`
         css`
             animation: ${pulse} 1.6s ease-out infinite;
         `
-    };
+    }
 `;
 
 const SecondaryButton = styled(ThemeButton)`
-    opacity: 0.8;
+    opacity: 0.9;
+`;
+
+const StatusText = styled.p<{ $tone?: "ok" | "warn" }>`
+    margin: 10px 2px 0;
+    padding: 10px 12px;
+    border-radius: 14px;
+    font-weight: 750;
+    font-size: 0.9rem;
+    line-height: 1.35;
+
+    color: ${({ theme, $tone }) =>
+        $tone === "ok" ? "#0a7a3a" : theme.colors.text_primary};
+
+    background: ${({ $tone }) =>
+        $tone === "ok" ? "rgba(10,122,58,0.06)" : "rgba(0,0,0,0.03)"};
+
+    border: 1px solid
+    ${({ $tone }) => ($tone === "ok" ? "rgba(10,122,58,0.14)" : "rgba(0,0,0,0.06)")};
 `;
 
 const LoadingText = styled.div`
-    padding: 1.5rem;
+    padding: 18px 10px;
     text-align: center;
     color: ${({ theme }) => theme.colors.primary};
+    font-weight: 750;
 `;
 
-const PasswordMessage = styled.div<{ success?: boolean }>`
-    margin-top: 0.75rem;
-    padding: 0.65rem 0.75rem;
-    border-radius: 8px;
-    font-weight: 600;
-    color: ${({ success, theme }) => (success ? "#0a7a3a" : theme.colors.primary)};
-    background: ${({ success }) => (success ? "rgba(10,122,58,0.06)" : "transparent")};
-`;
-
-const CropOverlay = styled.div`
+/**------------------
+    Cropper sheet
+---------------------*/
+const Overlay = styled.div`
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.45);
+    background: rgba(9, 20, 45, 0.46);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 4500;
+    padding: 18px;
 `;
 
-const CropCard = styled.div`
-    background: ${({ theme }) => theme.colors.card_bg};
-    padding: 1.5rem;
-    border-radius: 18px;
-    width: 90%;
+const Modal = styled.div`
+    width: 100%;
     max-width: 420px;
+    background: ${({ theme }) => theme.colors.card_bg};
+    border-radius: 22px;
+    padding: 16px;
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    animation: ${sheetIn} 0.28s ease-out;
 `;
 
-const CropTitle = styled.h2`
+const ModalTitle = styled.h2`
+    margin: 2px 0 12px;
     text-align: center;
-    color: ${({ theme }) => theme.colors.primary};
-    margin-bottom: 1rem;
+    font-size: 1.05rem;
+    font-weight: 950;
+    color: ${({ theme }) => theme.colors.text_primary};
 `;
 
 const CropArea = styled.div`
     width: 220px;
     height: 220px;
     border-radius: 50%;
-    margin: 0 auto 1.2rem;
+    margin: 0 auto 14px;
     overflow: hidden;
     background: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: grid;
+    place-items: center;
 `;
 
 const CropPreview = styled.img<{ $zoom: number }>`
@@ -196,27 +353,30 @@ const CropPreview = styled.img<{ $zoom: number }>`
 `;
 
 const SliderRow = styled.div`
-    margin-bottom: 1.2rem;
+    margin-bottom: 12px;
 
     label {
         display: block;
-        margin-bottom: 0.35rem;
+        margin-bottom: 6px;
         font-size: 0.9rem;
+        font-weight: 750;
+        color: ${({ theme }) => theme.colors.text_primary};
     }
+
     input[type="range"] {
         width: 100%;
     }
 `;
 
-const CropButtons = styled.div`
-    display: flex;
-    gap: 0.75rem;
-
-    button {
-        flex: 1;
-    }
+const ModalActions = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
 `;
 
+/**----------
+    Types
+-------------*/
 interface ExtendedUser {
     id: string;
     email: string;
@@ -228,14 +388,52 @@ interface ExtendedUser {
     coping_not_worked?: string[];
 }
 
+function parseCommaList(raw: string): string[] {
+    return raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+}
+
+function toNumberOrUndef(raw: string): number | undefined {
+    if (raw === "") return undefined;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : undefined;
+}
+
+function eqStringArray(a: string[], b: string[]): boolean {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i += 1) {
+        if (a[i] !== b[i]) return false;
+    }
+    return true;
+}
+
+function profilesEqual(a: ExtendedUser, b: ExtendedUser): boolean {
+    return (
+        a.email === b.email &&
+        (a.displayName ?? "") === (b.displayName ?? "") &&
+        (a.age ?? null) === (b.age ?? null) &&
+        (a.years_since_onset ?? null) === (b.years_since_onset ?? null) &&
+        (a.avatarUrl ?? "") === (b.avatarUrl ?? "")
+    );
+}
+
+/**---------
+    Page
+------------*/
 export default function ProfilePage() {
     const router = useRouter();
     const { isAuthenticated, logout, refreshUser, user } = useAuth();
 
-    const { worked: copingWorked, notWorked: copingNotWorked, setFromBackend } = useCopingStrategies();
+    const { worked: copingWorked, notWorked: copingNotWorked, setFromBackend } =
+        useCopingStrategies();
 
     const [profile, setProfile] = useState<ExtendedUser | null>(null);
     const [initialProfile, setInitialProfile] = useState<ExtendedUser | null>(null);
+
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
 
     const [avatarPreview, setAvatarPreview] = useState<string>(
         user?.avatarUrl || toImgSrc(UserIcon)
@@ -244,14 +442,17 @@ export default function ProfilePage() {
     const [zoom, setZoom] = useState(1);
     const [showCropper, setShowCropper] = useState(false);
 
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-
     const [oldPassword, setOldPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [passwordMsg, setPasswordMsg] = useState<string | null>(null);
-    const [passwordSuccess, setPasswordSuccess] = useState(false);
+    const [passwordTone, setPasswordTone] = useState<"ok" | "warn">("warn");
+
+    // keep latest setFromBackend without adding it to every callback dep list
+    const setFromBackendRef = useRef(setFromBackend);
+    useEffect(() => {
+        setFromBackendRef.current = setFromBackend;
+    }, [setFromBackend]);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -259,60 +460,101 @@ export default function ProfilePage() {
             return;
         }
 
-        axiosClient
-            .get<{ ok: boolean; user: ExtendedUser }>("/auth/me")
-            .then((res) => {
+        let cancelled = false;
+
+        const load = async () => {
+            setLoading(true);
+            try {
+                const res = await axiosClient.get<{ ok: boolean; user: ExtendedUser }>("/auth/me");
+                if (cancelled) return;
                 const u = res.data.user;
+
                 setProfile(u);
                 setInitialProfile(u);
                 setAvatarPreview(u.avatarUrl || toImgSrc(UserIcon));
-                setFromBackend(u.coping_worked, u.coping_not_worked);
-            })
-            .finally(() => setLoading(false));
-    }, [isAuthenticated, router, setFromBackend]);
+                setFromBackendRef.current(u.coping_worked, u.coping_not_worked);
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        };
+
+        void load();
+        return () => {
+            cancelled = true;
+        };
+    }, [isAuthenticated, router]);
 
     const hasChanges = useMemo(() => {
         if (!profile || !initialProfile) return false;
-        return JSON.stringify(profile) !== JSON.stringify(initialProfile);
-    }, [profile, initialProfile]);
+        if (!profilesEqual(profile, initialProfile)) return true;
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!profile) return;
-        const { name, value } = e.target;
+        // Coping strategies live in the coping hook state
+        const initialWorked = initialProfile.coping_worked ?? [];
+        const initialNotWorked = initialProfile.coping_not_worked ?? [];
+        if (!eqStringArray(copingWorked, initialWorked)) return true;
+        if (!eqStringArray(copingNotWorked, initialNotWorked)) return true;
 
-        setProfile({
-            ...profile,
-            [name]:
-                name === "age" || name === "years_since_onset"
-                    ? value === ""
-                        ? undefined
-                        : Number(value)
-                    : value,
-        });
-    };
+        return false;
+    }, [profile, initialProfile, copingWorked, copingNotWorked]);
 
-    const handleCopingInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        const parsed = value.split(",").map((s) => s.trim()).filter(Boolean);
+    const handleProfileChange = useCallback(
+        (e: React.ChangeEvent<HTMLInputElement>) => {
+            setProfile((prev) => {
+                if (!prev) return prev;
 
-        if (name === "coping_worked") setFromBackend(parsed, copingNotWorked);
-        if (name === "coping_not_worked") setFromBackend(copingWorked, parsed);
-    };
+                const { name, value } = e.target;
 
-    const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+                if (name === "age") {
+                    return { ...prev, age: toNumberOrUndef(value) };
+                }
+                if (name === "years_since_onset") {
+                    return { ...prev, years_since_onset: toNumberOrUndef(value) };
+                }
+
+                return { ...prev, [name]: value };
+            });
+        },
+        []
+    );
+
+    const handleCopingInputChange = useCallback(
+        (e: React.ChangeEvent<HTMLInputElement>) => {
+            const { name, value } = e.target;
+            const parsed = parseCommaList(value);
+
+            if (name === "coping_worked") setFromBackendRef.current(parsed, copingNotWorked);
+            if (name === "coping_not_worked") setFromBackendRef.current(copingWorked, parsed);
+        },
+        [copingNotWorked, copingWorked]
+    );
+
+    const handleAvatarUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         const img = new globalThis.Image();
+        const url = URL.createObjectURL(file);
+
         img.onload = () => {
+            URL.revokeObjectURL(url);
             setAvatarSource(img);
             setZoom(1);
             setShowCropper(true);
         };
-        img.src = URL.createObjectURL(file);
-    };
 
-    const applyAvatarCrop = () => {
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+        };
+
+        img.src = url;
+    }, []);
+
+    const closeCropper = useCallback(() => {
+        setShowCropper(false);
+        setAvatarSource(null);
+    }, []);
+
+    const applyAvatarCrop = useCallback(() => {
         if (!avatarSource) return;
 
         const canvas = document.createElement("canvas");
@@ -340,202 +582,262 @@ export default function ProfilePage() {
         ctx.drawImage(avatarSource, x, y, w, h);
 
         const url = canvas.toDataURL("image/jpeg", 0.85);
+
         setAvatarPreview(url);
         setProfile((p) => (p ? { ...p, avatarUrl: url } : p));
         setShowCropper(false);
-    };
+    }, [avatarSource, zoom]);
 
-    const handleSave = async () => {
+    const handleSave = useCallback(async () => {
         if (!profile) return;
 
         setSaving(true);
         try {
-            const payload = {
+            const payload: ExtendedUser & {
+                coping_worked: string[];
+                coping_not_worked: string[];
+            } = {
                 ...profile,
                 coping_worked: copingWorked,
                 coping_not_worked: copingNotWorked,
             };
 
-            const res = await axiosClient.patch<{ ok: boolean; user: ExtendedUser }>("/users/profile", payload);
+            const res = await axiosClient.patch<{ ok: boolean; user: ExtendedUser }>(
+                "/users/profile",
+                payload
+            );
 
             setProfile(res.data.user);
             setInitialProfile(res.data.user);
 
-            // ✅ THIS makes avatar + user data update across ALL pages immediately
+            // ensure header avatar + user data refresh everywhere
             await refreshUser();
         } finally {
             setSaving(false);
         }
-    };
+    }, [profile, copingWorked, copingNotWorked, refreshUser]);
 
-    const handlePasswordChange = async () => {
+    const handlePasswordChange = useCallback(async () => {
         setPasswordMsg(null);
-        setPasswordSuccess(false);
+        setPasswordTone("warn");
 
         if (newPassword !== confirmPassword) {
             setPasswordMsg("Passwords do not match.");
             return;
         }
+        if (!oldPassword || !newPassword) {
+            setPasswordMsg("Please fill in your old and new password.");
+            return;
+        }
 
         try {
             await authApi.changePassword({ oldPassword, newPassword });
-            setPasswordSuccess(true);
+            setPasswordTone("ok");
             setPasswordMsg("Password updated!");
             setOldPassword("");
             setNewPassword("");
             setConfirmPassword("");
         } catch {
+            setPasswordTone("warn");
             setPasswordMsg("Incorrect old password.");
         }
-    };
+    }, [oldPassword, newPassword, confirmPassword]);
+
+    const handleLogout = useCallback(() => {
+        logout();
+        router.replace("/login");
+    }, [logout, router]);
 
     if (!isAuthenticated) return <LoadingText>Please login…</LoadingText>;
     if (loading) return <LoadingText>Loading your profile…</LoadingText>;
 
-    const avatarSrc = avatarPreview || profile?.avatarUrl || user?.avatarUrl || toImgSrc(UserIcon);
+    const avatarSrc =
+        avatarPreview || profile?.avatarUrl || user?.avatarUrl || toImgSrc(UserIcon);
 
     return (
         <>
-            <Wrapper>
-                <Header>
-                    <BackButton onClick={() => router.push("/")}>
-                        <Image src={BackIcon} alt="Go back" width={28} height={28} />
-                    </BackButton>
-                    <Title>Your Profile</Title>
-                </Header>
+            <Shell>
+                <Wrap>
+                    <TopBar>
+                        <BackButton type="button" onClick={() => router.push("/home")} aria-label="Go back">
+                            <Image src={BackIcon} alt="Go back" width={26} height={26} />
+                        </BackButton>
+                        <TopTitle>Your profile</TopTitle>
+                        {/* spacer for centered title */}
+                        <div style={{ width: 42 }} aria-hidden="true" />
+                    </TopBar>
 
-                <AvatarWrapper>
-                    <AvatarOuter>
-                        <AvatarImg src={avatarSrc} alt="avatar" width={116} height={116} />
-                    </AvatarOuter>
+                    <Sheet>
+                        <Hero>
+                            <AvatarRow>
+                                <AvatarOuter>
+                                    <AvatarImg src={avatarSrc} alt="Avatar" width={108} height={108} />
+                                </AvatarOuter>
 
-                    <EditAvatarButton>
-                        Change
-                        <input type="file" hidden accept="image/*" onChange={handleAvatarUpload} />
-                    </EditAvatarButton>
-                </AvatarWrapper>
+                                <ChangeAvatarButton>
+                                    Change
+                                    <input type="file" hidden accept="image/*" onChange={handleAvatarUpload} />
+                                </ChangeAvatarButton>
+                            </AvatarRow>
 
-                <SectionRow>
-                    <Section>
-                        <SectionTitle>Account</SectionTitle>
+                            <SectionHint>
+                                Update your name, coping strategies, or avatar. Your email can’t be changed here.
+                            </SectionHint>
+                        </Hero>
+                    </Sheet>
 
-                        <FormInput label="Email" name="email" value={profile?.email || ""} disabled onChange={() => { }} />
+                    <Grid>
+                        <Sheet>
+                            <SectionTitle>Account</SectionTitle>
 
-                        <FormInput
-                            label="Display Name"
-                            name="displayName"
-                            value={profile?.displayName || ""}
-                            onChange={handleChange}
-                        />
+                            <Row>
+                                <Full>
+                                    <FormInput
+                                        label="Email"
+                                        name="email"
+                                        value={profile?.email || ""}
+                                        disabled
+                                        onChange={() => {
+                                            // no-op: required by FormInput typing
+                                        }}
+                                    />
+                                </Full>
 
-                        <SectionTitle>Details</SectionTitle>
+                                <Full>
+                                    <FormInput
+                                        label="Display name"
+                                        name="displayName"
+                                        value={profile?.displayName || ""}
+                                        onChange={handleProfileChange}
+                                        autoComplete="nickname"
+                                    />
+                                </Full>
 
-                        <FormInput label="Age" name="age" type="number" value={profile?.age ?? ""} onChange={handleChange} />
+                                <FormInput
+                                    label="Age"
+                                    name="age"
+                                    type="number"
+                                    value={profile?.age ?? ""}
+                                    onChange={handleProfileChange}
+                                    inputMode="numeric"
+                                />
 
-                        <FormInput
-                            label="Years Since Onset"
-                            name="years_since_onset"
-                            type="number"
-                            value={profile?.years_since_onset ?? ""}
-                            onChange={handleChange}
-                        />
+                                <FormInput
+                                    label="Years since onset"
+                                    name="years_since_onset"
+                                    type="number"
+                                    value={profile?.years_since_onset ?? ""}
+                                    onChange={handleProfileChange}
+                                    inputMode="numeric"
+                                />
+                            </Row>
 
-                        <SectionTitle>Coping Strategies</SectionTitle>
+                            <SectionTitle>Coping strategies</SectionTitle>
 
-                        <FormInput
-                            label="Strategies that worked for you"
-                            name="coping_worked"
-                            placeholder="e.g. fidget toy, deep breathing, wearing gloves"
-                            value={copingWorked.join(", ")}
-                            onChange={handleCopingInputChange}
-                        />
+                            <Card>
+                                <FormInput
+                                    label="Strategies that worked"
+                                    name="coping_worked"
+                                    placeholder="e.g. fidget toy, deep breathing, wearing gloves"
+                                    value={copingWorked.join(", ")}
+                                    onChange={handleCopingInputChange}
+                                />
 
-                        <FormInput
-                            label="Strategies that did not help"
-                            name="coping_not_worked"
-                            placeholder="e.g. journaling, stress ball"
-                            value={copingNotWorked.join(", ")}
-                            onChange={handleCopingInputChange}
-                        />
-                    </Section>
+                                <FormInput
+                                    label="Strategies that didn’t help"
+                                    name="coping_not_worked"
+                                    placeholder="e.g. journaling, stress ball"
+                                    value={copingNotWorked.join(", ")}
+                                    onChange={handleCopingInputChange}
+                                />
+                            </Card>
+                        </Sheet>
 
-                    <Section>
-                        <SectionTitle>Password</SectionTitle>
+                        <Sheet>
+                            <SectionTitle>Password</SectionTitle>
+                            <SectionHint>Choose a strong password you don’t reuse elsewhere.</SectionHint>
 
-                        <FormInput
-                            label="Old Password"
-                            name="old_password"
-                            type="password"
-                            value={oldPassword}
-                            onChange={(e) => setOldPassword(e.target.value)}
-                        />
+                            <Card>
+                                <FormInput
+                                    label="Old password"
+                                    name="old_password"
+                                    type="password"
+                                    value={oldPassword}
+                                    onChange={(e) => setOldPassword(e.target.value)}
+                                    autoComplete="current-password"
+                                />
 
-                        <FormInput
-                            label="New Password"
-                            name="new_password"
-                            type="password"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                        />
+                                <FormInput
+                                    label="New password"
+                                    name="new_password"
+                                    type="password"
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    autoComplete="new-password"
+                                />
 
-                        <FormInput
-                            label="Confirm Password"
-                            name="confirm_password"
-                            type="password"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                        />
+                                <FormInput
+                                    label="Confirm new password"
+                                    name="confirm_password"
+                                    type="password"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    autoComplete="new-password"
+                                />
 
-                        <ThemeButton onClick={handlePasswordChange}>Update Password</ThemeButton>
+                                <ThemeButton onClick={handlePasswordChange}>Update password</ThemeButton>
 
-                        {passwordMsg && <PasswordMessage success={passwordSuccess}>{passwordMsg}</PasswordMessage>}
-                    </Section>
-                </SectionRow>
+                                {passwordMsg && <StatusText $tone={passwordTone}>{passwordMsg}</StatusText>}
+                            </Card>
+                        </Sheet>
+                    </Grid>
 
-                <ButtonRow>
-                    <PrimarySaveButton onClick={handleSave} $pulse={hasChanges}>
-                        {saving ? "Saving…" : hasChanges ? "Save Changes" : "Saved"}
-                    </PrimarySaveButton>
+                    <StickyBar>
+                        <ActionsRow>
+                            <PrimarySaveButton onClick={handleSave} $pulse={hasChanges}>
+                                {saving ? "Saving…" : hasChanges ? "Save changes" : "Saved"}
+                            </PrimarySaveButton>
 
-                    <ThemeButton
-                        onClick={() => {
-                            logout();
-                            router.replace("/login");
-                        }}
-                    >
-                        Logout
-                    </ThemeButton>
-                </ButtonRow>
-            </Wrapper>
+                            <SecondaryButton onClick={handleLogout}>Logout</SecondaryButton>
+                        </ActionsRow>
+
+                        {hasChanges && (
+                            <StatusText $tone="warn">
+                                You have unsaved changes. Tap <strong>Save changes</strong> to apply them.
+                            </StatusText>
+                        )}
+                    </StickyBar>
+                </Wrap>
+            </Shell>
 
             {showCropper && avatarSource && (
-                <CropOverlay>
-                    <CropCard>
-                        <CropTitle>Adjust your avatar</CropTitle>
+                <Overlay role="dialog" aria-modal="true" aria-label="Adjust your avatar">
+                    <Modal>
+                        <ModalTitle>Adjust your avatar</ModalTitle>
 
                         <CropArea>
-                            <CropPreview src={avatarSource.src} alt="crop" $zoom={zoom} />
+                            <CropPreview src={avatarSource.src} alt="crop preview" $zoom={zoom} />
                         </CropArea>
 
                         <SliderRow>
-                            <label>Zoom</label>
+                            <label htmlFor="avatar-zoom">Zoom</label>
                             <input
+                                id="avatar-zoom"
                                 type="range"
-                                title="range"
                                 min={1}
                                 max={2.4}
                                 step={0.02}
                                 value={zoom}
-                                onChange={(e) => setZoom(parseFloat(e.target.value))}
+                                onChange={(e) => setZoom(Number(e.target.value))}
                             />
                         </SliderRow>
 
-                        <CropButtons>
-                            <SecondaryButton onClick={() => setShowCropper(false)}>Cancel</SecondaryButton>
-                            <ThemeButton onClick={applyAvatarCrop}>Apply Avatar</ThemeButton>
-                        </CropButtons>
-                    </CropCard>
-                </CropOverlay>
+                        <ModalActions>
+                            <SecondaryButton onClick={closeCropper}>Cancel</SecondaryButton>
+                            <ThemeButton onClick={applyAvatarCrop}>Apply</ThemeButton>
+                        </ModalActions>
+                    </Modal>
+                </Overlay>
             )}
         </>
     );
