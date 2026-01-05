@@ -17,7 +17,6 @@ import Image from "next/image";
 import { useRiskTrendChart } from "@/hooks";
 import { InsightsIcon } from "@/assets/icons";
 
-
 /**---------------
     Animations
 ------------------*/
@@ -330,10 +329,6 @@ function toNumber(value: unknown): number | null {
     return null;
 }
 
-/**
- * Avoid timezone shifting for date-only strings like "2026-01-05".
- * We parse them as local midday by appending "T12:00:00".
- */
 function parseDateSafe(v: string): Date | null {
     const s = String(v);
     const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -342,10 +337,6 @@ function parseDateSafe(v: string): Date | null {
     return d;
 }
 
-/**
- * Normalize to a stable key for the x-axis.
- * If parseable, we keep "YYYY-MM-DD" to avoid inconsistent labels.
- */
 function normalizeDateKey(v: string): string {
     const d = parseDateSafe(v);
     if (!d) return String(v);
@@ -383,8 +374,13 @@ function isChartClickState(x: unknown): x is ChartClickState {
     return true;
 }
 
-function CustomTooltip({ active, label, payload }: CustomTooltipProps) {
+function CustomTooltip({ active, payload }: CustomTooltipProps) {
     if (!active || !payload?.length) return null;
+
+    // ✅ IMPORTANT: Use the real date from the hovered datapoint
+    // (Recharts label can be just an index when XAxis is hidden, which becomes "Jan 1, 2000")
+    const pointDate = payload[0]?.payload?.date;
+    const dateText = pointDate ? formatFullDate(String(pointDate)) : "—";
 
     const raw = payload[0]?.value;
     const n = toNumber(raw);
@@ -392,7 +388,7 @@ function CustomTooltip({ active, label, payload }: CustomTooltipProps) {
 
     return (
         <Tip role="status" aria-live="polite">
-            <TipLabel>{label != null ? formatFullDate(String(label)) : "—"}</TipLabel>
+            <TipLabel>{dateText}</TipLabel>
             <TipRow>
                 <TipName>Risk</TipName>
                 <TipValue>{valueText}</TipValue>
@@ -402,7 +398,7 @@ function CustomTooltip({ active, label, payload }: CustomTooltipProps) {
 }
 
 /**-------------------------------------
-  Component
+    Component
 --------------------------------------*/
 interface Props {
     history?: HistoryPoint[];
@@ -426,14 +422,10 @@ export const RiskTrendChart: React.FC<Props> = ({ history }) => {
                 const dt = parseDateSafe(dateKey);
                 if (!dt) return null;
 
-                return {
-                    date: dateKey,
-                    risk_score: scoreNum * 100,
-                };
+                return { date: dateKey, risk_score: scoreNum * 100 };
             })
             .filter((x): x is ChartRow => x !== null);
 
-        // ✅ ensure newest is actually last, regardless of backend ordering
         rows.sort((a, b) => {
             const ta = parseDateSafe(a.date)?.getTime() ?? 0;
             const tb = parseDateSafe(b.date)?.getTime() ?? 0;
@@ -444,7 +436,6 @@ export const RiskTrendChart: React.FC<Props> = ({ history }) => {
     }, [baseHistory]);
 
     const isMini = chartData.length <= 3;
-
     const [pinned, setPinned] = useState<ChartRow | null>(null);
 
     const onChartClick = useCallback(
