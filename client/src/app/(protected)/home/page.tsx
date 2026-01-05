@@ -49,7 +49,6 @@ const Page = styled.main`
         ${({ theme }) => theme.colors.page_bg || "#f4fbfc"} 280px
     );
 
-    /* safe-area friendly bottom padding */
     padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
 
     @media (min-width: 768px) {
@@ -155,10 +154,10 @@ const StatusPill = styled.span<{ $variant?: "ok" | "warning" }>`
             : theme.colors.low_risk_gradient || "#26c485"};
 
     border: 1px solid
-    ${({ $variant }) =>
-        $variant === "warning"
-            ? "rgba(255, 173, 120, 0.6)"
-            : "rgba(120, 255, 190, 0.6)"};
+        ${({ $variant }) =>
+            $variant === "warning"
+                ? "rgba(255, 173, 120, 0.6)"
+                : "rgba(120, 255, 190, 0.6)"};
 `;
 
 const Stack = styled.div`
@@ -554,7 +553,7 @@ export default function HomePage() {
                         </Meta>
                     </StatusRow>
 
-                    {/* ✅ No extra “box” wrappers — each component owns its own surface */}
+                    {/* No extra wrapper “boxes” — components own their own surfaces */}
                     <Stack>
                         <TwoCol>
                             <RiskResultCard data={predictionData} quote={quote} compact={isMobile} />
