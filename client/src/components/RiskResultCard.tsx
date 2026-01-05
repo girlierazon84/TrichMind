@@ -206,8 +206,17 @@ function clamp(n: number, min: number, max: number) {
 
 // Accepts either 0–1 or 0–100 and returns 0–100
 function toPct(value: unknown): number {
-    if (typeof value !== "number" || !Number.isFinite(value)) return 0;
-    const v = value <= 1.5 ? value * 100 : value; // 0..1 -> 0..100
+    let n: number | null = null;
+
+    if (typeof value === "number") n = value;
+    else if (typeof value === "string") {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) n = parsed;
+    }
+
+    if (n === null) return 0;
+
+    const v = n <= 1.5 ? n * 100 : n; // 0..1 -> 0..100
     return clamp(v, 0, 100);
 }
 
