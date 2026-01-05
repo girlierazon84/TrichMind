@@ -2,12 +2,7 @@
 
 "use client";
 
-import React, {
-    useEffect,
-    useMemo,
-    useRef,
-    useState
-} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -29,10 +24,8 @@ import { HeaderAvatar } from "@/components/common";
 /**----------
     Types
 -------------*/
-// Uppercase risk level type
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 
-// Response type for /auth/me API
 export interface MeResponse {
     user?: {
         email: string;
@@ -152,25 +145,20 @@ const StatusPill = styled.span<{ $variant?: "ok" | "warning" }>`
     text-transform: uppercase;
 
     background: ${({ $variant }) =>
-            $variant === "warning" ? "rgba(255, 173, 120, 0.18)" : "rgba(120, 255, 190, 0.18)"};
+        $variant === "warning"
+            ? "rgba(255, 173, 120, 0.18)"
+            : "rgba(120, 255, 190, 0.18)"};
 
     color: ${({ theme, $variant }) =>
-            $variant === "warning"
-                ? theme.colors.medium_risk_gradient || "#ff9a3c"
-                : theme.colors.low_risk_gradient || "#26c485"};
+        $variant === "warning"
+            ? theme.colors.medium_risk_gradient || "#ff9a3c"
+            : theme.colors.low_risk_gradient || "#26c485"};
 
     border: 1px solid
-            ${({ $variant }) =>
-                $variant === "warning" ? "rgba(255, 173, 120, 0.6)" : "rgba(120, 255, 190, 0.6)"};
-`;
-
-const Card = styled.section`
-    width: 100%;
-    padding: 14px;
-
-    @media (min-width: 768px) {
-        padding: 16px;
-    }
+    ${({ $variant }) =>
+        $variant === "warning"
+            ? "rgba(255, 173, 120, 0.6)"
+            : "rgba(120, 255, 190, 0.6)"};
 `;
 
 const Stack = styled.div`
@@ -194,9 +182,9 @@ const TwoCol = styled.div`
     }
 `;
 
-/**------------------------
+/**----------------
     Skeleton UI
----------------------------*/
+-------------------*/
 const SkeletonCircle = styled.div`
     width: 40px;
     height: 40px;
@@ -213,6 +201,10 @@ const SkeletonBar = styled.div<{ $width?: string; $height?: string }>`
 
 const SkeletonSpacer = styled.div<{ $height?: string }>`
     height: ${({ $height }) => $height || "10px"};
+`;
+
+const SkeletonGroup = styled.div`
+    padding: 6px 2px;
 `;
 
 /**------------------
@@ -251,9 +243,9 @@ const WelcomeBody = styled.p`
     line-height: 1.5;
 `;
 
-/**------------------------
+/**------------
     Helpers
----------------------------*/
+---------------*/
 function formatOverviewUpdatedLabel(lastUpdated: Date | null): string {
     if (!lastUpdated) return "Getting your latest overview…";
     const now = new Date();
@@ -360,7 +352,6 @@ export default function HomePage() {
         }
     }, [overviewEnabled]);
 
-    // Load /auth/me + local fallback prediction
     useEffect(() => {
         if (!hydrated) return;
 
@@ -390,12 +381,10 @@ export default function HomePage() {
 
                 setFromBackendRef.current(u.coping_worked, u.coping_not_worked);
 
-                // Local fallback prediction
                 try {
                     const stored = localStorage.getItem("tm_last_prediction");
                     if (stored) {
                         const parsedUnknown: unknown = JSON.parse(stored);
-
                         if (parsedUnknown && typeof parsedUnknown === "object") {
                             const p = parsedUnknown as Partial<PredictionResponse>;
 
@@ -431,7 +420,6 @@ export default function HomePage() {
         };
     }, [hydrated, token, isAuthenticated, router]);
 
-    // Apply fresh overview result
     useEffect(() => {
         if (!overview?.relapseSummary) return;
 
@@ -503,21 +491,21 @@ export default function HomePage() {
                     </TopBar>
 
                     <Stack>
-                        <Card>
+                        <SkeletonGroup>
                             <SkeletonBar $width="56%" $height="18px" />
                             <SkeletonSpacer $height="12px" />
                             <SkeletonBar $width="100%" $height="12px" />
                             <SkeletonSpacer $height="10px" />
                             <SkeletonBar $width="92%" $height="12px" />
-                        </Card>
+                        </SkeletonGroup>
 
-                        <Card>
+                        <SkeletonGroup>
                             <SkeletonBar $width="48%" $height="16px" />
                             <SkeletonSpacer $height="12px" />
                             <SkeletonBar $width="100%" $height="12px" />
                             <SkeletonSpacer $height="10px" />
                             <SkeletonBar $width="94%" $height="12px" />
-                        </Card>
+                        </SkeletonGroup>
                     </Stack>
                 </Container>
             </Page>
@@ -566,27 +554,20 @@ export default function HomePage() {
                         </Meta>
                     </StatusRow>
 
+                    {/* ✅ No extra “box” wrappers — each component owns its own surface */}
                     <Stack>
-                        {/* Top dashboard row: Risk + Trend (stacks on mobile) */}
                         <TwoCol>
-                            <Card>
-                                <RiskResultCard data={predictionData} quote={quote} compact={isMobile} />
-                            </Card>
-
+                            <RiskResultCard data={predictionData} quote={quote} compact={isMobile} />
                             <RiskTrendChart history={historyFromOverview} />
                         </TwoCol>
 
-                        <Card>
-                            <DailyProgressCardAuto />
-                        </Card>
+                        <DailyProgressCardAuto />
 
-                        <Card>
-                            <CopingStrategiesCard
-                                worked={copingWorked}
-                                notWorked={copingNotWorked}
-                                onToggle={toggleStrategy}
-                            />
-                        </Card>
+                        <CopingStrategiesCard
+                            worked={copingWorked}
+                            notWorked={copingNotWorked}
+                            onToggle={toggleStrategy}
+                        />
                     </Stack>
                 </Container>
             </Page>
