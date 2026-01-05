@@ -484,42 +484,43 @@ export async function getRelapseOverviewForUser(
     let relapseSummary: RelapseSummary | null = null;
     let riskHistory: RiskHistoryPoint[] = [];
 
-    // If enough data, compute risk using ML or heuristic
-    if (enoughData && features && userDoc) {
+    // ✅ Always compute a relapseSummary if we have profile features.
+    // Use ML only when enoughData is satisfied; otherwise heuristic.
+    if (features && userDoc) {
         let mlResp: MlRelapseResponse | null = null;
 
-        // Try ML prediction
-        try {
-            mlResp = await predictRelapseOverviewRisk(features);
-        } catch (err: any) {
-            // Log ML failure and fall back to heuristic
-            void loggerService.logWarning(
-                "ML relapse-overview failed; falling back to heuristic",
-                { error: err?.message ?? String(err) },
-                "ml",
-                typeof userId === "string" ? userId : undefined
-            );
+        if (enoughData) {
+            try {
+                mlResp = await predictRelapseOverviewRisk(features);
+            } catch (err: any) {
+                void loggerService.logWarning(
+                    "ML relapse-overview failed; falling back to heuristic",
+                    { error: err?.message ?? String(err) },
+                    "ml",
+                    typeof userId === "string" ? userId : undefined
+                );
+            }
         }
 
-        // Determine relapse summary
         relapseSummary = mlResp
-            ? {
-                risk_bucket: mlResp.risk_bucket,
-                risk_score: mlResp.risk_score,
-                confidence: mlResp.confidence,
-                model_version: mlResp.model_version ?? "ml-api",
-            }
-            : computeHeuristicRisk(userDoc, journal);
+        ? {
+            risk_bucket: mlResp.risk_bucket,
+            risk_score: mlResp.risk_score,
+            confidence: mlResp.confidence,
+            model_version: mlResp.model_version ?? "ml-api",
+        }
+        : computeHeuristicRisk(userDoc, journal);
 
-        // Store overview prediction snapshot
+        // (optional) store overview snapshot only when we computed something
         try {
             await Predict.create({
                 userId,
                 kind: "overview",
-                // Required “friendly” fields in schema — use user profile values
                 age: userDoc.age ?? 0,
                 age_of_onset: userDoc.age_of_onset ?? 0,
-                years_since_onset: userDoc.years_since_onset ?? Math.max((userDoc.age ?? 0) - (userDoc.age_of_onset ?? 0), 0),
+                years_since_onset:
+                    userDoc.years_since_onset ??
+                    Math.max((userDoc.age ?? 0) - (userDoc.age_of_onset ?? 0), 0),
 
                 pulling_severity: userDoc.pulling_severity ?? 0,
                 pulling_frequency: userDoc.pulling_frequency ?? "unknown",
@@ -539,14 +540,8 @@ export async function getRelapseOverviewForUser(
                 model_version: relapseSummary.model_version ?? "overview",
                 served_by: mlResp ? "FastAPI" : "heuristic",
             });
-        } catch (e: any) {
-            // Log storage failure but continue
-            void loggerService.logWarning(
-                "Failed to store Predict overview snapshot",
-                { error: e?.message ?? String(e) },
-                "system",
-                typeof userId === "string" ? userId : undefined
-            );
+        } catch {
+        // ignore
         }
 
         // History from journal urgeIntensity (0–10 → 0–1)
