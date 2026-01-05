@@ -23,13 +23,12 @@ export interface PredictPayload {
 
 // Response from the ML model (FastAPI predict_friendly-compatible)
 export interface PredictionResponse {
-    risk_score: number; // 0..1
-    confidence: number; // 0..1
+    risk_score: number;
+    confidence: number;
     risk_bucket: RiskBucket;
-
     model_version?: string;
-    risk_code?: string;
+    risk_code?: string | number; // ✅ allow int from FastAPI
     runtime_sec?: number;
-
     debug?: unknown;
 }
+
