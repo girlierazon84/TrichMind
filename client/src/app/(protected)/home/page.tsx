@@ -169,17 +169,17 @@ const StatusPill = styled.span<{ $variant?: "ok" | "warning" }>`
 const Stack = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 2rem;
 
     @media (min-width: 900px) {
-        gap: 16px;
+        gap: 3rem;
     }
 `;
 
 const TwoCol = styled.div`
     display: grid;
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 2rem;
 
     @media (min-width: 920px) {
         grid-template-columns: 1.2fr 0.8fr;
