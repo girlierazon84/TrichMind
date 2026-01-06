@@ -2,23 +2,22 @@
 
 import { Router } from "express";
 import { authentication } from "../middlewares";
-import { asyncHandler } from "../utils";
 import {
-    postDailyCheckIn,
-    getDailyEntries,
-    getDailySummary,
-} from "../controllers/dailyProgressController";
+    getDaily,
+    checkInDaily,
+    getDailySummary
+} from "../controllers";
 
 
 const router = Router();
 
 // GET /api/progress/daily
-router.get("/daily", authentication({ required: true }), asyncHandler(getDailyEntries));
+router.get("/daily", authentication({ required: true }), getDaily);
 
 // POST /api/progress/daily/checkin
-router.post("/daily/checkin", authentication({ required: true }), asyncHandler(postDailyCheckIn));
+router.post("/daily/checkin", authentication({ required: true }), checkInDaily);
 
 // GET /api/progress/daily/summary
-router.get("/daily/summary", authentication({ required: true }), asyncHandler(getDailySummary));
+router.get("/daily/summary", authentication({ required: true }), getDailySummary);
 
 export default router;
