@@ -2,8 +2,8 @@
 
 "use client";
 
-import React, { useMemo, useState, useCallback } from "react";
-import styled, { keyframes, useTheme } from "styled-components";
+import React, { useMemo } from "react";
+import styled, { keyframes, useTheme, css } from "styled-components";
 import {
     LineChart,
     Line,
@@ -17,6 +17,7 @@ import Image from "next/image";
 import { useRiskTrendChart } from "@/hooks";
 import { InsightsIcon } from "@/assets/icons";
 
+
 /**---------------
     Animations
 ------------------*/
@@ -26,10 +27,10 @@ const enter = keyframes`
 `;
 
 const shimmer = keyframes`
-  0%   { transform: translateX(-30%) rotate(8deg); opacity: 0; }
-  25%  { opacity: 0.16; }
-  70%  { opacity: 0.12; }
-  100% { transform: translateX(130%) rotate(8deg); opacity: 0; }
+    0%   { transform: translateX(-30%) rotate(8deg); opacity: 0; }
+    25%  { opacity: 0.16; }
+    70%  { opacity: 0.12; }
+    100% { transform: translateX(130%) rotate(8deg); opacity: 0; }
 `;
 
 export interface HistoryPoint {
@@ -38,7 +39,7 @@ export interface HistoryPoint {
 }
 
 type ChartRow = {
-    date: string; // normalized key for x-axis
+    date: string;
     risk_score: number; // 0–100
 };
 
@@ -67,9 +68,10 @@ const Card = styled.section`
     border-radius: ${({ theme }) => theme.radius.lg};
     padding: 14px;
 
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    box-shadow: 0 16px 40px rgba(13, 98, 117, 0.22);
-    backdrop-filter: blur(6px);
+    /* ✅ align with RiskResultCard look */
+    border: 1px solid ${({ theme }) => theme.colors.primary};
+    backdrop-filter: blur(5px);
+    box-shadow: 0 16px 40px #0d6275;
 
     animation: ${enter} 0.45s ease-out;
     transition: transform 0.18s ease-out, box-shadow 0.22s ease-out;
@@ -105,8 +107,7 @@ const Card = styled.section`
     }
 
     &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 20px 52px rgba(13, 98, 117, 0.26);
+        transform: translateY(-2px) scale(1.01);
     }
 
     @media (min-width: 768px) {
@@ -131,7 +132,8 @@ const IconWrap = styled.div`
     border-radius: 12px;
     display: grid;
     place-items: center;
-    background: rgba(0, 0, 0, 0.05);
+
+    background: rgba(0, 0, 0, 0.04);
     border: 1px solid rgba(0, 0, 0, 0.06);
 `;
 
@@ -205,19 +207,23 @@ const DeltaPill = styled.span<{ $dir: "up" | "down" | "flat" }>`
     letter-spacing: 0.01em;
     border: 1px solid rgba(0, 0, 0, 0.06);
 
-    background: ${({ $dir }) =>
-        $dir === "up"
-            ? "rgba(255, 173, 120, 0.18)"
-            : $dir === "down"
-                ? "rgba(120, 255, 190, 0.18)"
-                : "rgba(0,0,0,0.04)"};
+    ${({ theme, $dir }) => {
+        const upBg = "rgba(255, 173, 120, 0.18)";
+        const downBg = "rgba(120, 255, 190, 0.18)";
+        const flatBg = "rgba(0,0,0,0.04)";
 
-    color: ${({ theme, $dir }) =>
-        $dir === "up"
-            ? theme.colors.medium_risk_gradient || theme.colors.medium_risk
-            : $dir === "down"
-                ? theme.colors.low_risk_gradient || theme.colors.primary
-                : theme.colors.text_secondary};
+        const color =
+            $dir === "up"
+                ? theme.colors.medium_risk
+                : $dir === "down"
+                    ? theme.colors.low_risk
+                    : theme.colors.text_secondary;
+
+        return css`
+            background: ${$dir === "up" ? upBg : $dir === "down" ? downBg : flatBg};
+            color: ${color};
+        `;
+    }}
 `;
 
 const ChartArea = styled.div<{ $mini?: boolean }>`
@@ -331,18 +337,6 @@ function formatFullDate(v: string): string {
 
 function pct(n: number): string {
     return `${n.toFixed(1)}%`;
-}
-
-type ChartClickState = {
-    activeLabel?: string | number;
-    activePayload?: Array<{ payload?: ChartRow }>;
-};
-
-function isChartClickState(x: unknown): x is ChartClickState {
-    if (!x || typeof x !== "object") return false;
-    const obj = x as Record<string, unknown>;
-    if (!("activeLabel" in obj) && !("activePayload" in obj)) return false;
-    return true;
 }
 
 function CustomTooltip({ active, payload }: CustomTooltipProps) {
@@ -475,7 +469,10 @@ export const RiskTrendChart: React.FC<Props> = ({ history }) => {
 
             <ChartArea $mini={isMini}>
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData} margin={{ top: 12, right: 10, left: isMini ? 0 : -10, bottom: 2 }}>
+                    <LineChart
+                        data={chartData}
+                        margin={{ top: 12, right: 10, left: isMini ? 0 : -10, bottom: 2 }}
+                    >
                         <defs>
                             <linearGradient id="riskGradient" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stopColor={theme.colors.high_risk} stopOpacity={0.9} />
