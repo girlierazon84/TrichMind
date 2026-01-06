@@ -36,9 +36,9 @@ export interface MeResponse {
     };
 }
 
-/**-------------------------
+/**--------------------------------
     Modern mobile-first styling
-----------------------------*/
+-----------------------------------*/
 const Page = styled.main`
     width: 100%;
     min-height: 100dvh;
