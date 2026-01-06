@@ -1,33 +1,33 @@
 // client/src/hooks/useSoberStreak.ts
+
 "use client";
 
-import {
-    useEffect,
-    useState,
-    useCallback
-} from "react";
+import { useEffect, useState, useCallback } from "react";
 import { axiosClient } from "@/services";
 
+export type DailyHistoryItem = { day: string; relapsed: boolean };
 
-// Response structure for sober streak data
+// New response shape (backwards-compatible fields kept)
 export interface SoberStreakResponse {
     currentStreak: number;
     previousStreak?: number;
     longestStreak?: number;
-    lastEntryDate?: string;
+    relapseCount?: number;
+    lastEntryDate?: string | null;
+    lastRelapseDate?: string | null;
+    last14?: DailyHistoryItem[];
 }
 
-// Hook return type
 interface UseSoberStreakResult {
     data: SoberStreakResponse | null;
     loading: boolean;
     error: string | null;
+    refetch: () => Promise<void>;
+    checkIn: (relapsed: boolean, opts?: { date?: string; note?: string }) => Promise<void>;
 }
 
-// Local storage key for caching streak data
 const LOCAL_KEY = "tm_sober_streak";
 
-// Safe localStorage get/set to avoid SSR issues
 const safeLSGet = (key: string): string | null => {
     if (typeof window === "undefined") return null;
     try {
@@ -37,7 +37,6 @@ const safeLSGet = (key: string): string | null => {
     }
 };
 
-// Safe localStorage set to avoid SSR issues
 const safeLSSet = (key: string, value: string) => {
     if (typeof window === "undefined") return;
     try {
@@ -45,63 +44,61 @@ const safeLSSet = (key: string, value: string) => {
     } catch { }
 };
 
-// Hook to fetch and manage sober streak data from the server with localStorage fallback
+function normalize(payload: any): SoberStreakResponse {
+    return {
+        currentStreak: typeof payload?.currentStreak === "number" ? payload.currentStreak : 0,
+        previousStreak: typeof payload?.previousStreak === "number" ? payload.previousStreak : 0,
+        longestStreak: typeof payload?.longestStreak === "number" ? payload.longestStreak : 0,
+        relapseCount: typeof payload?.relapseCount === "number" ? payload.relapseCount : 0,
+        lastEntryDate: payload?.lastEntryDate ?? null,
+        lastRelapseDate: payload?.lastRelapseDate ?? null,
+        last14: Array.isArray(payload?.last14) ? payload.last14 : [],
+    };
+}
+
 export const useSoberStreak = (): UseSoberStreakResult => {
-    // State management for data, loading, and error states
     const [data, setData] = useState<SoberStreakResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Function to fetch streak data from the server with localStorage fallback
     const fetchStreak = useCallback(async () => {
-        // Start loading and reset error state
         setLoading(true);
         setError(null);
 
-        // Attempt to fetch data from the server first
         try {
-            // Fetch streak data from the API endpoint
-            const res = await axiosClient.get<SoberStreakResponse>("/health/streak");
-            const payload = res.data || {};
+            const res = await axiosClient.get("/progress/daily/summary");
+            const normalized = normalize(res.data);
 
-            // Normalize the response data to ensure all fields are present and valid
-            const normalized: SoberStreakResponse = {
-                currentStreak: payload.currentStreak ?? 0,
-                previousStreak: payload.previousStreak ?? 0,
-                longestStreak: payload.longestStreak,
-                lastEntryDate: payload.lastEntryDate,
-            };
-
-            // Update state and cache the normalized data in localStorage
             setData(normalized);
             safeLSSet(LOCAL_KEY, JSON.stringify(normalized));
         } catch {
-            // fallback to localStorage
             try {
-                // Try to retrieve cached data from localStorage if the API call fails
                 const stored = safeLSGet(LOCAL_KEY);
                 if (stored) {
-                    // Parse and set the cached data if available
-                    const parsed = JSON.parse(stored) as SoberStreakResponse;
-                    setData(parsed);
+                    setData(JSON.parse(stored) as SoberStreakResponse);
                     return;
                 }
             } catch { }
-
-            // Set error state if both API call and localStorage retrieval fail
-            setError("Failed to fetch streak data.");
+            setError("Failed to fetch progress data.");
         } finally {
-            // End loading state regardless of success or failure
             setLoading(false);
         }
     }, []);
 
-    // Fetch streak data on initial hook usage and whenever fetchStreak changes
+    const checkIn = useCallback(
+        async (relapsed: boolean, opts?: { date?: string; note?: string }) => {
+            setError(null);
+            await axiosClient.post("/progress/daily/checkin", { relapsed, ...opts });
+            await fetchStreak();
+        },
+        [fetchStreak]
+    );
+
     useEffect(() => {
         void fetchStreak();
     }, [fetchStreak]);
 
-    return { data, loading, error };
+    return { data, loading, error, refetch: fetchStreak, checkIn };
 };
 
 export default useSoberStreak;
