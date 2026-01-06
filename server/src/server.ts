@@ -36,6 +36,8 @@ import trichBotRoutes from "./routes/trichBotRoutes";
 import trichGameRoutes from "./routes/gameRoutes";
 import loggerRoutes from "./routes/loggerRoutes";
 import relapseOverviewRoutes from "./routes/relapseOverviewRoutes";
+import dailyProgressRoutes from "./routes/dailyProgressRoutes";
+
 
 /**---------------------------
     Initialize Express App
@@ -165,6 +167,7 @@ app.use("/api/games", requireMongo, trichGameRoutes);
 app.use("/api/triggers", requireMongo, triggersInsightsRoutes);
 app.use("/api/users", requireMongo, userRoutes);
 app.use("/api/overview", requireMongo, relapseOverviewRoutes);
+app.use("/api/daily-progress", requireMongo, dailyProgressRoutes);
 
 // ✅ If /api/ml uses Mongo, keep guarded; if it calls an external ML service only, remove requireMongo.
 app.use("/api/ml", requireMongo, predictRoutes);
