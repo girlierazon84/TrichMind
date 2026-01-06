@@ -42,19 +42,20 @@ export interface MeResponse {
 const Page = styled.main`
     width: 100%;
     min-height: 100dvh;
-    padding: 14px 12px 110px;
 
-    /* More modern: subtle radial glow + soft gradient */
+    /* ✅ avoid “page-wide slider” caused by shimmer/absolute elements */
+    overflow-x: clip;
+
+    /* ✅ space for BottomNav (mobile) + safe-area */
+    padding: 14px 12px calc(110px + env(safe-area-inset-bottom, 0px));
+
     background:
         radial-gradient(900px 420px at 18% 8%, rgba(33, 178, 186, 0.16) 0%, rgba(33, 178, 186, 0) 60%),
         radial-gradient(700px 360px at 78% 18%, rgba(120, 255, 190, 0.14) 0%, rgba(120, 255, 190, 0) 55%),
         linear-gradient(180deg, #e7f7f8 0%, ${({ theme }) => theme.colors.page_bg || "#f4fbfc"} 360px);
 
-    padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
-
     @media (min-width: 768px) {
-        padding: 18px 18px 90px;
-        padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+        padding: 18px 18px calc(90px + env(safe-area-inset-bottom, 0px));
     }
 `;
 
@@ -62,6 +63,9 @@ const Container = styled.div`
     width: 100%;
     max-width: 1020px;
     margin: 0 auto;
+
+    /* ✅ critical for grids/charts not to overflow */
+    min-width: 0;
 `;
 
 const TopBar = styled.header`
@@ -169,17 +173,22 @@ const StatusPill = styled.span<{ $variant?: "ok" | "warning" }>`
 const Stack = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 5rem;
+    gap: 2rem;
 
     @media (min-width: 900px) {
-        gap: 6rem;
+        gap: 3rem;
     }
 `;
 
 const TwoCol = styled.div`
     display: grid;
     grid-template-columns: 1fr;
-    gap: 5rem;
+    gap: 2rem;
+
+    /* ✅ prevents chart/card “forcing” wider layout */
+    > * {
+        min-width: 0;
+    }
 
     @media (min-width: 920px) {
         grid-template-columns: 1.2fr 0.8fr;
