@@ -2,14 +2,14 @@
 
 import { z } from "zod";
 import type { Response } from "express";
-import type { AuthRequest } from "../middlewares/authMiddleware";
-import { DailyCheckIn } from "../models";
+import type { AuthRequest } from "../middlewares";
 import { asyncHandler } from "../utils";
+import { DailyCheckIn } from "../models";
 
 
-/** -----------------------
- * Date helpers
- * ---------------------- */
+/**-----------------
+    Date helpers
+--------------------*/
 function dayKeyFromInput(input?: string): string {
     // If input is "YYYY-MM-DD", keep it
     if (typeof input === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input)) return input;
