@@ -65,21 +65,21 @@ const Minus = () => (
     Animations
 ------------------*/
 const softPulse = keyframes`
-  0%   { transform: translateY(0); opacity: 0.8; }
-  50%  { transform: translateY(-2px); opacity: 1; }
-  100% { transform: translateY(0); opacity: 0.9; }
+    0%   { transform: translateY(0); opacity: 0.8; }
+    50%  { transform: translateY(-2px); opacity: 1; }
+    100% { transform: translateY(0); opacity: 0.9; }
 `;
 
 const shimmer = keyframes`
-  0%   { transform: translateX(-30%) rotate(8deg); opacity: 0; }
-  25%  { opacity: 0.18; }
-  70%  { opacity: 0.14; }
-  100% { transform: translateX(130%) rotate(8deg); opacity: 0; }
+    0%   { transform: translateX(-30%) rotate(8deg); opacity: 0; }
+    25%  { opacity: 0.18; }
+    70%  { opacity: 0.14; }
+    100% { transform: translateX(130%) rotate(8deg); opacity: 0; }
 `;
 
-/**-------------------
+/**--------------
     Styled UI
---------------------*/
+-----------------*/
 const CardShell = styled.section<{ $risk: "low" | "medium" | "high" }>`
     position: relative;
     width: 100%;
@@ -91,16 +91,9 @@ const CardShell = styled.section<{ $risk: "low" | "medium" | "high" }>`
 
     animation: ${fadeIn} 0.55s ease-out;
     transform-style: preserve-3d;
-    transition: transform 0.18s ease-out, box-shadow 0.22s ease-out;
+    transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
 
     ${({ theme, $risk }) => {
-        const bg =
-            $risk === "low"
-                ? theme.colors.low_risk_gradient
-                : $risk === "medium"
-                    ? theme.colors.medium_risk_gradient
-                    : theme.colors.high_risk_gradient;
-
         const border =
             $risk === "low"
                 ? theme.colors.low_risk
@@ -109,26 +102,26 @@ const CardShell = styled.section<{ $risk: "low" | "medium" | "high" }>`
                     : theme.colors.high_risk;
 
         return css`
-            background: ${bg};
+            background: ${theme.colors.card_bg};
             border: 1px solid ${border};
-            backdrop-filter: blur(6px);
-            box-shadow: 0 16px 40px rgba(13, 98, 117, 0.32);
+            backdrop-filter: blur(5px);
+            /* ✅ match RiskResultCard shadow exactly */
+            box-shadow: 0 16px 40px #0d6275;
+
+            &::after {
+                content: "";
+                position: absolute;
+                inset: 0;
+                border-radius: inherit;
+                background: linear-gradient(
+                    145deg,
+                    rgba(255, 255, 255, 0.22) 0%,
+                    rgba(255, 255, 255, 0) 50%
+                );
+                pointer-events: none;
+            }
         `;
     }}
-
-    &::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border-radius: inherit;
-        background: linear-gradient(
-            145deg,
-            rgba(255, 255, 255, 0.22) 0%,
-            rgba(255, 255, 255, 0.05) 35%,
-            rgba(255, 255, 255, 0) 65%
-        );
-        pointer-events: none;
-    }
 
     /* subtle animated highlight band */
     &::before {
@@ -148,8 +141,7 @@ const CardShell = styled.section<{ $risk: "low" | "medium" | "high" }>`
     }
 
     &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 20px 52px rgba(13, 98, 117, 0.36);
+        transform: translateY(-2px) scale(1.01);
     }
 
     @media (min-width: 768px) {
@@ -182,7 +174,7 @@ const ProgressLabel = styled.div`
     font-size: 1.7rem;
     font-weight: 950;
     letter-spacing: -0.02em;
-    color: rgba(0, 0, 0, 0.82);
+    color: ${({ theme }) => theme.colors.text_primary};
 `;
 
 const ProgressSub = styled.div`
@@ -190,7 +182,7 @@ const ProgressSub = styled.div`
     font-size: 0.9rem;
     font-weight: 800;
     opacity: 0.85;
-    color: rgba(0, 0, 0, 0.65);
+    color: ${({ theme }) => theme.colors.text_secondary};
 `;
 
 const Trend = styled.div<{ $color: string; $highlight: boolean }>`
@@ -206,9 +198,8 @@ const Trend = styled.div<{ $color: string; $highlight: boolean }>`
 
     padding: 0.3rem 0.55rem;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    backdrop-filter: blur(6px);
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.06);
 
     ${({ $highlight }) =>
         $highlight &&
@@ -221,14 +212,14 @@ const Caption = styled.div`
     margin-top: 0.95rem;
     font-size: 1.02rem;
     font-weight: 950;
-    color: rgba(0, 0, 0, 0.78);
+    color: ${({ theme }) => theme.colors.text_primary};
 `;
 
 const SubMsg = styled.div`
     margin-top: 0.25rem;
     font-size: 0.92rem;
     font-weight: 650;
-    color: rgba(0, 0, 0, 0.62);
+    color: ${({ theme }) => theme.colors.text_secondary};
 `;
 
 const MetaRow = styled.div`
@@ -245,14 +236,13 @@ const MetaPill = styled.div`
     font-size: 0.82rem;
     font-weight: 900;
 
-    background: rgba(255, 255, 255, 0.26);
-    border: 1px solid rgba(255, 255, 255, 0.26);
-    backdrop-filter: blur(6px);
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.06);
 
-    color: rgba(0, 0, 0, 0.74);
+    color: ${({ theme }) => theme.colors.text_secondary};
 
     strong {
-        color: rgba(0, 0, 0, 0.9);
+        color: ${({ theme }) => theme.colors.text_primary};
         font-weight: 950;
     }
 `;
@@ -278,14 +268,14 @@ const Dot = styled.div<{ $relapsed: boolean }>`
         $relapsed ? "rgba(255, 0, 40, 0.75)" : "rgba(33, 178, 186, 0.75)"};
 
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.10);
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(0, 0, 0, 0.08);
 `;
 
 const DotLegend = styled.div`
     margin-top: 0.65rem;
     font-size: 0.82rem;
     font-weight: 650;
-    color: rgba(0, 0, 0, 0.62);
+    color: ${({ theme }) => theme.colors.text_secondary};
 `;
 
 const Actions = styled.div`
@@ -309,16 +299,15 @@ const ActionBtn = styled.button<{ $tone: "good" | "bad" }>`
 
     background: ${({ $tone }) =>
         $tone === "good"
-            ? "rgba(120, 255, 190, 0.26)"
-            : "rgba(255, 173, 120, 0.26)"};
+            ? "rgba(120, 255, 190, 0.22)"
+            : "rgba(255, 173, 120, 0.22)"};
 
     border: 1px solid ${({ $tone }) =>
         $tone === "good"
             ? "rgba(120, 255, 190, 0.5)"
             : "rgba(255, 173, 120, 0.5)"};
 
-    color: rgba(0, 0, 0, 0.78);
-    backdrop-filter: blur(6px);
+    color: ${({ theme }) => theme.colors.text_primary};
 
     transition: transform 0.15s ease-out, filter 0.15s ease-out;
 
@@ -367,9 +356,13 @@ export const DailyProgressCard: React.FC<Props> = ({
     const isImprovement = score > prevScore;
     const isReset = prevScore > 0 && score === 0;
 
-    const trackColor = "rgba(255,255,255,0.35)";
-    const progressColor = "rgba(0,0,0,0.70)";
-    const trendColor = isImprovement ? "rgba(0,0,0,0.78)" : isReset ? "rgba(0,0,0,0.78)" : "rgba(0,0,0,0.65)";
+    const trackColor = "rgba(33,178,186,0.18)";
+    const progressColor = "rgba(33,178,186,0.92)";
+    const trendColor = isImprovement
+        ? "rgba(38, 196, 133, 0.95)"
+        : isReset
+            ? "rgba(255, 0, 40, 0.95)"
+            : "rgba(0, 0, 0, 0.55)";
 
     const [animScore, setAnimScore] = useState(0);
 
@@ -422,7 +415,6 @@ export const DailyProgressCard: React.FC<Props> = ({
                         strokeDasharray={`${dash} ${circ - dash}`}
                         strokeLinecap="round"
                         transform={`rotate(-90 ${size / 2} ${size / 2})`}
-                        opacity={0.78}
                     />
                 </svg>
 
