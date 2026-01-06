@@ -27,6 +27,7 @@ const ArrowUp = () => (
         <path d="M5 12l7-7 7 7" />
     </svg>
 );
+
 const ArrowDown = () => (
     <svg
         width={18}
@@ -43,6 +44,7 @@ const ArrowDown = () => (
         <path d="M19 12l-7 7-7-7" />
     </svg>
 );
+
 const Minus = () => (
     <svg
         width={18}
@@ -59,23 +61,37 @@ const Minus = () => (
     </svg>
 );
 
+/**---------------
+    Animations
+------------------*/
 const softPulse = keyframes`
-    from { opacity: 0.8; transform: translateY(0); }
-    50%  { opacity: 1; transform: translateY(-2px); }
-    to   { opacity: 0.9; transform: translateY(0); }
+  0%   { transform: translateY(0); opacity: 0.8; }
+  50%  { transform: translateY(-2px); opacity: 1; }
+  100% { transform: translateY(0); opacity: 0.9; }
 `;
 
-const Wrapper = styled.section<{ $risk: "low" | "medium" | "high" }>`
+const shimmer = keyframes`
+  0%   { transform: translateX(-30%) rotate(8deg); opacity: 0; }
+  25%  { opacity: 0.18; }
+  70%  { opacity: 0.14; }
+  100% { transform: translateX(130%) rotate(8deg); opacity: 0; }
+`;
+
+/**-------------------
+    Styled UI
+--------------------*/
+const CardShell = styled.section<{ $risk: "low" | "medium" | "high" }>`
     position: relative;
     width: 100%;
+    overflow: hidden;
+
+    padding: 1.35rem 1rem;
+    border-radius: ${({ theme }) => theme.radius.lg};
     text-align: center;
 
-    padding: 1.35rem 1.1rem;
-    border-radius: ${({ theme }) => theme.radius.lg};
-
-    animation: ${fadeIn} 0.6s ease-out;
+    animation: ${fadeIn} 0.55s ease-out;
     transform-style: preserve-3d;
-    transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
+    transition: transform 0.18s ease-out, box-shadow 0.22s ease-out;
 
     ${({ theme, $risk }) => {
         const bg =
@@ -96,40 +112,57 @@ const Wrapper = styled.section<{ $risk: "low" | "medium" | "high" }>`
             background: ${bg};
             border: 1px solid ${border};
             backdrop-filter: blur(6px);
-            box-shadow: 0 16px 40px #0d6275;
-
-            &::after {
-                content: "";
-                position: absolute;
-                inset: 0;
-                border-radius: inherit;
-                background: linear-gradient(
-                    145deg,
-                    rgba(255, 255, 255, 0.22) 0%,
-                    rgba(255, 255, 255, 0) 55%
-                );
-                pointer-events: none;
-            }
+            box-shadow: 0 16px 40px rgba(13, 98, 117, 0.32);
         `;
     }}
 
+    &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: linear-gradient(
+            145deg,
+            rgba(255, 255, 255, 0.22) 0%,
+            rgba(255, 255, 255, 0.05) 35%,
+            rgba(255, 255, 255, 0) 65%
+        );
+        pointer-events: none;
+    }
+
+    /* subtle animated highlight band */
+    &::before {
+        content: "";
+        position: absolute;
+        inset: -30% -40%;
+        background: linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.42) 50%,
+            rgba(255, 255, 255, 0) 100%
+        );
+        filter: blur(10px);
+        opacity: 0;
+        animation: ${shimmer} 5.5s ease-in-out infinite;
+        pointer-events: none;
+    }
+
     &:hover {
-        transform: translateY(-2px) scale(1.01);
-        box-shadow: 0 22px 54px rgba(13, 98, 117, 0.55);
+        transform: translateY(-2px);
+        box-shadow: 0 20px 52px rgba(13, 98, 117, 0.36);
+    }
+
+    @media (min-width: 768px) {
+        padding: 1.6rem 1.35rem;
     }
 `;
 
-const Inner = styled.div`
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-`;
-
-const Card = styled.div`
+const RingWrap = styled.div`
     position: relative;
     display: inline-flex;
-    animation: ${scaleIn} 0.6s ease-out;
+    align-items: center;
+    justify-content: center;
+    animation: ${scaleIn} 0.55s ease-out;
 
     .progress-ring__value {
         transition: stroke-dasharray 0.9s ease-out;
@@ -138,80 +171,64 @@ const Card = styled.div`
 
 const ProgressLabelContainer = styled.div`
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    inset: 0;
+    display: grid;
+    place-items: center;
     text-align: center;
-    width: 100%;
     pointer-events: none;
 `;
 
 const ProgressLabel = styled.div`
-    font-size: 1.55rem;
+    font-size: 1.7rem;
     font-weight: 950;
-    letter-spacing: -0.01em;
-    color: rgba(255, 255, 255, 0.92);
-    text-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+    letter-spacing: -0.02em;
+    color: rgba(0, 0, 0, 0.82);
 `;
 
 const ProgressSub = styled.div`
+    margin-top: -2px;
     font-size: 0.9rem;
+    font-weight: 800;
     opacity: 0.85;
-    color: rgba(255, 255, 255, 0.88);
+    color: rgba(0, 0, 0, 0.65);
 `;
 
-const Trend = styled.div<{ $highlight: boolean }>`
+const Trend = styled.div<{ $color: string; $highlight: boolean }>`
     position: absolute;
-    bottom: -2rem;
-    display: flex;
-    gap: 0.35rem;
+    bottom: -1.9rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
+    gap: 0.35rem;
+    color: ${({ $color }) => $color};
+    font-weight: 950;
 
-    color: rgba(255, 255, 255, 0.92);
+    padding: 0.3rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    backdrop-filter: blur(6px);
 
     ${({ $highlight }) =>
         $highlight &&
         css`
-            animation: ${softPulse} 1.5s ease-out 0.4s;
+            animation: ${softPulse} 1.4s ease-out 0.25s;
         `}
 `;
 
-const TrendPill = styled.span<{ $tone: "up" | "down" | "flat" }>`
-    padding: 0.25rem 0.55rem;
-    border-radius: 999px;
-    font-size: 0.78rem;
-    font-weight: 950;
-    letter-spacing: 0.01em;
-
-    background: ${({ $tone }) =>
-        $tone === "up"
-            ? "rgba(120, 255, 190, 0.24)"
-            : $tone === "down"
-                ? "rgba(255, 173, 120, 0.26)"
-                : "rgba(255, 255, 255, 0.16)"};
-
-    border: 1px solid
-        ${({ $tone }) =>
-            $tone === "up"
-                ? "rgba(120, 255, 190, 0.45)"
-                : $tone === "down"
-                    ? "rgba(255, 173, 120, 0.45)"
-                    : "rgba(255, 255, 255, 0.22)"};
-`;
-
 const Caption = styled.div`
-    margin-top: 0.75rem;
+    margin-top: 0.95rem;
     font-size: 1.02rem;
     font-weight: 950;
-    color: rgba(255, 255, 255, 0.92);
+    color: rgba(0, 0, 0, 0.78);
 `;
 
 const SubMsg = styled.div`
-    margin-top: 0.3rem;
+    margin-top: 0.25rem;
     font-size: 0.92rem;
-    opacity: 0.9;
-    color: rgba(255, 255, 255, 0.88);
+    font-weight: 650;
+    color: rgba(0, 0, 0, 0.62);
 `;
 
 const MetaRow = styled.div`
@@ -223,100 +240,106 @@ const MetaRow = styled.div`
 `;
 
 const MetaPill = styled.div`
-    padding: 0.35rem 0.65rem;
+    padding: 0.4rem 0.7rem;
     border-radius: 999px;
-    font-size: 0.8rem;
-    font-weight: 950;
-    color: rgba(255, 255, 255, 0.92);
+    font-size: 0.82rem;
+    font-weight: 900;
 
-    background: rgba(255, 255, 255, 0.16);
-    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.26);
+    border: 1px solid rgba(255, 255, 255, 0.26);
     backdrop-filter: blur(6px);
-`;
 
-const Actions = styled.div`
-    margin-top: 1rem;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    width: 100%;
-    max-width: 420px;
-`;
+    color: rgba(0, 0, 0, 0.74);
 
-const ActionBtn = styled.button<{ $tone: "good" | "bad" }>`
-    border: none;
-    cursor: pointer;
-    border-radius: 16px;
-    padding: 0.8rem 0.85rem;
-    font-weight: 950;
-
-    color: rgba(255, 255, 255, 0.96);
-    background: ${({ $tone }) =>
-        $tone === "good"
-            ? "rgba(120, 255, 190, 0.22)"
-            : "rgba(255, 173, 120, 0.22)"};
-    border: 1px solid
-        ${({ $tone }) =>
-            $tone === "good"
-                ? "rgba(120, 255, 190, 0.42)"
-                : "rgba(255, 173, 120, 0.42)"};
-
-    transition: transform 0.14s ease, background 0.18s ease, box-shadow 0.18s ease;
-
-    &:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.14);
-        background: ${({ $tone }) =>
-            $tone === "good"
-                ? "rgba(120, 255, 190, 0.28)"
-                : "rgba(255, 173, 120, 0.28)"};
-    }
-
-    &:active {
-        transform: translateY(0);
-        box-shadow: none;
-    }
-
-    &:disabled {
-        opacity: 0.65;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    &:focus-visible {
-        outline: 2px solid rgba(255, 255, 255, 0.6);
-        outline-offset: 2px;
+    strong {
+        color: rgba(0, 0, 0, 0.9);
+        font-weight: 950;
     }
 `;
 
 const MiniHistory = styled.div`
     margin-top: 0.95rem;
     width: 100%;
-    max-width: 520px;
+    max-width: 560px;
+
     display: grid;
     grid-template-columns: repeat(14, 1fr);
-    gap: 6px;
+    gap: 7px;
     align-items: center;
     justify-items: center;
 `;
 
-const Dot = styled.div<{ $relapsed: boolean; $active?: boolean }>`
+const Dot = styled.div<{ $relapsed: boolean }>`
     width: 12px;
     height: 12px;
     border-radius: 999px;
 
     background: ${({ $relapsed }) =>
-        $relapsed ? "rgba(255, 255, 255, 0.85)" : "rgba(0, 0, 0, 0.18)"};
+        $relapsed ? "rgba(255, 0, 40, 0.75)" : "rgba(33, 178, 186, 0.75)"};
 
-    opacity: ${({ $active }) => ($active ? 1 : 0.75)};
-    border: 1px solid rgba(255, 255, 255, 0.28);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.25);
 `;
 
 const DotLegend = styled.div`
-    margin-top: 0.6rem;
-    font-size: 0.84rem;
-    opacity: 0.88;
-    color: rgba(255, 255, 255, 0.9);
+    margin-top: 0.65rem;
+    font-size: 0.82rem;
+    font-weight: 650;
+    color: rgba(0, 0, 0, 0.62);
+`;
+
+const Actions = styled.div`
+    margin-top: 1.05rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    max-width: 460px;
+    margin-left: auto;
+    margin-right: auto;
+`;
+
+const ActionBtn = styled.button<{ $tone: "good" | "bad" }>`
+    border: none;
+    cursor: pointer;
+    border-radius: 16px;
+    padding: 0.78rem 0.85rem;
+    font-weight: 950;
+    letter-spacing: 0.01em;
+
+    background: ${({ $tone }) =>
+        $tone === "good"
+            ? "rgba(120, 255, 190, 0.26)"
+            : "rgba(255, 173, 120, 0.26)"};
+
+    border: 1px solid ${({ $tone }) =>
+        $tone === "good"
+            ? "rgba(120, 255, 190, 0.5)"
+            : "rgba(255, 173, 120, 0.5)"};
+
+    color: rgba(0, 0, 0, 0.78);
+    backdrop-filter: blur(6px);
+
+    transition: transform 0.15s ease-out, filter 0.15s ease-out;
+
+    &:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.02);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+
+    &:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+    }
+
+    &:focus-visible {
+        outline: 2px solid rgba(0, 0, 0, 0.22);
+        outline-offset: 2px;
+    }
 `;
 
 type Props = {
@@ -344,9 +367,9 @@ export const DailyProgressCard: React.FC<Props> = ({
     const isImprovement = score > prevScore;
     const isReset = prevScore > 0 && score === 0;
 
-    // keep ring readable over gradients (white ring)
-    const trackColor = "rgba(255,255,255,0.24)";
-    const progressColor = "rgba(255,255,255,0.92)";
+    const trackColor = "rgba(255,255,255,0.35)";
+    const progressColor = "rgba(0,0,0,0.70)";
+    const trendColor = isImprovement ? "rgba(0,0,0,0.78)" : isReset ? "rgba(0,0,0,0.78)" : "rgba(0,0,0,0.65)";
 
     const [animScore, setAnimScore] = useState(0);
 
@@ -373,60 +396,58 @@ export const DailyProgressCard: React.FC<Props> = ({
 
     const ariaLabel = `${caption}: ${Math.round(animScore)} ${centerSubLabel}.`;
 
-    const trendTone: "up" | "down" | "flat" = isImprovement ? "up" : isReset ? "down" : "flat";
-    const trendLabel = isImprovement ? "Improving" : isReset ? "Reset" : "Steady";
-
     return (
-        <Wrapper $risk={risk} aria-label={ariaLabel}>
-            <Inner>
-                <Card>
-                    <svg width={size} height={size} role="img" aria-label={ariaLabel}>
-                        <title>{ariaLabel}</title>
-                        <circle
-                            cx={size / 2}
-                            cy={size / 2}
-                            r={r}
-                            stroke={trackColor}
-                            strokeWidth={stroke}
-                            fill="none"
-                        />
-                        <circle
-                            className="progress-ring__value"
-                            cx={size / 2}
-                            cy={size / 2}
-                            r={r}
-                            stroke={progressColor}
-                            strokeWidth={stroke}
-                            fill="none"
-                            strokeDasharray={`${dash} ${circ - dash}`}
-                            strokeLinecap="round"
-                            transform={`rotate(-90 ${size / 2} ${size / 2})`}
-                        />
-                    </svg>
+        <CardShell $risk={risk} aria-label={ariaLabel}>
+            <RingWrap>
+                <svg width={size} height={size} role="img" aria-label={ariaLabel}>
+                    <title>{ariaLabel}</title>
 
-                    <ProgressLabelContainer>
+                    <circle
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={r}
+                        stroke={trackColor}
+                        strokeWidth={stroke}
+                        fill="none"
+                    />
+
+                    <circle
+                        className="progress-ring__value"
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={r}
+                        stroke={progressColor}
+                        strokeWidth={stroke}
+                        fill="none"
+                        strokeDasharray={`${dash} ${circ - dash}`}
+                        strokeLinecap="round"
+                        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+                        opacity={0.78}
+                    />
+                </svg>
+
+                <ProgressLabelContainer>
+                    <div>
                         <ProgressLabel>{animScore.toFixed(0)}</ProgressLabel>
                         <ProgressSub>{centerSubLabel}</ProgressSub>
-                    </ProgressLabelContainer>
+                    </div>
+                </ProgressLabelContainer>
 
-                    <Trend $highlight={isImprovement} aria-label="Trend indicator">
-                        {isImprovement ? <ArrowUp /> : isReset ? <ArrowDown /> : <Minus />}
-                        <TrendPill $tone={trendTone}>
-                            {trendLabel} • {Math.abs(score - prevScore)}
-                        </TrendPill>
-                    </Trend>
-                </Card>
+                <Trend $color={trendColor} $highlight={isImprovement} aria-label="Trend indicator">
+                    {isImprovement ? <ArrowUp /> : isReset ? <ArrowDown /> : <Minus />}
+                    {Math.abs(score - prevScore)}
+                </Trend>
+            </RingWrap>
 
-                <Caption>{caption}</Caption>
-                <SubMsg>
-                    {isReset
-                        ? "Relapse day logged — your progress is still saved below."
-                        : isImprovement
-                            ? "Nice — keep going."
-                            : "Stay steady."}
-                </SubMsg>
-            </Inner>
-        </Wrapper>
+            <Caption>{caption}</Caption>
+            <SubMsg>
+                {isReset
+                    ? "Relapse day logged — your progress is still saved below."
+                    : isImprovement
+                        ? "Nice — keep going."
+                        : "Stay steady."}
+            </SubMsg>
+        </CardShell>
     );
 };
 
@@ -487,11 +508,10 @@ export const DailyProgressCardAuto: React.FC = () => {
                                 key={d.day}
                                 $relapsed={!!d.relapsed}
                                 title={`${d.day} • ${d.relapsed ? "Relapse" : "Sober"}`}
-                                $active
                             />
                         ))}
                     </MiniHistory>
-                    <DotLegend>Last 14 days: bright dot = relapse, dark dot = sober.</DotLegend>
+                    <DotLegend>Last 14 days: teal = sober, red = relapse.</DotLegend>
                 </>
             )}
 
