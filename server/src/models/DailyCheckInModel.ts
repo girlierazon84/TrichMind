@@ -4,19 +4,19 @@ import mongoose, { Schema, type HydratedDocument } from "mongoose";
 
 
 export interface IDailyCheckIn {
-    userId: mongoose.Types.ObjectId;
-    day: string; // YYYY-MM-DD (stable key)
-    relapsed: boolean;
-    note?: string;
+  userId: string;        // auth user id
+  day: string;           // YYYY-MM-DD (UTC-based key)
+  relapsed: boolean;     // true = pulled today
+  note?: string;         // optional note
 }
 
 export type DailyCheckInDocument = HydratedDocument<IDailyCheckIn>;
 
 const DailyCheckInSchema = new Schema<IDailyCheckIn>(
     {
-        userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-        day: { type: String, required: true, trim: true },
-        relapsed: { type: Boolean, required: true },
+        userId: { type: String, required: true, index: true },
+        day: { type: String, required: true, index: true }, // YYYY-MM-DD
+        relapsed: { type: Boolean, required: true, default: false },
         note: { type: String, trim: true },
     },
     { timestamps: true }
