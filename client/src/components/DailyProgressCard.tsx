@@ -7,191 +7,38 @@ import styled, { keyframes, css } from "styled-components";
 import { fadeIn, scaleIn } from "@/styles";
 import { useSoberStreak } from "@/hooks";
 
-/**-----------------------------------
-    SVG Icons for trend indicators
---------------------------------------*/
+
+/**----------
+    Icons
+-------------*/
 const ArrowUp = () => (
-    <svg
-        width={18}
-        height={18}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-        focusable="false"
-    >
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M12 19V6" />
         <path d="M5 12l7-7 7 7" />
     </svg>
 );
-
 const ArrowDown = () => (
-    <svg
-        width={18}
-        height={18}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-        focusable="false"
-    >
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M12 5v13" />
         <path d="M19 12l-7 7-7-7" />
     </svg>
 );
-
 const Minus = () => (
-    <svg
-        width={18}
-        height={18}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-        focusable="false"
-    >
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M5 12h14" />
     </svg>
 );
 
-/**-------------------------------------
-    Local check-in storage (client)
-----------------------------------------*/
-type DailyCheckIn = {
-    date: string; // YYYY-MM-DD
-    relapsed: boolean;
-};
-
-const LS_KEY = "tm_daily_checkins_v1";
-
-function dateKeyLocal(d: Date): string {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-}
-
-function addDaysLocal(date: Date, days: number): Date {
-    const d = new Date(date);
-    d.setDate(d.getDate() + days);
-    return d;
-}
-
-function safeLoadCheckIns(): DailyCheckIn[] {
-    if (typeof window === "undefined") return [];
-    try {
-        const raw = window.localStorage.getItem(LS_KEY);
-        if (!raw) return [];
-        const parsed: unknown = JSON.parse(raw);
-        if (!Array.isArray(parsed)) return [];
-        return parsed
-            .map((x) => {
-                const obj = x as Partial<DailyCheckIn>;
-                if (typeof obj?.date !== "string") return null;
-                if (typeof obj?.relapsed !== "boolean") return null;
-                if (!/^\d{4}-\d{2}-\d{2}$/.test(obj.date)) return null;
-                return { date: obj.date, relapsed: obj.relapsed };
-            })
-            .filter((x): x is DailyCheckIn => x !== null)
-            .sort((a, b) => a.date.localeCompare(b.date));
-    } catch {
-        return [];
-    }
-}
-
-function safeSaveCheckIns(items: DailyCheckIn[]) {
-    if (typeof window === "undefined") return;
-    try {
-        window.localStorage.setItem(LS_KEY, JSON.stringify(items));
-    } catch {
-        // ignore
-    }
-}
-
-function upsertCheckIn(items: DailyCheckIn[], next: DailyCheckIn): DailyCheckIn[] {
-    const map = new Map(items.map((x) => [x.date, x]));
-    map.set(next.date, next);
-    return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
-}
-
-function computeCurrentStreak(checkIns: DailyCheckIn[], today: string): number {
-    // Walk backwards from today; streak counts consecutive non-relapse days.
-    const byDate = new Map(checkIns.map((c) => [c.date, c.relapsed]));
-    let streak = 0;
-
-    // If today is not checked in, we still compute based on last known days,
-    // but streak won’t include today unless checked in as non-relapse.
-    let cursor = today;
-
-    for (let i = 0; i < 3650; i += 1) {
-        const relapsed = byDate.get(cursor);
-        if (relapsed === undefined) {
-            // No entry for this date => stop streak
-            break;
-        }
-        if (relapsed) break;
-
-        streak += 1;
-
-        const d = new Date(`${cursor}T12:00:00`);
-        cursor = dateKeyLocal(addDaysLocal(d, -1));
-    }
-
-    return streak;
-}
-
-function computeBestStreak(checkIns: DailyCheckIn[]): number {
-    let best = 0;
-    let run = 0;
-
-    for (let i = 0; i < checkIns.length; i += 1) {
-        if (checkIns[i].relapsed) {
-            best = Math.max(best, run);
-            run = 0;
-        } else {
-            run += 1;
-            best = Math.max(best, run);
-        }
-    }
-
-    return best;
-}
-
-function computeLastStreakBeforeRelapse(checkIns: DailyCheckIn[]): number {
-    // Find latest relapse and count consecutive non-relapse days immediately before it.
-    const idx = [...checkIns].reverse().findIndex((x) => x.relapsed);
-    if (idx === -1) return 0;
-
-    const relapseIndexFromStart = checkIns.length - 1 - idx;
-    let run = 0;
-
-    for (let i = relapseIndexFromStart - 1; i >= 0; i -= 1) {
-        if (checkIns[i].relapsed) break;
-        run += 1;
-    }
-    return run;
-}
-
-function countRelapseDays(checkIns: DailyCheckIn[]): number {
-    return checkIns.reduce((acc, x) => acc + (x.relapsed ? 1 : 0), 0);
-}
-
-/**-------------------------------------
-    Styled Components and Animations
-----------------------------------------*/
 const softPulse = keyframes`
-    from { opacity: 0.85; transform: translateY(0); }
-    50%  { opacity: 1; transform: translateY(-1px); }
+    from { opacity: 0.8; transform: translateY(0); }
+    50%  { opacity: 1; transform: translateY(-2px); }
     to   { opacity: 0.9; transform: translateY(0); }
+`;
+
+const borderFlow = keyframes`
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 `;
 
 const Wrapper = styled.section<{ $risk: "low" | "medium" | "high" }>`
@@ -201,28 +48,32 @@ const Wrapper = styled.section<{ $risk: "low" | "medium" | "high" }>`
     align-items: center;
     text-align: center;
 
+    perspective: 900px;
     width: 100%;
-    max-width: 980px;
-    margin: 0;
 
-    padding: 16px 14px 14px;
+    padding: 1.5rem 1rem;
     background: ${({ theme }) => theme.colors.card_bg};
     border-radius: ${({ theme }) => theme.radius.lg};
     animation: ${fadeIn} 0.45s ease-out;
 
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    box-shadow: ${({ theme }) => theme.colors.card_shadow};
+    ${({ theme, $risk }) => {
+        const gradient =
+            $risk === "low"
+                ? theme.colors.low_risk_gradient
+                : $risk === "medium"
+                    ? theme.colors.medium_risk_gradient
+                    : theme.colors.high_risk_gradient;
 
-    ${({ $risk, theme }) =>
-        $risk === "high" &&
-        css`
-            border-color: rgba(255, 0, 64, 0.18);
-            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.12);
-        `}
-
-    @media (min-width: 768px) {
-        padding: 18px 16px 16px;
-    }
+        return css`
+            border: 3px solid transparent;
+            background-image: linear-gradient(${gradient}),
+                linear-gradient(${theme.colors.card_bg}, ${theme.colors.card_bg});
+            background-origin: border-box;
+            background-clip: border-box, padding-box;
+            animation: ${borderFlow} 5s ease infinite;
+            box-shadow: 0 14px 34px rgba(13, 98, 117, 0.35);
+        `;
+    }}
 `;
 
 const Card = styled.div`
@@ -232,11 +83,7 @@ const Card = styled.div`
     transition: transform 0.25s ease;
 
     &:hover {
-        transform: translateY(-1px);
-    }
-
-    svg {
-        overflow: visible;
+        transform: translateY(-2px) scale(1.01);
     }
 
     .progress-ring__value {
@@ -255,94 +102,81 @@ const ProgressLabelContainer = styled.div`
 `;
 
 const ProgressLabel = styled.div`
-    font-size: 1.55rem;
-    font-weight: 900;
-    color: ${({ theme }) => theme.colors.text_primary};
+    font-size: 1.5rem;
+    font-weight: 700;
 `;
 
 const ProgressSub = styled.div`
     font-size: 0.9rem;
-    color: ${({ theme }) => theme.colors.text_secondary};
+    opacity: 0.8;
 `;
 
 const Trend = styled.div<{ $color: string; $highlight: boolean }>`
     position: absolute;
-    bottom: -1.7rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
+    bottom: -2rem;
+    display: flex;
+    gap: 0.3rem;
     color: ${({ $color }) => $color};
-    font-weight: 900;
-    font-size: 0.92rem;
 
     ${({ $highlight }) =>
         $highlight &&
         css`
-            animation: ${softPulse} 1.5s ease-out 0.2s;
-        `}
-`;
-
-const Caption = styled.div`
-    margin-top: 0.75rem;
-    font-size: 1.02rem;
-    font-weight: 900;
-    color: ${({ theme }) => theme.colors.text_primary};
-`;
-
-const SubMsg = styled.div`
-    margin-top: 0.35rem;
-    font-size: 0.9rem;
-    color: ${({ theme }) => theme.colors.text_secondary};
-    line-height: 1.35;
-`;
-
-const MetaRow = styled.div`
-    margin-top: 12px;
-    width: 100%;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-`;
-
-const MetaPill = styled.div<{ $tone?: "ok" | "warn" }>`
-    padding: 6px 10px;
-    border-radius: 999px;
-    font-size: 0.78rem;
-    font-weight: 900;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-
-    background: ${({ $tone }) =>
-        $tone === "warn" ? "rgba(255, 173, 120, 0.18)" : "rgba(120, 255, 190, 0.18)"};
-
-    color: ${({ theme, $tone }) =>
-        $tone === "warn" ? theme.colors.medium_risk : theme.colors.low_risk};
-`;
-
-const CheckInRow = styled.div`
-    margin-top: 12px;
-    width: 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-
-    @media (min-width: 520px) {
-        max-width: 420px;
+            animation: ${softPulse} 1.5s ease-out 0.4s;
+        `
     }
 `;
 
-const CheckButton = styled.button<{ $tone?: "ok" | "warn" }>`
-    border: 1px solid rgba(0, 0, 0, 0.10);
-    background: ${({ $tone }) =>
-        $tone === "warn" ? "rgba(255, 173, 120, 0.18)" : "rgba(120, 255, 190, 0.18)"};
-    color: ${({ theme }) => theme.colors.text_primary};
-    border-radius: 16px;
-    padding: 10px 12px;
-    font-weight: 950;
-    cursor: pointer;
+const Caption = styled.div`
+    margin-top: 0.7rem;
+    font-size: 1rem;
+    font-weight: 700;
+`;
 
-    &:hover {
-        filter: brightness(0.98);
+const SubMsg = styled.div`
+    margin-top: 0.25rem;
+    font-size: 0.9rem;
+    opacity: 0.85;
+`;
+
+const MetaRow = styled.div`
+    margin-top: 0.85rem;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+`;
+
+const MetaPill = styled.div`
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+`;
+
+const Actions = styled.div`
+    margin-top: 0.95rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    max-width: 420px;
+`;
+
+const ActionBtn = styled.button<{ $tone: "good" | "bad" }>`
+    border: none;
+    cursor: pointer;
+    border-radius: 14px;
+    padding: 0.75rem 0.8rem;
+    font-weight: 900;
+
+    background: ${({ $tone }) => ($tone === "good" ? "rgba(120, 255, 190, 0.18)" : "rgba(255, 173, 120, 0.18)")};
+    border: 1px solid ${({ $tone }) => ($tone === "good" ? "rgba(120, 255, 190, 0.55)" : "rgba(255, 173, 120, 0.55)")};
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 
     &:focus-visible {
@@ -351,44 +185,32 @@ const CheckButton = styled.button<{ $tone?: "ok" | "warn" }>`
     }
 `;
 
-const Timeline = styled.div`
-    margin-top: 12px;
+const MiniHistory = styled.div`
+    margin-top: 0.9rem;
     width: 100%;
     max-width: 520px;
-`;
-
-const TimelineLabel = styled.div`
-    font-size: 0.8rem;
-    font-weight: 850;
-    color: ${({ theme }) => theme.colors.text_secondary};
-    margin-bottom: 6px;
-`;
-
-const DotRow = styled.div`
     display: grid;
     grid-template-columns: repeat(14, 1fr);
     gap: 6px;
+    align-items: center;
+    justify-items: center;
 `;
 
-const Dot = styled.div<{ $state: "none" | "ok" | "relapse" | "today" }>`
-    width: 100%;
-    aspect-ratio: 1 / 1;
+const Dot = styled.div<{ $relapsed: boolean; $active?: boolean }>`
+    width: 12px;
+    height: 12px;
     border-radius: 999px;
-    border: 1px solid rgba(0, 0, 0, 0.10);
-
-    background: ${({ $state }) =>
-        $state === "relapse"
-            ? "rgba(255, 0, 64, 0.22)"
-            : $state === "ok"
-                ? "rgba(38, 196, 133, 0.20)"
-                : $state === "today"
-                    ? "rgba(91, 138, 255, 0.20)"
-                    : "rgba(0,0,0,0.04)"};
+    background: ${({ $relapsed }) => ($relapsed ? "rgba(255, 0, 40, 0.75)" : "rgba(33, 178, 186, 0.75)")};
+    opacity: ${({ $active }) => ($active ? 1 : 0.65)};
+    border: 1px solid rgba(0, 0, 0, 0.08);
 `;
 
-/**------------------------------------------
-    Props for DailyProgressCard component
----------------------------------------------*/
+const DotLegend = styled.div`
+    margin-top: 0.55rem;
+    font-size: 0.82rem;
+    opacity: 0.85;
+`;
+
 type Props = {
     score: number;
     prevScore?: number;
@@ -397,28 +219,16 @@ type Props = {
     stroke?: number;
     caption?: string;
     centerSubLabel?: string;
-    // New (optional) meta to show progress without “forgetting” after relapse
-    bestStreak?: number;
-    lastStreakBeforeRelapse?: number;
-    relapseDays?: number;
-    checkIns?: DailyCheckIn[];
 };
 
-/**--------------------------------
-    DailyProgressCard Component
------------------------------------*/
 export const DailyProgressCard: React.FC<Props> = ({
     score,
     prevScore = 0,
     max = 30,
     size = 170,
     stroke = 16,
-    caption = "Daily progress",
-    centerSubLabel = "Days strong",
-    bestStreak = 0,
-    lastStreakBeforeRelapse = 0,
-    relapseDays = 0,
-    checkIns = [],
+    caption = "Current streak",
+    centerSubLabel = "Days",
 }) => {
     const pct = Math.max(0, Math.min(1, score / max));
     const risk: "low" | "medium" | "high" = pct >= 0.66 ? "low" : pct >= 0.33 ? "medium" : "high";
@@ -426,9 +236,9 @@ export const DailyProgressCard: React.FC<Props> = ({
     const isImprovement = score > prevScore;
     const isReset = prevScore > 0 && score === 0;
 
-    const trackColor = "rgba(0,0,0,0.08)";
+    const trackColor = "#e0f7f9";
     const progressColor = "#21b2ba";
-    const trendColor = isImprovement ? "#26c485" : isReset ? "#ff0040" : "#95a5a6";
+    const trendColor = isImprovement ? "#2ecc71" : isReset ? "#ff0004" : "#95a5a6";
 
     const [animScore, setAnimScore] = useState(0);
 
@@ -487,187 +297,86 @@ export const DailyProgressCard: React.FC<Props> = ({
             </Card>
 
             <Caption>{caption}</Caption>
-            <SubMsg>
-                {isReset
-                    ? "Relapse days are part of your story — your progress is still here."
-                    : isImprovement
-                        ? "Nice work — keep building momentum."
-                        : "Steady progress matters. One day at a time."}
-            </SubMsg>
-
-            <MetaRow>
-                <MetaPill $tone="ok">Best streak: {bestStreak}</MetaPill>
-                <MetaPill $tone="ok">Before relapse: {lastStreakBeforeRelapse}</MetaPill>
-                <MetaPill $tone="warn">Relapse days: {relapseDays}</MetaPill>
-            </MetaRow>
-
-            {/* timeline is optional, but recommended */}
-            {checkIns.length > 0 && (
-                <Timeline aria-label="Last 14 days check-in timeline">
-                    <TimelineLabel>Last 14 days</TimelineLabel>
-                    <DotRow>
-                        {(() => {
-                            const today = dateKeyLocal(new Date());
-                            const byDate = new Map(checkIns.map((c) => [c.date, c.relapsed]));
-
-                            const days = Array.from({ length: 14 }, (_, i) => {
-                                const d = addDaysLocal(new Date(), -(13 - i));
-                                const k = dateKeyLocal(d);
-                                return k;
-                            });
-
-                            return days.map((k) => {
-                                const relapsed = byDate.get(k);
-                                const state: "none" | "ok" | "relapse" | "today" =
-                                    k === today
-                                        ? "today"
-                                        : relapsed === true
-                                            ? "relapse"
-                                            : relapsed === false
-                                                ? "ok"
-                                                : "none";
-
-                                return <Dot key={k} $state={state} title={k} aria-label={k} />;
-                            });
-                        })()}
-                    </DotRow>
-                </Timeline>
-            )}
+            <SubMsg>{isReset ? "Relapse day logged — your progress is still saved below." : isImprovement ? "Nice — keep going." : "Stay steady."}</SubMsg>
         </Wrapper>
     );
 };
 
-/**------------------------------------
-    DailyProgressCardAuto Component
----------------------------------------*/
 export const DailyProgressCardAuto: React.FC = () => {
-    const { data, loading, error } = useSoberStreak();
+    const { data, loading, error, checkIn } = useSoberStreak();
+    const [saving, setSaving] = useState<null | "sober" | "relapse">(null);
 
-    const [hydrated, setHydrated] = useState(false);
-    const [checkIns, setCheckIns] = useState<DailyCheckIn[]>([]);
-    const [saving, setSaving] = useState(false);
+    const last14 = data?.last14 ?? [];
+    const relapseCount = data?.relapseCount ?? 0;
+    const longest = data?.longestStreak ?? 0;
+    const previous = data?.previousStreak ?? 0;
 
-    useEffect(() => {
-        setHydrated(true);
-        setCheckIns(safeLoadCheckIns());
-    }, []);
+    // Ring max should scale gently but not jumpy
+    const ringMax = useMemo(() => {
+        const cur = data?.currentStreak ?? 0;
+        return Math.max(30, longest, cur);
+    }, [data?.currentStreak, longest]);
 
-    const today = useMemo(() => (hydrated ? dateKeyLocal(new Date()) : ""), [hydrated]);
-
-    const todayEntry = useMemo(() => {
-        if (!hydrated || !today) return null;
-        return checkIns.find((x) => x.date === today) ?? null;
-    }, [checkIns, hydrated, today]);
-
-    const metrics = useMemo(() => {
-        // If user has local history, use it as source of truth (keeps relapse memory)
-        if (hydrated && checkIns.length > 0 && today) {
-            const current = computeCurrentStreak(checkIns, today);
-            const best = computeBestStreak(checkIns);
-            const beforeRelapse = computeLastStreakBeforeRelapse(checkIns);
-            const relapses = countRelapseDays(checkIns);
-
-            // “prevScore” = yesterday’s streak (approx)
-            const yesterday = dateKeyLocal(addDaysLocal(new Date(), -1));
-            const prev = computeCurrentStreak(checkIns, yesterday);
-
-            return {
-                current,
-                prev,
-                best,
-                beforeRelapse,
-                relapses,
-                source: "local" as const,
-            };
-        }
-
-        // fallback to backend streak (if local not started yet)
-        const current = data?.currentStreak ?? 0;
-        const prev = data?.previousStreak ?? 0;
-
-        return {
-            current,
-            prev,
-            best: Math.max(current, prev),
-            beforeRelapse: 0,
-            relapses: 0,
-            source: "server" as const,
-        };
-    }, [checkIns, data?.currentStreak, data?.previousStreak, hydrated, today]);
+    if (loading) return <p aria-live="polite">Loading progress…</p>;
+    if (error) return <p role="alert">{error}</p>;
+    if (!data) return <p>No progress data yet.</p>;
 
     const handleCheckIn = async (relapsed: boolean) => {
-        if (!hydrated) return;
-        if (!today) return;
-
-        setSaving(true);
+        setSaving(relapsed ? "relapse" : "sober");
         try {
-            const next = upsertCheckIn(checkIns, { date: today, relapsed });
-            setCheckIns(next);
-            safeSaveCheckIns(next);
+            await checkIn(relapsed);
         } finally {
-            setSaving(false);
+            setSaving(null);
         }
     };
 
-    // Server states only matter when local not started
-    if (!hydrated) return <p aria-live="polite">Loading progress…</p>;
-    if (metrics.source === "server") {
-        if (loading) return <p aria-live="polite">Loading streak…</p>;
-        if (error) return <p role="alert">{error}</p>;
-        if (!data) return <p>No progress data yet.</p>;
-    }
-
     return (
-        <>
+        <div>
             <DailyProgressCard
-                score={metrics.current}
-                prevScore={metrics.prev}
-                max={30}
-                caption="Daily progress"
-                centerSubLabel="Days strong"
-                bestStreak={metrics.best}
-                lastStreakBeforeRelapse={metrics.beforeRelapse}
-                relapseDays={metrics.relapses}
-                checkIns={checkIns}
+                score={data.currentStreak}
+                prevScore={data.previousStreak ?? 0}
+                max={ringMax}
+                caption="Current streak"
+                centerSubLabel="Days"
             />
 
-            {/* Daily check-in CTA */}
-            <div style={{ width: "100%", maxWidth: 980, margin: "10px auto 0" }}>
-                {todayEntry ? (
-                    <p style={{ margin: "10px 0 0", textAlign: "center" }} aria-live="polite">
-                        Checked in today: <strong>{todayEntry.relapsed ? "Relapse" : "No relapse"}</strong>
-                        {" • "}
-                        You can change it any time today.
-                    </p>
-                ) : (
-                    <>
-                        <p style={{ margin: "10px 0 8px", textAlign: "center" }}>
-                            Check in for today to keep your progress accurate.
-                        </p>
-                        <CheckInRow>
-                            <CheckButton
-                                type="button"
-                                $tone="ok"
-                                onClick={() => handleCheckIn(false)}
-                                disabled={saving}
-                                aria-label="Check in: no relapse today"
-                            >
-                                No relapse today
-                            </CheckButton>
-                            <CheckButton
-                                type="button"
-                                $tone="warn"
-                                onClick={() => handleCheckIn(true)}
-                                disabled={saving}
-                                aria-label="Check in: relapse today"
-                            >
-                                Relapse today
-                            </CheckButton>
-                        </CheckInRow>
-                    </>
-                )}
-            </div>
-        </>
+            <MetaRow>
+                <MetaPill>Previous streak: <strong>{previous}</strong></MetaPill>
+                <MetaPill>Best streak: <strong>{longest}</strong></MetaPill>
+                <MetaPill>Relapses logged: <strong>{relapseCount}</strong></MetaPill>
+            </MetaRow>
+
+            {last14.length > 0 && (
+                <>
+                    <MiniHistory aria-label="Last 14 check-ins">
+                        {last14.map((d) => (
+                            <Dot key={d.day} $relapsed={!!d.relapsed} title={`${d.day} • ${d.relapsed ? "Relapse" : "Sober"}`} $active />
+                        ))}
+                    </MiniHistory>
+                    <DotLegend>Last 14 days: teal = sober, red = relapse.</DotLegend>
+                </>
+            )}
+
+            <Actions aria-label="Daily check-in actions">
+                <ActionBtn
+                    type="button"
+                    $tone="good"
+                    onClick={() => void handleCheckIn(false)}
+                    disabled={saving !== null}
+                >
+                    {saving === "sober" ? "Saving…" : "No pulling today"}
+                </ActionBtn>
+
+                <ActionBtn
+                    type="button"
+                    $tone="bad"
+                    onClick={() => void handleCheckIn(true)}
+                    disabled={saving !== null}
+                >
+                    {saving === "relapse" ? "Saving…" : "I pulled today"}
+                </ActionBtn>
+            </Actions>
+        </div>
     );
 };
 
