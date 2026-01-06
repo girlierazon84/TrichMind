@@ -1,140 +1,112 @@
 // server/src/controllers/dailyProgressController.ts
 
-import type { Response } from "express";
-import mongoose from "mongoose";
 import { z } from "zod";
-import type { AuthRequest } from "../middlewares";
+import type { Response } from "express";
+import type { AuthRequest } from "../middlewares/authMiddleware";
 import { DailyCheckIn } from "../models";
+import { asyncHandler } from "../utils";
 
 
-const APP_TIMEZONE = process.env.APP_TIMEZONE || "Europe/Stockholm";
+/** -----------------------
+ * Date helpers
+ * ---------------------- */
+function dayKeyFromInput(input?: string): string {
+    // If input is "YYYY-MM-DD", keep it
+    if (typeof input === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input)) return input;
 
-/**--------------------------
-    Date helpers (stable)
------------------------------*/
+    // If input is ISO/date string, convert to YYYY-MM-DD (UTC)
+    if (typeof input === "string" && input.trim().length > 0) {
+        const d = new Date(input);
+        if (!Number.isFinite(d.getTime())) throw new Error("Invalid date");
+        return d.toISOString().slice(0, 10);
+    }
 
-// "YYYY-MM-DD" for today in configured timezone
-function todayKey(): string {
-    return new Date().toLocaleDateString("en-CA", { timeZone: APP_TIMEZONE });
+    // Default = today (UTC)
+    return new Date().toISOString().slice(0, 10);
 }
 
-function isDayKey(s: string): boolean {
-    return /^\d{4}-\d{2}-\d{2}$/.test(s);
+function utcDateFromDayKey(day: string): Date {
+    // day: YYYY-MM-DD
+    const [y, m, d] = day.split("-").map((n) => Number(n));
+    return new Date(Date.UTC(y, (m ?? 1) - 1, d ?? 1, 12, 0, 0)); // midday avoids DST edge cases
 }
 
-// Parse YYYY-MM-DD as UTC midday to avoid DST shifts
-function parseDayUTC(day: string): Date | null {
-    if (!isDayKey(day)) return null;
-    const [y, m, d] = day.split("-").map((x) => Number(x));
-    if (![y, m, d].every(Number.isFinite)) return null;
-    return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+function diffDays(a: string, b: string): number {
+    const ta = utcDateFromDayKey(a).getTime();
+    const tb = utcDateFromDayKey(b).getTime();
+    return Math.round((tb - ta) / 86_400_000);
 }
 
-function formatDayUTC(dt: Date): string {
-    const y = dt.getUTCFullYear();
-    const m = String(dt.getUTCMonth() + 1).padStart(2, "0");
-    const d = String(dt.getUTCDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-}
-
-function addDaysUTC(day: string, delta: number): string | null {
-    const dt = parseDayUTC(day);
-    if (!dt) return null;
-    dt.setUTCDate(dt.getUTCDate() + delta);
-    return formatDayUTC(dt);
-}
-
-/** -------------------------
+/** -----------------------
  * Schemas
- * ------------------------- */
+ * ---------------------- */
 const CheckInSchema = z
     .object({
         relapsed: z.boolean(),
-        date: z.string().trim().optional(), // optional YYYY-MM-DD
+        date: z.string().optional(),
         note: z.string().trim().max(500).optional(),
     })
     .strict();
 
-const GetDailySchema = z
-    .object({
-        days: z.coerce.number().min(1).max(365).optional(),
-    })
-    .strict();
+/** -----------------------
+ * GET /api/progress/daily?limit=60
+ * ---------------------- */
+export const getDaily = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const userId = req.auth?.userId;
+    if (!userId) return res.status(401).json({ ok: false, error: "Unauthorized" });
 
-/** -------------------------
- * Controllers
- * ------------------------- */
+    const limitRaw = req.query.limit;
+    const limitNum = typeof limitRaw === "string" ? Number(limitRaw) : 60;
+    const limit = Number.isFinite(limitNum) ? Math.min(Math.max(1, limitNum), 365) : 60;
 
-// POST /api/progress/daily/checkin
-export async function postDailyCheckIn(req: AuthRequest, res: Response) {
-    const userIdRaw = req.auth?.userId;
-    if (!userIdRaw) return res.status(401).json({ ok: false, error: "Unauthorized" });
+    const items = await DailyCheckIn.find({ userId })
+        .sort({ day: -1 })
+        .limit(limit)
+        .lean();
 
-    const parsed = CheckInSchema.safeParse(req.body ?? {});
+    return res.json({ ok: true, items });
+});
+
+/** -----------------------
+ * POST /api/progress/daily/checkin
+ * body: { relapsed: boolean, date?: string, note?: string }
+ * ---------------------- */
+export const checkInDaily = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const userId = req.auth?.userId;
+    if (!userId) return res.status(401).json({ ok: false, error: "Unauthorized" });
+
+    const parsed = CheckInSchema.safeParse(req.body);
     if (!parsed.success) {
         return res.status(400).json({ ok: false, error: "ValidationError", issues: parsed.error.flatten() });
     }
 
-    const userId = new mongoose.Types.ObjectId(userIdRaw);
+    const { relapsed, date, note } = parsed.data;
+    const day = dayKeyFromInput(date);
 
-    const day =
-        parsed.data.date && isDayKey(parsed.data.date) ? parsed.data.date : todayKey();
-
-    const update = {
-        userId,
-        day,
-        relapsed: parsed.data.relapsed,
-        note: parsed.data.note,
-    };
-
-    const saved = await DailyCheckIn.findOneAndUpdate(
+    // upsert so the user can re-checkin/update the same day
+    const entry = await DailyCheckIn.findOneAndUpdate(
         { userId, day },
-        { $set: update },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
+        { $set: { relapsed, ...(note ? { note } : {}) } },
+        { new: true, upsert: true }
     ).lean();
 
-    return res.json({ ok: true, entry: saved });
-}
+    return res.status(201).json({ ok: true, entry });
+});
 
-// GET /api/progress/daily?days=30
-export async function getDailyEntries(req: AuthRequest, res: Response) {
-    const userIdRaw = req.auth?.userId;
-    if (!userIdRaw) return res.status(401).json({ ok: false, error: "Unauthorized" });
+/** -----------------------
+ * GET /api/progress/daily/summary
+ * returns:
+ *  currentStreak, previousStreak, longestStreak, relapseCount, lastEntryDate, lastRelapseDate, last14
+ * ---------------------- */
+export const getDailySummary = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const userId = req.auth?.userId;
+    if (!userId) return res.status(401).json({ ok: false, error: "Unauthorized" });
 
-    const parsed = GetDailySchema.safeParse(req.query ?? {});
-    if (!parsed.success) {
-        return res.status(400).json({ ok: false, error: "ValidationError", issues: parsed.error.flatten() });
-    }
+    // Pull enough history to compute streaks accurately
+    const all = await DailyCheckIn.find({ userId }).sort({ day: 1 }).lean();
 
-    const days = parsed.data.days ?? 30;
-    const userId = new mongoose.Types.ObjectId(userIdRaw);
-
-    const entries = await DailyCheckIn.find({ userId })
-        .sort({ day: -1 })
-        .limit(days)
-        .lean();
-
-    // return chronological (oldest -> newest) for UI consistency
-    entries.reverse();
-
-    return res.json({ ok: true, entries });
-}
-
-// GET /api/progress/daily/summary
-export async function getDailySummary(req: AuthRequest, res: Response) {
-    const userIdRaw = req.auth?.userId;
-    if (!userIdRaw) return res.status(401).json({ ok: false, error: "Unauthorized" });
-
-    const userId = new mongoose.Types.ObjectId(userIdRaw);
-
-    // Load enough history for streak + longest streak
-    const entries = await DailyCheckIn.find({ userId })
-        .sort({ day: 1 }) // chronological
-        .lean();
-
-    if (!entries.length) {
+    if (!all.length) {
         return res.json({
-            ok: true,
             currentStreak: 0,
             previousStreak: 0,
             longestStreak: 0,
@@ -145,80 +117,59 @@ export async function getDailySummary(req: AuthRequest, res: Response) {
         });
     }
 
-    // Map by day for quick lookup
-    const byDay = new Map<string, { day: string; relapsed: boolean }>();
-    for (const e of entries) {
-        if (typeof e.day === "string") byDay.set(e.day, { day: e.day, relapsed: !!e.relapsed });
-    }
+    const lastEntry = all[all.length - 1];
+    const lastEntryDate = lastEntry.day;
 
-    const lastEntry = entries[entries.length - 1];
-    const lastEntryDate = lastEntry.day ?? null;
+    const relapseCount = all.reduce((acc, x) => acc + (x.relapsed ? 1 : 0), 0);
+    const lastRelapse = [...all].reverse().find((x) => x.relapsed);
+    const lastRelapseDate = lastRelapse ? lastRelapse.day : null;
 
-    const relapseCount = entries.reduce((acc, e) => acc + (e.relapsed ? 1 : 0), 0);
-    const lastRelapse = [...entries].reverse().find((e) => e.relapsed);
-    const lastRelapseDate = lastRelapse?.day ?? null;
-
-    // Longest streak: consecutive *checked-in* sober days
+    // Compute streak runs (missing day breaks streak)
     let longestStreak = 0;
-    let running = 0;
-    for (let i = 0; i < entries.length; i++) {
-        const e = entries[i];
-        if (e.relapsed) {
-            running = 0;
+    let currentRun = 0;
+
+    // Store run lengths ending at each index to derive previous streak
+    const runEnd: number[] = new Array(all.length).fill(0);
+
+    for (let i = 0; i < all.length; i++) {
+        const cur = all[i];
+        const prev = i > 0 ? all[i - 1] : null;
+
+        const isConsecutive = prev ? diffDays(prev.day, cur.day) === 1 : true;
+
+        if (cur.relapsed) {
+            currentRun = 0;
+            runEnd[i] = 0;
             continue;
         }
 
-        // consecutive day check (requires no gap)
-        if (i === 0) {
-            running = 1;
+        if (!prev || !isConsecutive || prev.relapsed) {
+            currentRun = 1;
         } else {
-            const prevDay = entries[i - 1].day;
-            const expected = prevDay ? addDaysUTC(prevDay, 1) : null;
-            if (expected && e.day === expected && !entries[i - 1].relapsed) {
-                running += 1;
-            } else {
-                running = 1;
-            }
+            currentRun += 1;
         }
-        if (running > longestStreak) longestStreak = running;
+
+        runEnd[i] = currentRun;
+        if (currentRun > longestStreak) longestStreak = currentRun;
     }
 
-    // Current streak: count backwards from latest entry if latest is sober
-    let currentStreak = 0;
-    if (lastEntryDate && !lastEntry.relapsed) {
-        let cursor = lastEntryDate;
-        while (true) {
-            const row = byDay.get(cursor);
-            if (!row || row.relapsed) break;
-            currentStreak += 1;
-            const prev = addDaysUTC(cursor, -1);
-            if (!prev) break;
-            cursor = prev;
-        }
-    }
+    const latestRun = runEnd[all.length - 1];
+    const currentStreak = lastEntry.relapsed ? 0 : latestRun;
 
-    // Previous streak: streak immediately before the most recent relapse day
+    // previousStreak = streak run immediately before the last relapse entry (if any)
     let previousStreak = 0;
-    if (lastRelapseDate) {
-        const dayBefore = addDaysUTC(lastRelapseDate, -1);
-        if (dayBefore) {
-            let cursor = dayBefore;
-            while (true) {
-                const row = byDay.get(cursor);
-                if (!row || row.relapsed) break;
-                previousStreak += 1;
-                const prev = addDaysUTC(cursor, -1);
-                if (!prev) break;
-                cursor = prev;
-            }
-        }
+    if (lastRelapse) {
+        const idx = all.findIndex((x) => x.day === lastRelapse.day);
+        // look backwards for the run that ended before relapse day
+        if (idx > 0) previousStreak = runEnd[idx - 1] ?? 0;
+    } else {
+        // never relapsed -> previous = 0 (or could equal current)
+        previousStreak = 0;
     }
 
-    // last 14 entries (chronological)
-    const last14 = entries.slice(-14).map((e) => ({ day: e.day, relapsed: !!e.relapsed }));
+    const last14 = all.slice(-14).map((x) => ({ day: x.day, relapsed: !!x.relapsed }));
 
     return res.json({
-        ok: true,
         currentStreak,
         previousStreak,
         longestStreak,
@@ -227,4 +178,4 @@ export async function getDailySummary(req: AuthRequest, res: Response) {
         lastRelapseDate,
         last14,
     });
-}
+});
