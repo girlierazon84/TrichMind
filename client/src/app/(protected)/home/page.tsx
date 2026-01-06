@@ -37,17 +37,18 @@ export interface MeResponse {
 }
 
 /**-------------------------
-    Mobile-first styling
+    Modern mobile-first styling
 ----------------------------*/
 const Page = styled.main`
     width: 100%;
     min-height: 100dvh;
     padding: 14px 12px 110px;
-    background: linear-gradient(
-        180deg,
-        #e7f7f8 0%,
-        ${({ theme }) => theme.colors.page_bg || "#f4fbfc"} 280px
-    );
+
+    /* More modern: subtle radial glow + soft gradient */
+    background:
+        radial-gradient(900px 420px at 18% 8%, rgba(33, 178, 186, 0.16) 0%, rgba(33, 178, 186, 0) 60%),
+        radial-gradient(700px 360px at 78% 18%, rgba(120, 255, 190, 0.14) 0%, rgba(120, 255, 190, 0) 55%),
+        linear-gradient(180deg, #e7f7f8 0%, ${({ theme }) => theme.colors.page_bg || "#f4fbfc"} 360px);
 
     padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
 
@@ -59,7 +60,7 @@ const Page = styled.main`
 
 const Container = styled.div`
     width: 100%;
-    max-width: 980px;
+    max-width: 1020px;
     margin: 0 auto;
 `;
 
@@ -71,11 +72,12 @@ const TopBar = styled.header`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    gap: 12px;
 
     padding: 10px 4px 12px;
-    backdrop-filter: blur(10px);
-    background: rgba(244, 251, 252, 0.65);
+
+    backdrop-filter: blur(12px);
+    background: rgba(244, 251, 252, 0.62);
 
     border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 
@@ -83,6 +85,7 @@ const TopBar = styled.header`
         position: static;
         background: transparent;
         border-bottom: none;
+        backdrop-filter: none;
         padding: 6px 0 16px;
     }
 `;
@@ -91,6 +94,7 @@ const LogoWrap = styled.div`
     display: flex;
     align-items: center;
     gap: 10px;
+    min-width: 0;
 `;
 
 const Logo = styled(Image)`
@@ -106,13 +110,15 @@ const TitleStack = styled.div`
     display: flex;
     flex-direction: column;
     gap: 2px;
+    min-width: 0;
 `;
 
 const Hello = styled.h1`
     margin: 0;
     font-size: 1.05rem;
-    font-weight: 900;
+    font-weight: 950;
     color: ${({ theme }) => theme.colors.text_primary};
+    letter-spacing: -0.01em;
 
     @media (min-width: 768px) {
         font-size: 1.2rem;
@@ -123,7 +129,7 @@ const Meta = styled.p`
     margin: 0;
     font-size: 0.82rem;
     color: ${({ theme }) => theme.colors.text_secondary};
-    line-height: 1.3;
+    line-height: 1.35;
 `;
 
 const StatusRow = styled.div`
@@ -136,10 +142,10 @@ const StatusRow = styled.div`
 `;
 
 const StatusPill = styled.span<{ $variant?: "ok" | "warning" }>`
-    padding: 0.25rem 0.75rem;
+    padding: 0.28rem 0.75rem;
     border-radius: 999px;
     font-size: 0.74rem;
-    font-weight: 800;
+    font-weight: 900;
     letter-spacing: 0.02em;
     text-transform: uppercase;
 
@@ -233,6 +239,7 @@ const WelcomeTitle = styled.h2`
     font-size: 1.35rem;
     margin: 0 0 0.75rem;
     color: ${({ theme }) => theme.colors.primary};
+    font-weight: 950;
 `;
 
 const WelcomeBody = styled.p`
@@ -553,7 +560,6 @@ export default function HomePage() {
                         </Meta>
                     </StatusRow>
 
-                    {/* No extra wrapper “boxes” — components own their own surfaces */}
                     <Stack>
                         <TwoCol>
                             <RiskResultCard data={predictionData} quote={quote} compact={isMobile} />
