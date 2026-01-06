@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import styled, { keyframes, css } from "styled-components";
+import styled, { keyframes, css, useTheme } from "styled-components";
 import { fadeIn, scaleIn } from "@/styles";
 import { useSoberStreak } from "@/hooks";
 
@@ -62,6 +62,66 @@ const Minus = () => (
 );
 
 /**---------------
+    Helpers
+------------------*/
+function clamp01(n: number) {
+    return Math.max(0, Math.min(1, n));
+}
+
+/**
+ * Converts theme colors (hex/rgb/rgba) -> rgba with a given alpha.
+ * Safe fallback: returns original color if parsing fails.
+ */
+function withAlpha(color: string, alpha: number): string {
+    const a = clamp01(alpha);
+    const c = String(color || "").trim();
+
+    // rgba(r,g,b,a)
+    const rgba = c.match(/^rgba\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)$/i);
+    if (rgba) {
+        const r = Number(rgba[1]);
+        const g = Number(rgba[2]);
+        const b = Number(rgba[3]);
+        if ([r, g, b].every((x) => Number.isFinite(x))) return `rgba(${r}, ${g}, ${b}, ${a})`;
+        return c;
+    }
+
+    // rgb(r,g,b)
+    const rgb = c.match(/^rgb\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)$/i);
+    if (rgb) {
+        const r = Number(rgb[1]);
+        const g = Number(rgb[2]);
+        const b = Number(rgb[3]);
+        if ([r, g, b].every((x) => Number.isFinite(x))) return `rgba(${r}, ${g}, ${b}, ${a})`;
+        return c;
+    }
+
+    // #RGB / #RRGGBB
+    if (c.startsWith("#")) {
+        const hex = c.slice(1);
+        const isShort = hex.length === 3;
+        const isLong = hex.length === 6;
+        if (!isShort && !isLong) return c;
+
+        const full = isShort
+            ? hex
+                  .split("")
+                  .map((ch) => ch + ch)
+                  .join("")
+            : hex;
+
+        const r = parseInt(full.slice(0, 2), 16);
+        const g = parseInt(full.slice(2, 4), 16);
+        const b = parseInt(full.slice(4, 6), 16);
+
+        if ([r, g, b].some((x) => Number.isNaN(x))) return c;
+        return `rgba(${r}, ${g}, ${b}, ${a})`;
+    }
+
+    return c;
+}
+
+/**---------------
     Animations
 ------------------*/
 const softPulse = keyframes`
@@ -80,7 +140,7 @@ const shimmer = keyframes`
 /**--------------
     Styled UI
 -----------------*/
-const CardShell = styled.section<{ $risk: "low" | "medium" | "high" }>`
+const CardShell = styled.section`
     position: relative;
     width: 100%;
     overflow: hidden;
@@ -93,35 +153,27 @@ const CardShell = styled.section<{ $risk: "low" | "medium" | "high" }>`
     transform-style: preserve-3d;
     transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
 
-    ${({ theme, $risk }) => {
-        const border =
-            $risk === "low"
-                ? theme.colors.low_risk
-                : $risk === "medium"
-                    ? theme.colors.medium_risk
-                    : theme.colors.high_risk;
+    ${({ theme }) => css`
+        background: ${theme.colors.card_bg};
+        border: 1px solid ${theme.colors.primary}; /* ✅ requested */
+        backdrop-filter: blur(5px);
 
-        return css`
-            background: ${theme.colors.card_bg};
-            border: 1px solid ${border};
-            backdrop-filter: blur(5px);
-            /* ✅ match RiskResultCard shadow exactly */
-            box-shadow: 0 16px 40px #0d6275;
+        /* ✅ match RiskResultCard shadow exactly */
+        box-shadow: 0 16px 40px #0d6275;
 
-            &::after {
-                content: "";
-                position: absolute;
-                inset: 0;
-                border-radius: inherit;
-                background: linear-gradient(
-                    145deg,
-                    rgba(255, 255, 255, 0.22) 0%,
-                    rgba(255, 255, 255, 0) 50%
-                );
-                pointer-events: none;
-            }
-        `;
-    }}
+        &::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: linear-gradient(
+                145deg,
+                rgba(255, 255, 255, 0.22) 0%,
+                rgba(255, 255, 255, 0) 50%
+            );
+            pointer-events: none;
+        }
+    `}
 
     /* subtle animated highlight band */
     &::before {
@@ -259,14 +311,12 @@ const MiniHistory = styled.div`
     justify-items: center;
 `;
 
-const Dot = styled.div<{ $relapsed: boolean }>`
+const Dot = styled.div<{ $bg: string }>`
     width: 12px;
     height: 12px;
     border-radius: 999px;
 
-    background: ${({ $relapsed }) =>
-        $relapsed ? "rgba(255, 0, 40, 0.75)" : "rgba(33, 178, 186, 0.75)"};
-
+    background: ${({ $bg }) => $bg};
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.10);
     border: 1px solid rgba(0, 0, 0, 0.08);
 `;
@@ -350,19 +400,22 @@ export const DailyProgressCard: React.FC<Props> = ({
     caption = "Current streak",
     centerSubLabel = "Days",
 }) => {
-    const pct = Math.max(0, Math.min(1, score / max));
-    const risk: "low" | "medium" | "high" = pct >= 0.66 ? "low" : pct >= 0.33 ? "medium" : "high";
+    const theme = useTheme();
 
+    const pct = Math.max(0, Math.min(1, score / max));
     const isImprovement = score > prevScore;
     const isReset = prevScore > 0 && score === 0;
 
-    const trackColor = "rgba(33,178,186,0.18)";
-    const progressColor = "rgba(33,178,186,0.92)";
+    // ✅ Theme-driven ring colors
+    const trackColor = withAlpha(theme.colors.primary, 0.18);
+    const progressColor = theme.colors.primary;
+
+    // ✅ Theme-driven trend colors
     const trendColor = isImprovement
-        ? "rgba(38, 196, 133, 0.95)"
+        ? theme.colors.low_risk
         : isReset
-            ? "rgba(255, 0, 40, 0.95)"
-            : "rgba(0, 0, 0, 0.55)";
+            ? theme.colors.high_risk
+            : theme.colors.text_secondary;
 
     const [animScore, setAnimScore] = useState(0);
 
@@ -390,7 +443,7 @@ export const DailyProgressCard: React.FC<Props> = ({
     const ariaLabel = `${caption}: ${Math.round(animScore)} ${centerSubLabel}.`;
 
     return (
-        <CardShell $risk={risk} aria-label={ariaLabel}>
+        <CardShell aria-label={ariaLabel}>
             <RingWrap>
                 <svg width={size} height={size} role="img" aria-label={ariaLabel}>
                     <title>{ariaLabel}</title>
@@ -444,6 +497,7 @@ export const DailyProgressCard: React.FC<Props> = ({
 };
 
 export const DailyProgressCardAuto: React.FC = () => {
+    const theme = useTheme();
     const { data, loading, error, checkIn } = useSoberStreak();
     const [saving, setSaving] = useState<null | "sober" | "relapse">(null);
 
@@ -469,6 +523,10 @@ export const DailyProgressCardAuto: React.FC = () => {
             setSaving(null);
         }
     };
+
+    // ✅ Theme-driven dots
+    const soberDot = withAlpha(theme.colors.primary, 0.85);
+    const relapseDot = withAlpha(theme.colors.high_risk, 0.85);
 
     return (
         <div>
@@ -498,12 +556,12 @@ export const DailyProgressCardAuto: React.FC = () => {
                         {last14.map((d) => (
                             <Dot
                                 key={d.day}
-                                $relapsed={!!d.relapsed}
+                                $bg={d.relapsed ? relapseDot : soberDot}
                                 title={`${d.day} • ${d.relapsed ? "Relapse" : "Sober"}`}
                             />
                         ))}
                     </MiniHistory>
-                    <DotLegend>Last 14 days: teal = sober, red = relapse.</DotLegend>
+                    <DotLegend>Last 14 days: primary = sober, high risk = relapse.</DotLegend>
                 </>
             )}
 
