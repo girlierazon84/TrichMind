@@ -21,8 +21,11 @@ const resolveFromAddress = () => {
 
 // Check if SMTP is properly configured
 const isEmailConfigured = () => {
-    // If SMTP_USER is empty, we treat mail as "disabled" (safe for Render/dev)
-    return Boolean(ENV.SMTP_USER?.trim()) && Boolean(ENV.SMTP_PASS?.trim());
+    return (
+        Boolean(ENV.SMTP_HOST?.trim()) &&
+        Boolean(ENV.SMTP_USER?.trim()) &&
+        Boolean(ENV.SMTP_PASS?.trim())
+    );
 };
 
 // Parse SMTP port, default to 587 if invalid
@@ -41,15 +44,26 @@ export const mailer = nodemailer.createTransport({
             pass: ENV.SMTP_PASS,
         }
         : undefined,
+
+    // ✅ prevent long hangs on hosts that block outbound SMTP (Render often does)
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
 });
 
 /**----------------------------------------------------------
     Optional: verify connection on startup (non-blocking)
 -------------------------------------------------------------*/
 export const verifyMailer = async () => {
+    // ✅ don’t verify in production unless explicitly enabled
+    if (!ENV.SMTP_VERIFY_ON_STARTUP) {
+        logger.info("📭 SMTP verify skipped (SMTP_VERIFY_ON_STARTUP=false)");
+        return { ok: false as const, skipped: true as const };
+    }
+
     if (!isEmailConfigured()) {
-        logger.warn("📭 SMTP not configured (SMTP_USER/SMTP_PASS missing) — email sending disabled.");
-        return { ok: false, reason: "smtp_not_configured" as const };
+        logger.warn("📭 SMTP not configured — email sending disabled.");
+        return { ok: false as const, reason: "smtp_not_configured" as const };
     }
 
     // Verify connection
@@ -58,10 +72,11 @@ export const verifyMailer = async () => {
         logger.info("✅ SMTP transporter verified");
         return { ok: true as const };
     } catch (err) {
-        logger.error("❌ SMTP transporter verify failed", {
+        // ✅ non-fatal + warn (not error)
+        logger.warn("📭 SMTP transporter verify failed (non-fatal)", {
             error: (err as Error)?.message ?? String(err),
         });
-        return { ok: false, reason: "smtp_verify_failed" as const };
+        return { ok: false as const, reason: "smtp_verify_failed" as const };
     }
 };
 
