@@ -14,6 +14,7 @@ import trichBotRoutes from "./trichBotRoutes";
 import trichGameRoutes from "./gameRoutes";
 import triggersInsightsRoutes from "./triggersInsightsRoutes";
 import userRoutes from "./userRoutes";
+import dailyProgressRoutes from "./dailyProgressRoutes";
 
 
 // Initialize the main router
@@ -36,6 +37,8 @@ router.use("/trichbot", trichBotRoutes);   // NEW: /api/trichbot
 router.use("/game", trichGameRoutes);
 router.use("/triggers", triggersInsightsRoutes);
 router.use("/users", userRoutes);          // NEW: /api/users/profile etc.
+
+router.use("/daily-progress", dailyProgressRoutes); // NEW: /api/daily-progress/...
 
 /**-----------------------------------------------------------
     🧩 Legacy aliases (so older client paths don’t break)
