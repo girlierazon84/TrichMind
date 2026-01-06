@@ -12,3 +12,4 @@ export * from "./triggersInsightsController";
 export * from "./getRiskTrendController";
 export * from "./relapseOverviewController";
 export * from "./userProfile.controller";
+export * from "./dailyProgressController";
