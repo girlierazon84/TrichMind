@@ -61,6 +61,40 @@ const Minus = () => (
     </svg>
 );
 
+const CheckIcon = () => (
+    <svg
+        width={18}
+        height={18}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+    >
+        <path d="M20 6 9 17l-5-5" />
+    </svg>
+);
+
+const AlertIcon = () => (
+    <svg
+        width={18}
+        height={18}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+    >
+        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+        <path d="M12 9v4" />
+        <path d="M12 17h.01" />
+    </svg>
+);
+
 /**---------------
     Helpers
 ------------------*/
@@ -76,7 +110,6 @@ function withAlpha(color: string, alpha: number): string {
     const a = clamp01(alpha);
     const c = String(color || "").trim();
 
-    // rgba(r,g,b,a)
     const rgba = c.match(/^rgba\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)$/i);
     if (rgba) {
         const r = Number(rgba[1]);
@@ -86,7 +119,6 @@ function withAlpha(color: string, alpha: number): string {
         return c;
     }
 
-    // rgb(r,g,b)
     const rgb = c.match(/^rgb\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)$/i);
     if (rgb) {
         const r = Number(rgb[1]);
@@ -96,7 +128,6 @@ function withAlpha(color: string, alpha: number): string {
         return c;
     }
 
-    // #RGB / #RRGGBB
     if (c.startsWith("#")) {
         const hex = c.slice(1);
         const isShort = hex.length === 3;
@@ -125,9 +156,9 @@ function withAlpha(color: string, alpha: number): string {
     Animations
 ------------------*/
 const softPulse = keyframes`
-    0%   { transform: translateY(0); opacity: 0.8; }
+    0%   { transform: translateY(0); opacity: 0.82; }
     50%  { transform: translateY(-2px); opacity: 1; }
-    100% { transform: translateY(0); opacity: 0.9; }
+    100% { transform: translateY(0); opacity: 0.92; }
 `;
 
 const shimmer = keyframes`
@@ -135,6 +166,11 @@ const shimmer = keyframes`
     25%  { opacity: 0.18; }
     70%  { opacity: 0.14; }
     100% { transform: translateX(130%) rotate(8deg); opacity: 0; }
+`;
+
+const spin = keyframes`
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 `;
 
 /**--------------
@@ -155,7 +191,7 @@ const CardShell = styled.section`
 
     ${({ theme }) => css`
         background: ${theme.colors.card_bg};
-        border: 1px solid ${theme.colors.primary}; /* ✅ requested */
+        border: 1px solid ${theme.colors.primary};
         backdrop-filter: blur(5px);
 
         /* ✅ match RiskResultCard shadow exactly */
@@ -175,7 +211,6 @@ const CardShell = styled.section`
         }
     `}
 
-    /* subtle animated highlight band */
     &::before {
         content: "";
         position: absolute;
@@ -223,17 +258,17 @@ const ProgressLabelContainer = styled.div`
 `;
 
 const ProgressLabel = styled.div`
-    font-size: 1.7rem;
-    font-weight: 950;
-    letter-spacing: -0.02em;
+    font-size: 1.75rem;
+    font-weight: 980;
+    letter-spacing: -0.03em;
     color: ${({ theme }) => theme.colors.text_primary};
 `;
 
 const ProgressSub = styled.div`
     margin-top: -2px;
     font-size: 0.9rem;
-    font-weight: 800;
-    opacity: 0.85;
+    font-weight: 850;
+    letter-spacing: 0.01em;
     color: ${({ theme }) => theme.colors.text_secondary};
 `;
 
@@ -248,7 +283,7 @@ const Trend = styled.div<{ $color: string; $highlight: boolean }>`
     color: ${({ $color }) => $color};
     font-weight: 950;
 
-    padding: 0.3rem 0.55rem;
+    padding: 0.32rem 0.6rem;
     border-radius: 999px;
     background: rgba(0, 0, 0, 0.04);
     border: 1px solid rgba(0, 0, 0, 0.06);
@@ -262,16 +297,26 @@ const Trend = styled.div<{ $color: string; $highlight: boolean }>`
 
 const Caption = styled.div`
     margin-top: 0.95rem;
-    font-size: 1.02rem;
-    font-weight: 950;
+    font-size: 1.04rem;
+    font-weight: 980;
+    letter-spacing: -0.01em;
     color: ${({ theme }) => theme.colors.text_primary};
 `;
 
 const SubMsg = styled.div`
-    margin-top: 0.25rem;
+    margin-top: 0.3rem;
     font-size: 0.92rem;
     font-weight: 650;
+    line-height: 1.35;
     color: ${({ theme }) => theme.colors.text_secondary};
+`;
+
+const SupportLine = styled.div`
+    margin-top: 0.55rem;
+    font-size: 0.82rem;
+    font-weight: 650;
+    color: ${({ theme }) => theme.colors.text_secondary};
+    opacity: 0.9;
 `;
 
 const MetaRow = styled.div`
@@ -283,7 +328,7 @@ const MetaRow = styled.div`
 `;
 
 const MetaPill = styled.div`
-    padding: 0.4rem 0.7rem;
+    padding: 0.42rem 0.75rem;
     border-radius: 999px;
     font-size: 0.82rem;
     font-weight: 900;
@@ -317,7 +362,7 @@ const Dot = styled.div<{ $bg: string }>`
     border-radius: 999px;
 
     background: ${({ $bg }) => $bg};
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.10);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(0, 0, 0, 0.08);
 `;
 
@@ -337,48 +382,64 @@ const Actions = styled.div`
     max-width: 460px;
     margin-left: auto;
     margin-right: auto;
+
+    @media (min-width: 520px) {
+        gap: 12px;
+    }
 `;
 
-const ActionBtn = styled.button<{ $tone: "good" | "bad" }>`
+const ActionBtn = styled.button<{ $tone: "good" | "bad"; $accent: string }>`
     border: none;
     cursor: pointer;
     border-radius: 16px;
-    padding: 0.78rem 0.85rem;
+    padding: 0.86rem 0.95rem;
     font-weight: 950;
     letter-spacing: 0.01em;
 
-    background: ${({ $tone }) =>
-        $tone === "good"
-            ? "rgba(120, 255, 190, 0.22)"
-            : "rgba(255, 173, 120, 0.22)"};
-
-    border: 1px solid ${({ $tone }) =>
-        $tone === "good"
-            ? "rgba(120, 255, 190, 0.5)"
-            : "rgba(255, 173, 120, 0.5)"};
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
 
     color: ${({ theme }) => theme.colors.text_primary};
 
-    transition: transform 0.15s ease-out, filter 0.15s ease-out;
+    background: ${({ $accent }) => `linear-gradient(180deg, ${withAlpha($accent, 0.18)} 0%, ${withAlpha($accent, 0.10)} 100%)`};
+    border: 1px solid ${({ $accent }) => withAlpha($accent, 0.32)};
+
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.08);
+    transition: transform 0.14s ease-out, filter 0.14s ease-out, box-shadow 0.18s ease-out;
 
     &:hover {
         transform: translateY(-1px);
-        filter: brightness(1.02);
+        filter: brightness(1.03);
+        box-shadow: 0 16px 34px rgba(0, 0, 0, 0.10);
     }
 
     &:active {
         transform: translateY(0);
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
     }
 
     &:disabled {
-        opacity: 0.65;
+        opacity: 0.62;
         cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
     }
 
     &:focus-visible {
-        outline: 2px solid rgba(0, 0, 0, 0.22);
+        outline: 2px solid ${({ theme }) => theme.colors.primary};
         outline-offset: 2px;
     }
+`;
+
+const Spinner = styled.span`
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    border: 2px solid rgba(0, 0, 0, 0.18);
+    border-top-color: rgba(0, 0, 0, 0.58);
+    animation: ${spin} 0.9s linear infinite;
 `;
 
 type Props = {
@@ -406,11 +467,9 @@ export const DailyProgressCard: React.FC<Props> = ({
     const isImprovement = score > prevScore;
     const isReset = prevScore > 0 && score === 0;
 
-    // ✅ Theme-driven ring colors
     const trackColor = withAlpha(theme.colors.primary, 0.18);
     const progressColor = theme.colors.primary;
 
-    // ✅ Theme-driven trend colors
     const trendColor = isImprovement
         ? theme.colors.low_risk
         : isReset
@@ -440,6 +499,7 @@ export const DailyProgressCard: React.FC<Props> = ({
     const circ = 2 * Math.PI * r;
     const dash = circ * pct;
 
+    const delta = Math.abs(score - prevScore);
     const ariaLabel = `${caption}: ${Math.round(animScore)} ${centerSubLabel}.`;
 
     return (
@@ -480,11 +540,12 @@ export const DailyProgressCard: React.FC<Props> = ({
 
                 <Trend $color={trendColor} $highlight={isImprovement} aria-label="Trend indicator">
                     {isImprovement ? <ArrowUp /> : isReset ? <ArrowDown /> : <Minus />}
-                    {Math.abs(score - prevScore)}
+                    {delta}
                 </Trend>
             </RingWrap>
 
             <Caption>{caption}</Caption>
+
             <SubMsg>
                 {isReset
                     ? "Relapse day logged — your progress is still saved below."
@@ -492,6 +553,14 @@ export const DailyProgressCard: React.FC<Props> = ({
                         ? "Nice — keep going."
                         : "Stay steady."}
             </SubMsg>
+
+            <SupportLine>
+                {isImprovement
+                    ? "Small wins add up. Keep it gentle."
+                    : isReset
+                        ? "One day doesn’t erase your progress."
+                        : "Consistency is progress, even on quiet days."}
+            </SupportLine>
         </CardShell>
     );
 };
@@ -524,9 +593,11 @@ export const DailyProgressCardAuto: React.FC = () => {
         }
     };
 
-    // ✅ Theme-driven dots
     const soberDot = withAlpha(theme.colors.primary, 0.85);
     const relapseDot = withAlpha(theme.colors.high_risk, 0.85);
+
+    const goodAccent = theme.colors.low_risk || theme.colors.primary;
+    const badAccent = theme.colors.high_risk;
 
     return (
         <div>
@@ -569,19 +640,41 @@ export const DailyProgressCardAuto: React.FC = () => {
                 <ActionBtn
                     type="button"
                     $tone="good"
+                    $accent={goodAccent}
                     onClick={() => void handleCheckIn(false)}
                     disabled={saving !== null}
                 >
-                    {saving === "sober" ? "Saving…" : "No pulling today"}
+                    {saving === "sober" ? (
+                        <>
+                            <Spinner aria-hidden="true" />
+                            Saving…
+                        </>
+                    ) : (
+                        <>
+                            <CheckIcon />
+                            No pulling today
+                        </>
+                    )}
                 </ActionBtn>
 
                 <ActionBtn
                     type="button"
                     $tone="bad"
+                    $accent={badAccent}
                     onClick={() => void handleCheckIn(true)}
                     disabled={saving !== null}
                 >
-                    {saving === "relapse" ? "Saving…" : "I pulled today"}
+                    {saving === "relapse" ? (
+                        <>
+                            <Spinner aria-hidden="true" />
+                            Saving…
+                        </>
+                    ) : (
+                        <>
+                            <AlertIcon />
+                            I pulled today
+                        </>
+                    )}
                 </ActionBtn>
             </Actions>
         </div>
