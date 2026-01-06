@@ -167,6 +167,11 @@ app.use("/api/games", requireMongo, trichGameRoutes);
 app.use("/api/triggers", requireMongo, triggersInsightsRoutes);
 app.use("/api/users", requireMongo, userRoutes);
 app.use("/api/overview", requireMongo, relapseOverviewRoutes);
+
+// ✅ FIX: client calls /api/progress/...
+app.use("/api/progress", requireMongo, dailyProgressRoutes);
+
+// ✅ Optional: keep old path working too (safe alias)
 app.use("/api/daily-progress", requireMongo, dailyProgressRoutes);
 
 // ✅ If /api/ml uses Mongo, keep guarded; if it calls an external ML service only, remove requireMongo.
