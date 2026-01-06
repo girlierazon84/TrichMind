@@ -14,24 +14,77 @@ export interface CopingStrategiesCardProps {
     onToggle?: (name: string, bucket: "worked" | "notWorked") => void;
 }
 
-/**-------------------------------------
+/**---------------
     Animations
-----------------------------------------*/
+------------------*/
 const cardEnter = keyframes`
-  from { opacity: 0; transform: translateY(12px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 `;
 
 const shimmer = keyframes`
-  0%   { transform: translateX(-30%) rotate(8deg); opacity: 0; }
-  25%  { opacity: 0.16; }
-  70%  { opacity: 0.12; }
-  100% { transform: translateX(130%) rotate(8deg); opacity: 0; }
+    0%   { transform: translateX(-30%) rotate(8deg); opacity: 0; }
+    25%  { opacity: 0.16; }
+    70%  { opacity: 0.12; }
+    100% { transform: translateX(130%) rotate(8deg); opacity: 0; }
 `;
 
-/**-------------------------------------
+/**------------
+    Helpers
+---------------*/
+function clamp01(n: number) {
+    return Math.max(0, Math.min(1, n));
+}
+
+function withAlpha(color: string, alpha: number): string {
+    const a = clamp01(alpha);
+    const c = String(color || "").trim();
+
+    const rgba = c.match(/^rgba\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)$/i);
+    if (rgba) {
+        const r = Number(rgba[1]);
+        const g = Number(rgba[2]);
+        const b = Number(rgba[3]);
+        if ([r, g, b].every((x) => Number.isFinite(x))) return `rgba(${r}, ${g}, ${b}, ${a})`;
+        return c;
+    }
+
+    const rgb = c.match(/^rgb\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)$/i);
+    if (rgb) {
+        const r = Number(rgb[1]);
+        const g = Number(rgb[2]);
+        const b = Number(rgb[3]);
+        if ([r, g, b].every((x) => Number.isFinite(x))) return `rgba(${r}, ${g}, ${b}, ${a})`;
+        return c;
+    }
+
+    if (c.startsWith("#")) {
+        const hex = c.slice(1);
+        const isShort = hex.length === 3;
+        const isLong = hex.length === 6;
+        if (!isShort && !isLong) return c;
+
+        const full = isShort
+            ? hex
+                .split("")
+                .map((ch) => ch + ch)
+                .join("")
+            : hex;
+
+        const r = parseInt(full.slice(0, 2), 16);
+        const g = parseInt(full.slice(2, 4), 16);
+        const b = parseInt(full.slice(4, 6), 16);
+
+        if ([r, g, b].some((x) => Number.isNaN(x))) return c;
+        return `rgba(${r}, ${g}, ${b}, ${a})`;
+    }
+
+    return c;
+}
+
+/**----------------------
     Styled components
-----------------------------------------*/
+-------------------------*/
 const Card = styled.section`
     position: relative;
     width: 100%;
@@ -42,14 +95,14 @@ const Card = styled.section`
     padding: ${({ theme }) => theme.spacing(4)};
     overflow: hidden;
 
+    /* ✅ align with RiskResultCard look */
     background: ${({ theme }) => theme.colors.card_bg};
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    backdrop-filter: blur(6px);
+    border: 1px solid ${({ theme }) => theme.colors.primary};
+    backdrop-filter: blur(5px);
+    box-shadow: 0 16px 40px #0d6275;
 
     animation: ${cardEnter} 0.45s ease-out;
     transition: transform 0.18s ease-out, box-shadow 0.22s ease-out;
-
-    box-shadow: 0 16px 40px rgba(13, 98, 117, 0.22);
 
     &::after {
         content: "";
@@ -82,8 +135,7 @@ const Card = styled.section`
     }
 
     &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 20px 52px rgba(13, 98, 117, 0.26);
+        transform: translateY(-2px) scale(1.01);
     }
 `;
 
@@ -126,18 +178,17 @@ const PillButton = styled.button<{ $type: "worked" | "notWorked" }>`
     align-items: center;
     gap: 0.5rem;
 
-    backdrop-filter: blur(6px);
     transition: transform 0.15s ease-out, filter 0.15s ease-out, box-shadow 0.18s ease-out;
 
-    ${({ $type }) => {
-        const baseBg = $type === "worked" ? "rgba(33, 178, 186, 0.14)" : "rgba(231, 76, 60, 0.14)";
-        const baseBorder = $type === "worked" ? "rgba(33, 178, 186, 0.30)" : "rgba(231, 76, 60, 0.30)";
-        const baseText = $type === "worked" ? "rgba(0,0,0,0.76)" : "rgba(0,0,0,0.76)";
+    ${({ theme, $type }) => {
+        const accent = $type === "worked" ? theme.colors.primary : theme.colors.high_risk;
+        const bg = withAlpha(accent, 0.14);
+        const border = withAlpha(accent, 0.28);
 
         return css`
-            background: ${baseBg};
-            border: 1px solid ${baseBorder};
-            color: ${baseText};
+            background: ${bg};
+            border: 1px solid ${border};
+            color: ${theme.colors.text_primary};
         `;
     }}
 
@@ -153,7 +204,7 @@ const PillButton = styled.button<{ $type: "worked" | "notWorked" }>`
     }
 
     &:focus-visible {
-        outline: 2px solid rgba(0, 0, 0, 0.22);
+        outline: 2px solid ${({ theme }) => theme.colors.primary};
         outline-offset: 2px;
     }
 `;
