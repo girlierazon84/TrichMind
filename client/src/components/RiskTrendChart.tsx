@@ -21,13 +21,15 @@ import { InsightsIcon } from "@/assets/icons";
     Animations
 ------------------*/
 const enter = keyframes`
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(12px) scale(0.985); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 `;
 
-const slideUp = keyframes`
-    from { opacity: 0; transform: translateY(12px) scale(0.98); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
+const shimmer = keyframes`
+  0%   { transform: translateX(-30%) rotate(8deg); opacity: 0; }
+  25%  { opacity: 0.16; }
+  70%  { opacity: 0.12; }
+  100% { transform: translateX(130%) rotate(8deg); opacity: 0; }
 `;
 
 export interface HistoryPoint {
@@ -54,16 +56,58 @@ type CustomTooltipProps = {
 };
 
 /**--------------------
-    Mobile-first UI
+    Modern card UI
 -----------------------*/
 const Card = styled.section`
+    position: relative;
     width: 100%;
+    overflow: hidden;
+
     background: ${({ theme }) => theme.colors.card_bg};
     border-radius: ${({ theme }) => theme.radius.lg};
     padding: 14px;
-    box-shadow: ${({ theme }) => theme.colors.card_shadow};
+
     border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 16px 40px rgba(13, 98, 117, 0.22);
+    backdrop-filter: blur(6px);
+
     animation: ${enter} 0.45s ease-out;
+    transition: transform 0.18s ease-out, box-shadow 0.22s ease-out;
+
+    &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: linear-gradient(
+            145deg,
+            rgba(255, 255, 255, 0.18) 0%,
+            rgba(255, 255, 255, 0.04) 35%,
+            rgba(255, 255, 255, 0) 70%
+        );
+        pointer-events: none;
+    }
+
+    &::before {
+        content: "";
+        position: absolute;
+        inset: -30% -40%;
+        background: linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.38) 50%,
+            rgba(255, 255, 255, 0) 100%
+        );
+        filter: blur(10px);
+        opacity: 0;
+        animation: ${shimmer} 6.2s ease-in-out infinite;
+        pointer-events: none;
+    }
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 20px 52px rgba(13, 98, 117, 0.26);
+    }
 
     @media (min-width: 768px) {
         padding: 16px;
@@ -88,6 +132,7 @@ const IconWrap = styled.div`
     display: grid;
     place-items: center;
     background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.06);
 `;
 
 const TitleBlock = styled.div`
@@ -100,7 +145,7 @@ const TitleBlock = styled.div`
 const Title = styled.h3`
     margin: 0;
     font-size: 0.95rem;
-    font-weight: 850;
+    font-weight: 950;
     color: ${({ theme }) => theme.colors.text_primary};
     letter-spacing: 0.01em;
 `;
@@ -112,7 +157,7 @@ const Sub = styled.p`
 
     strong {
         color: ${({ theme }) => theme.colors.text_primary};
-        font-weight: 850;
+        font-weight: 950;
     }
 `;
 
@@ -139,14 +184,14 @@ const StatLabel = styled.div`
     color: ${({ theme }) => theme.colors.text_secondary};
     letter-spacing: 0.02em;
     text-transform: uppercase;
-    font-weight: 800;
+    font-weight: 850;
 `;
 
 const StatValue = styled.div`
     margin-top: 4px;
     font-size: 1.02rem;
     color: ${({ theme }) => theme.colors.text_primary};
-    font-weight: 900;
+    font-weight: 950;
     display: flex;
     align-items: baseline;
     gap: 6px;
@@ -156,7 +201,7 @@ const DeltaPill = styled.span<{ $dir: "up" | "down" | "flat" }>`
     padding: 3px 8px;
     border-radius: 999px;
     font-size: 0.75rem;
-    font-weight: 900;
+    font-weight: 950;
     letter-spacing: 0.01em;
     border: 1px solid rgba(0, 0, 0, 0.06);
 
@@ -199,7 +244,7 @@ const CenterMessage = styled.p`
 
 const ErrorText = styled(CenterMessage)`
     color: ${({ theme }) => theme.colors.high_risk};
-    font-weight: 650;
+    font-weight: 700;
 `;
 
 const Hint = styled.div`
@@ -209,80 +254,6 @@ const Hint = styled.div`
     text-align: center;
 `;
 
-/**-------------------------
-    Pinned panel + badge
-----------------------------*/
-const PinnedPanel = styled.div`
-    margin-top: 10px;
-    border-radius: 16px;
-    padding: 12px 12px;
-    background: rgba(0, 0, 0, 0.03);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    animation: ${slideUp} 0.28s ease-out;
-`;
-
-const PinnedTopRow = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 10px;
-`;
-
-const PinnedBadge = styled.span`
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-size: 0.72rem;
-    font-weight: 950;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    background: rgba(0, 0, 0, 0.06);
-    color: ${({ theme }) => theme.colors.text_primary};
-    border: 1px solid rgba(0, 0, 0, 0.08);
-`;
-
-const PinnedRow = styled.div`
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    align-items: baseline;
-`;
-
-const PinnedLabel = styled.div`
-    font-size: 0.8rem;
-    color: ${({ theme }) => theme.colors.text_secondary};
-`;
-
-const PinnedValue = styled.div`
-    font-size: 1.05rem;
-    font-weight: 950;
-    color: ${({ theme }) => theme.colors.text_primary};
-`;
-
-const ClearPin = styled.button`
-    margin-top: 10px;
-    width: 100%;
-    border: none;
-    border-radius: 14px;
-    padding: 10px 12px;
-    cursor: pointer;
-    background: rgba(0, 0, 0, 0.04);
-    color: ${({ theme }) => theme.colors.text_primary};
-    font-weight: 900;
-
-    &:hover {
-        background: rgba(0, 0, 0, 0.06);
-    }
-
-    &:focus-visible {
-        outline: 2px solid ${({ theme }) => theme.colors.primary};
-        outline-offset: 2px;
-    }
-`;
-
-/**-------------------------------
-    Tooltip (no inline styles)
-----------------------------------*/
 const Tip = styled.div`
     background: ${({ theme }) => theme.colors.card_bg};
     border-radius: 14px;
@@ -308,13 +279,13 @@ const TipRow = styled.div`
 const TipName = styled.span`
     font-size: 0.82rem;
     color: ${({ theme }) => theme.colors.text_primary};
-    font-weight: 750;
+    font-weight: 800;
 `;
 
 const TipValue = styled.span`
     font-size: 0.95rem;
     color: ${({ theme }) => theme.colors.text_primary};
-    font-weight: 900;
+    font-weight: 950;
 `;
 
 /**------------
@@ -377,8 +348,6 @@ function isChartClickState(x: unknown): x is ChartClickState {
 function CustomTooltip({ active, payload }: CustomTooltipProps) {
     if (!active || !payload?.length) return null;
 
-    // ✅ IMPORTANT: Use the real date from the hovered datapoint
-    // (Recharts label can be just an index when XAxis is hidden, which becomes "Jan 1, 2000")
     const pointDate = payload[0]?.payload?.date;
     const dateText = pointDate ? formatFullDate(String(pointDate)) : "—";
 
@@ -397,9 +366,6 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
     );
 }
 
-/**-------------------------------------
-    Component
---------------------------------------*/
 interface Props {
     history?: HistoryPoint[];
 }
@@ -436,49 +402,6 @@ export const RiskTrendChart: React.FC<Props> = ({ history }) => {
     }, [baseHistory]);
 
     const isMini = chartData.length <= 3;
-    const [pinned, setPinned] = useState<ChartRow | null>(null);
-
-    const onChartClick = useCallback(
-        (evt: unknown) => {
-            if (!isChartClickState(evt)) return;
-
-            const payloadRow = evt.activePayload?.[0]?.payload;
-            const label = evt.activeLabel != null ? normalizeDateKey(String(evt.activeLabel)) : null;
-
-            const next =
-                payloadRow ?? (label ? chartData.find((d) => d.date === label) ?? null : null);
-
-            if (!next) return;
-            setPinned((prev) => (prev?.date === next.date ? null : next));
-        },
-        [chartData]
-    );
-
-    const dotRenderer = useCallback(
-        (props: unknown) => {
-            if (!props || typeof props !== "object") return null;
-            const p = props as Record<string, unknown>;
-
-            const cx = typeof p.cx === "number" ? p.cx : null;
-            const cy = typeof p.cy === "number" ? p.cy : null;
-
-            const payload = (p.payload ?? null) as ChartRow | null;
-            if (cx === null || cy === null || !payload) return null;
-
-            const isPinned = pinned?.date === payload.date;
-
-            return (
-                <circle
-                    cx={cx}
-                    cy={cy}
-                    r={isPinned ? 5 : 2.6}
-                    fill={isPinned ? primary : textSecondary}
-                    opacity={isPinned ? 1 : 0.65}
-                />
-            );
-        },
-        [pinned, primary, textSecondary]
-    );
 
     if (!history && loading) return <CenterMessage>Loading your trend…</CenterMessage>;
     if (!history && error) return <ErrorText>⚠️ Couldn’t load your risk history.</ErrorText>;
@@ -552,11 +475,7 @@ export const RiskTrendChart: React.FC<Props> = ({ history }) => {
 
             <ChartArea $mini={isMini}>
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                        data={chartData}
-                        margin={{ top: 12, right: 10, left: isMini ? 0 : -10, bottom: 2 }}
-                        onClick={onChartClick}
-                    >
+                    <LineChart data={chartData} margin={{ top: 12, right: 10, left: isMini ? 0 : -10, bottom: 2 }}>
                         <defs>
                             <linearGradient id="riskGradient" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stopColor={theme.colors.high_risk} stopOpacity={0.9} />
@@ -597,7 +516,7 @@ export const RiskTrendChart: React.FC<Props> = ({ history }) => {
                             dataKey="risk_score"
                             stroke="url(#riskGradient)"
                             strokeWidth={isMini ? 3.2 : 3}
-                            dot={isMini ? false : dotRenderer}
+                            dot={isMini ? false : true}
                             activeDot={{ r: 4.2 }}
                             isAnimationActive={false}
                             name="Risk"
@@ -606,25 +525,7 @@ export const RiskTrendChart: React.FC<Props> = ({ history }) => {
                 </ResponsiveContainer>
             </ChartArea>
 
-            <Hint>Tip: tap the chart to pin a datapoint (mobile-friendly).</Hint>
-
-            {pinned && (
-                <PinnedPanel role="status" aria-live="polite">
-                    <PinnedTopRow>
-                        <PinnedBadge>Pinned</PinnedBadge>
-                        <PinnedLabel>{formatFullDate(pinned.date)}</PinnedLabel>
-                    </PinnedTopRow>
-
-                    <PinnedRow>
-                        <PinnedLabel>Risk</PinnedLabel>
-                        <PinnedValue>{pct(pinned.risk_score)}</PinnedValue>
-                    </PinnedRow>
-
-                    <ClearPin type="button" onClick={() => setPinned(null)}>
-                        Clear pinned point
-                    </ClearPin>
-                </PinnedPanel>
-            )}
+            <Hint>Tip: your risk trend updates after new check-ins.</Hint>
         </Card>
     );
 };
