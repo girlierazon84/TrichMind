@@ -13,6 +13,55 @@ import { BackIcon, UserIcon } from "@/assets/icons";
 import { toImgSrc } from "@/utils";
 
 
+/**-----------------
+    Avatar cache
+-------------------*/
+type AvatarCache = {
+    email: string;
+    avatarUrl: string;
+    updatedAt: number;
+};
+
+const AVATAR_CACHE_KEY = "tm_avatar_cache_v1";
+
+function safeGetAvatarCache(): AvatarCache | null {
+    if (typeof window === "undefined") return null;
+    try {
+        const raw = window.localStorage.getItem(AVATAR_CACHE_KEY);
+        if (!raw) return null;
+
+        const parsed: unknown = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object") return null;
+
+        const obj = parsed as Partial<AvatarCache>;
+        if (typeof obj.email !== "string") return null;
+        if (typeof obj.avatarUrl !== "string") return null;
+        if (typeof obj.updatedAt !== "number") return null;
+
+        return { email: obj.email, avatarUrl: obj.avatarUrl, updatedAt: obj.updatedAt };
+    } catch {
+        return null;
+    }
+}
+
+function safeSetAvatarCache(cache: AvatarCache) {
+    if (typeof window === "undefined") return;
+    try {
+        window.localStorage.setItem(AVATAR_CACHE_KEY, JSON.stringify(cache));
+    } catch {
+        // ignore
+    }
+}
+
+function safeClearAvatarCache() {
+    if (typeof window === "undefined") return;
+    try {
+        window.localStorage.removeItem(AVATAR_CACHE_KEY);
+    } catch {
+        // ignore
+    }
+}
+
 /**---------------
     Animations
 ------------------*/
@@ -258,13 +307,12 @@ const ActionsRow = styled.div`
     gap: 10px;
 `;
 
-const PrimarySaveButton = styled(ThemeButton) <{ $pulse?: boolean }>`
+const PrimarySaveButton = styled(ThemeButton)<{ $pulse?: boolean }>`
     ${({ $pulse }) =>
         $pulse &&
         css`
             animation: ${pulse} 1.6s ease-out infinite;
-        `
-    }
+        `}
 `;
 
 const SecondaryButton = styled(ThemeButton)`
@@ -280,11 +328,9 @@ const StatusText = styled.p<{ $tone?: "ok" | "warn" }>`
     line-height: 1.35;
 
     color: ${({ theme, $tone }) => ($tone === "ok" ? "#0a7a3a" : theme.colors.text_primary)};
-    background: ${({ $tone }) =>
-        $tone === "ok" ? "rgba(10,122,58,0.06)" : "rgba(0,0,0,0.03)"};
+    background: ${({ $tone }) => ($tone === "ok" ? "rgba(10,122,58,0.06)" : "rgba(0,0,0,0.03)")};
 
-    border: 1px solid
-        ${({ $tone }) => ($tone === "ok" ? "rgba(10,122,58,0.14)" : "rgba(0,0,0,0.06)")};
+    border: 1px solid ${({ $tone }) => ($tone === "ok" ? "rgba(10,122,58,0.14)" : "rgba(0,0,0,0.06)")};
 `;
 
 const LoadingText = styled.div`
@@ -334,7 +380,6 @@ const CropArea = styled.div`
     margin: 0 auto 14px;
     overflow: hidden;
 
-    /* ✅ don’t hide the preview behind pure black if anything loads slowly */
     background: radial-gradient(circle at 30% 30%, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.10));
     border: 1px solid rgba(0, 0, 0, 0.08);
 
@@ -347,12 +392,10 @@ const CropPreview = styled.img<{ $zoom: number }>`
     height: 100%;
     object-fit: cover;
 
-    /* ✅ zoom without “reflow” sizing issues */
     transform: scale(${({ $zoom }) => $zoom});
     transform-origin: center;
     will-change: transform;
 
-    /* some mobile browsers benefit from this */
     backface-visibility: hidden;
 `;
 
@@ -438,10 +481,17 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
-    const [avatarPreview, setAvatarPreview] = useState<string>(user?.avatarUrl || toImgSrc(UserIcon));
+    // ✅ Fix: keep avatar visible across re-login via localStorage cache (scoped by email)
+    const [avatarPreview, setAvatarPreview] = useState<string>(() => {
+        const cached = safeGetAvatarCache();
+        const email = user?.email;
+        if (cached && email && cached.email === email && cached.avatarUrl) return cached.avatarUrl;
+        return user?.avatarUrl || toImgSrc(UserIcon);
+    });
+
     const [avatarSource, setAvatarSource] = useState<HTMLImageElement | null>(null);
 
-    // ✅ Keep the object URL alive while cropping; revoke on close/apply
+    // Keep object URL alive while cropping; revoke on close/apply
     const [avatarObjectUrl, setAvatarObjectUrl] = useState<string | null>(null);
 
     const [zoom, setZoom] = useState(1);
@@ -483,7 +533,19 @@ export default function ProfilePage() {
                 const u = res.data.user;
                 setProfile(u);
                 setInitialProfile(u);
-                setAvatarPreview(u.avatarUrl || toImgSrc(UserIcon));
+
+                const nextAvatar = u.avatarUrl || toImgSrc(UserIcon);
+                setAvatarPreview(nextAvatar);
+
+                // ✅ cache avatar so it survives re-login even if auth payload misses avatarUrl
+                if (u.email && u.avatarUrl) {
+                    safeSetAvatarCache({ email: u.email, avatarUrl: u.avatarUrl, updatedAt: Date.now() });
+                } else if (u.email && !u.avatarUrl) {
+                    // if user removed avatar, clear cached value for safety
+                    const cached = safeGetAvatarCache();
+                    if (cached?.email === u.email) safeClearAvatarCache();
+                }
+
                 setFromBackendRef.current(u.coping_worked, u.coping_not_worked);
             } finally {
                 if (!cancelled) setLoading(false);
@@ -542,37 +604,34 @@ export default function ProfilePage() {
         });
     }, []);
 
-    const handleAvatarUpload = useCallback(
-        (e: React.ChangeEvent<HTMLInputElement>) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
+    const handleAvatarUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
 
-            // allow re-selecting the same file
-            e.target.value = "";
+        // allow re-selecting the same file
+        e.target.value = "";
 
-            // revoke old URL if any
-            setAvatarObjectUrl((prev) => {
-                if (prev) URL.revokeObjectURL(prev);
-                return prev;
-            });
+        // ✅ revoke any old object URL
+        setAvatarObjectUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+        });
 
-            const url = URL.createObjectURL(file);
-            setAvatarObjectUrl(url);
+        const url = URL.createObjectURL(file);
+        setAvatarObjectUrl(url);
 
-            const img = new globalThis.Image();
-            img.onload = () => {
-                setAvatarSource(img);
-                setZoom(1);
-                setShowCropper(true);
-            };
-            img.onerror = () => {
-                URL.revokeObjectURL(url);
-                setAvatarObjectUrl(null);
-            };
-            img.src = url;
-        },
-        []
-    );
+        const img = new globalThis.Image();
+        img.onload = () => {
+            setAvatarSource(img);
+            setZoom(1);
+            setShowCropper(true);
+        };
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+            setAvatarObjectUrl(null);
+        };
+        img.src = url;
+    }, []);
 
     const applyAvatarCrop = useCallback(() => {
         if (!avatarSource) return;
@@ -606,7 +665,7 @@ export default function ProfilePage() {
         setAvatarPreview(url);
         setProfile((p) => (p ? { ...p, avatarUrl: url } : p));
 
-        // ✅ close + revoke object URL AFTER we no longer need it
+        // close + revoke object URL AFTER we no longer need it
         closeCropper();
     }, [avatarSource, zoom, closeCropper]);
 
@@ -622,8 +681,18 @@ export default function ProfilePage() {
             };
 
             const res = await axiosClient.patch<{ ok: boolean; user: ExtendedUser }>("/users/profile", payload);
-            setProfile(res.data.user);
-            setInitialProfile(res.data.user);
+
+            const updated = res.data.user;
+            setProfile(updated);
+            setInitialProfile(updated);
+
+            // ✅ cache saved avatar for the next login
+            if (updated.email && updated.avatarUrl) {
+                safeSetAvatarCache({ email: updated.email, avatarUrl: updated.avatarUrl, updatedAt: Date.now() });
+            } else if (updated.email && !updated.avatarUrl) {
+                const cached = safeGetAvatarCache();
+                if (cached?.email === updated.email) safeClearAvatarCache();
+            }
 
             await refreshUser();
         } finally {
@@ -683,13 +752,7 @@ export default function ProfilePage() {
                         <Hero>
                             <AvatarRow>
                                 <AvatarOuter>
-                                    <AvatarImg
-                                        src={avatarSrc}
-                                        alt="Avatar"
-                                        width={108}
-                                        height={108}
-                                        unoptimized
-                                    />
+                                    <AvatarImg src={avatarSrc} alt="Avatar" width={108} height={108} unoptimized />
                                 </AvatarOuter>
 
                                 <ChangeAvatarButton>
@@ -834,12 +897,7 @@ export default function ProfilePage() {
                         <ModalTitle>Adjust your avatar</ModalTitle>
 
                         <CropArea>
-                            {/* ✅ Use the object URL, don’t revoke until close/apply */}
-                            <CropPreview
-                                src={avatarObjectUrl ?? avatarSource.src}
-                                alt="crop preview"
-                                $zoom={zoom}
-                            />
+                            <CropPreview src={avatarObjectUrl ?? avatarSource.src} alt="crop preview" $zoom={zoom} />
                         </CropArea>
 
                         <SliderRow>
