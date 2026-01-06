@@ -163,6 +163,11 @@ export const ENV = {
     SMTP_USER: process.env.SMTP_USER || "",
     SMTP_PASS: process.env.SMTP_PASS || "",
 
+    // Verify SMTP on startup (default: true for local, false otherwise)
+    SMTP_VERIFY_ON_STARTUP:
+        (process.env.SMTP_VERIFY_ON_STARTUP ?? (IS_LOCAL ? "true" : "false"))
+            .toLowerCase() === "true",
+
     // TrichBot / OpenAI (optional)
     TRICHBOT_ENABLED: (process.env.TRICHBOT_ENABLED || "false").toLowerCase() === "true",
     OPENAI_MODEL: process.env.OPENAI_MODEL || "gpt-4.1-mini",
