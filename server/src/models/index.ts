@@ -45,3 +45,7 @@ export type { ITriggerInsight, TriggerInsightDocument } from "./TriggersInsights
 // User Model and Types
 export { default as User } from "./UserModel";
 export type { IUser, IUserMethods, UserDocument } from "./UserModel";
+
+// DailyCheckIn Model and Types
+export { default as DailyCheckIn } from "./DailyCheckInModel";
+export type { IDailyCheckIn, DailyCheckInDocument } from "./DailyCheckInModel";
