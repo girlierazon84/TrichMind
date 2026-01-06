@@ -1,10 +1,8 @@
 // client/src/app/page.tsx
 
-import HomePage from "./(protected)/home/page";
+import { redirect } from "next/navigation";
 
 
-export default function Login() {
-    return (
-        <HomePage />
-    );
+export default function Page() {
+    redirect("/home");
 }
