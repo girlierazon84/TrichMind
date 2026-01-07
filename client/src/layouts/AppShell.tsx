@@ -1,4 +1,4 @@
-// client/src/layouts/AppLayout.tsx
+// client/src/layouts/AppShell.tsx
 
 "use client";
 
@@ -7,13 +7,16 @@ import styled from "styled-components";
 import { BottomNav } from "@/components";
 
 
-// Styled component for the layout shell
 const Shell = styled.div`
-    min-height: 100vh;
-    padding-bottom: 84px; /* space for BottomNav */
+    min-height: 100dvh;
+
+    /* ✅ keep content visible above BottomNav */
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+
+    /* ✅ prevent sideways scroll caused by internal absolute elements */
+    overflow-x: clip;
 `;
 
-// AppLayout component that wraps children with Shell and BottomNav
 export default function AppShell({ children }: { children: ReactNode }) {
     return (
         <Shell>
