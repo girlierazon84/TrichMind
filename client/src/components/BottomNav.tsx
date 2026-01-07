@@ -8,7 +8,6 @@ import Image, { type StaticImageData } from "next/image";
 import { usePathname } from "next/navigation";
 import styled, { css } from "styled-components";
 
-// Icons (should be StaticImageData exports, e.g. `export { default as HomeIcon } from "./home.png";`)
 import {
     HomeIcon,
     HealthIcon,
@@ -24,71 +23,62 @@ import {
 ---------------------------------------*/
 type BottomNavBarProps = { $visible: boolean };
 
-/**--------------------------------------------------------
-    Styled component for the bottom navigation wrapper.
-    It handles visibility and positioning.
------------------------------------------------------------*/
-// Bottom navigation wrapper styled component
 const BottomNavWrapper = styled.div<BottomNavBarProps>`
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
+
     padding: 0.35rem 0.75rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
     display: flex;
     justify-content: center;
-    z-index: 1000;
+
+    z-index: 2000;
 
     pointer-events: ${({ $visible }) => ($visible ? "auto" : "none")};
     transition: opacity 0.35s ease, transform 0.35s ease;
     opacity: ${({ $visible }) => ($visible ? 1 : 0)};
     transform: ${({ $visible }) => ($visible ? "translateY(0)" : "translateY(100%)")};
 
-    /* Hide bottom nav on desktop */
     @media (min-width: 1025px) {
         display: none;
     }
 `;
 
-// Bottom navigation bar styled component
 const BottomNavBar = styled.nav`
     width: 100%;
     max-width: 520px;
-    height: 64px;
+    height: 66px;
+
     background: ${({ theme }) => theme.colors.card_bg};
-    border-radius: 20px 20px 0 0;
-    border: 1px solid ${({ theme }) => theme.colors.fourthly};
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.16);
+    border-radius: 22px;
+    border: 1px solid ${({ theme }) => theme.colors.primary};
 
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-
+    box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.16);
     backdrop-filter: blur(18px);
+
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    align-items: center;
 `;
 
-// Navigation item styled component
-const NavItem = styled(Link) <{ $active?: boolean }>`
-    flex: 1;
+const NavItem = styled(Link)<{ $active?: boolean }>`
     text-decoration: none;
-    color: ${({ theme, $active }) =>
-                $active ? theme.colors.primary : theme.colors.text_secondary};
+    color: ${({ theme, $active }) => ($active ? theme.colors.primary : theme.colors.text_secondary)};
 
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
 
-    font-size: 0.72rem;
-    font-weight: 500;
+    gap: 3px;
+    padding: 8px 0;
+
+    font-size: 0.7rem;
+    font-weight: 750;
+
     transition: color 0.2s ease, transform 0.2s ease;
     position: relative;
-
-    span {
-        position: relative;
-        padding-bottom: 2px;
-    }
 
     &:hover {
         color: ${({ theme }) => theme.colors.primary};
@@ -99,105 +89,74 @@ const NavItem = styled(Link) <{ $active?: boolean }>`
         css`
             transform: translateY(-2px);
 
-            span::after {
+            &::after {
                 content: "";
                 position: absolute;
+                bottom: 6px;
                 left: 50%;
                 transform: translateX(-50%);
-                bottom: -2px;
-                width: 70%;
-                height: 2px;
+                width: 26px;
+                height: 3px;
                 border-radius: 999px;
                 background: ${theme.colors.primary};
             }
-        `
-    }
-
-    @media (max-width: 480px) {
-        font-size: 0.68rem;
-    }
+        `}
 `;
 
-// Navigation configuration type
 type NavConfig = {
     href: string;
     icon: StaticImageData;
     label: string;
-    // optional: highlight parent route prefixes like /journal/entry/123
     matchPrefix?: boolean;
 };
 
-// Function to determine if a nav item is active based on the current pathname and href
 function isActivePath(pathname: string, href: string, matchPrefix?: boolean) {
-    // Exact match for root path /
-    if (href === "/") return pathname === "/";
     if (!matchPrefix) return pathname === href;
     return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-// Bottom navigation component
 export const BottomNav = () => {
-    // Get the current pathname
-    const pathname = usePathname() ?? "/";
+    const pathname = usePathname() ?? "/home";
     const [visible, setVisible] = useState(true);
 
-    // Define navigation items using useMemo for performance optimization
     const navItems: ReadonlyArray<NavConfig> = useMemo(
         () => [
-            { href: "/", icon: HomeIcon, label: "Home" },
+            { href: "/home", icon: HomeIcon, label: "Home" },
             { href: "/journal", icon: JournalIcon, label: "Journal", matchPrefix: true },
             { href: "/health", icon: HealthIcon, label: "Health", matchPrefix: true },
-            {
-                href: "/triggersinsights",
-                icon: TriggersInsightsIcon,
-                label: "Insights",
-                matchPrefix: true,
-            },
+            { href: "/triggersinsights", icon: TriggersInsightsIcon, label: "Insights", matchPrefix: true },
             { href: "/trichgame", icon: TrichGameIcon, label: "TrichGame", matchPrefix: true },
             { href: "/trichbot", icon: TrichBotIcon, label: "TrichBot", matchPrefix: true },
         ],
         []
     );
 
-    // Effect to handle visibility based on keyboard presence and window resize
     useEffect(() => {
-        // Ensure window is defined (client-side) before adding event listeners
         if (typeof window === "undefined") return;
 
-        // Threshold in pixels to determine keyboard presence on mobile devices
         const threshold = 150;
         let initialHeight = window.innerHeight;
 
-        // Handler for window resize events to detect keyboard presence
         const handleResize = () => {
-            // orientation change / big resize baseline refresh
             if (Math.abs(window.innerHeight - initialHeight) > 300) {
                 initialHeight = window.innerHeight;
             }
-            // Determine if the keyboard is likely open based on height difference
             const heightDiff = initialHeight - window.innerHeight;
             setVisible(heightDiff < threshold);
         };
 
-        // Handlers for focusin and focusout events to manage visibility
         const handleFocusIn = (e: FocusEvent) => {
-            // Check if the focused element is an input field to hide the nav
             const target = e.target as HTMLElement | null;
-            if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) {
-                setVisible(false);
-            }
+            if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) setVisible(false);
         };
 
-        // Restore visibility when focus is lost from input fields
         const handleFocusOut = () => setVisible(true);
 
-        // Add event listeners for resize and focus events
         window.addEventListener("resize", handleResize);
         window.addEventListener("focusin", handleFocusIn);
         window.addEventListener("focusout", handleFocusOut);
 
         return () => {
-            // Cleanup event listeners on component unmount or re-render
             window.removeEventListener("resize", handleResize);
             window.removeEventListener("focusin", handleFocusIn);
             window.removeEventListener("focusout", handleFocusOut);
@@ -222,14 +181,13 @@ export const BottomNav = () => {
                             <Image
                                 src={item.icon}
                                 alt={item.label}
-                                width={24}
-                                height={24}
+                                width={22}
+                                height={22}
                                 draggable={false}
                                 style={{
-                                    filter: active ? "grayscale(0)" : "grayscale(0.4)",
-                                    transform: active ? "scale(1.06)" : "scale(1)",
+                                    filter: active ? "grayscale(0)" : "grayscale(0.45)",
+                                    transform: active ? "scale(1.07)" : "scale(1)",
                                     transition: "filter 0.2s ease, transform 0.2s ease",
-                                    marginBottom: 2,
                                 }}
                             />
                             <span>{item.label}</span>
