@@ -414,7 +414,7 @@ docker run -p 8000:8000 trichmind-ml
 **Example request:**
 
 ```
-POST /predict
+POST /predict_friendly
 
 {
  "age": 42,
