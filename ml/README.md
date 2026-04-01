@@ -1,5 +1,7 @@
 # <a href="https://trichmind.vercel.app/"><img src="assets/png/app_logo.png" width="100"></a> TrichMind - Relapse Risk Prediction for Trichotillomania
 
+---
+
 ## Overview
 
 **TrichMind** is a machine learning system designed to predict relapse risk levels (low, medium, high) for individuals experiencing Trichotillomania (TTM) — a body-focused repetitive behavior involving hair pulling.
