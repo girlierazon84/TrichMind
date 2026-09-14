@@ -1,19 +1,25 @@
 // client/next.config.ts
 
 import type { NextConfig } from "next";
+import nextPWA from "next-pwa";
 
 
-const nextConfig: NextConfig = {
+const baseConfig: NextConfig = {
   output: "standalone",
   compiler: { styledComponents: true },
 
-  // Fix Vercel warning:
-  // "Both outputFileTracingRoot and turbopack.root are set, but they must have the same value."
-  // Setting both to process.cwd() (the /client directory on Vercel) keeps them aligned.
+  // ✅ Keep Vercel warning fix aligned
   outputFileTracingRoot: process.cwd(),
   turbopack: {
     root: process.cwd(),
   },
 };
 
-export default nextConfig;
+const withPWA = nextPWA({
+  dest: "public",
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === "development",
+});
+
+export default withPWA(baseConfig);
