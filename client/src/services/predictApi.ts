@@ -5,7 +5,6 @@ import { axiosClient } from "@/services";
 import { withLogging } from "@/utils";
 import type {
     PredictPayload,
-    PredictionResponse
 } from "@/types/ml";
 
 
