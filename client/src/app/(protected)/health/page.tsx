@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { useHealth, useAuth } from "@/hooks";
@@ -10,6 +10,7 @@ import { ThemeButton } from "@/components";
 import { HealthIcon } from "@/assets/icons";
 import { notifyOverviewRefresh } from "@/utils";
 import { HeaderAvatar } from "@/components/common";
+
 
 /**---------------------------------------
     View model for a health log entry.
@@ -173,9 +174,15 @@ const TickRow = styled.div`
     margin-top: 0.1rem;
 `;
 
+/**-----------------------------------------------------------------
+    ✅ Use ThemeButton styling + match your app’s pill CTA look
+--------------------------------------------------------------------*/
 const SaveButton = styled(ThemeButton)`
     width: 100%;
     margin-top: 0.5rem;
+
+    border-radius: 999px; /* ✅ pill style */
+    padding: 0.7rem 1rem; /* ✅ consistent size */
 `;
 
 const LogsList = styled.div`
@@ -290,7 +297,11 @@ export default function HealthPage() {
     };
 
     const formatDate = (iso: string) =>
-        new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "2-digit", day: "2-digit" });
+        new Date(iso).toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+        });
 
     if (!isAuthenticated) return null;
 
@@ -302,7 +313,9 @@ export default function HealthPage() {
                         <HeaderIcon src={HealthIcon.src} alt="Health icon" />
                         <HeaderTitleGroup>
                             <HeaderTitle>Health</HeaderTitle>
-                            <HeaderSubtitle>Sleep, meds, body check-ins & symptom logs.</HeaderSubtitle>
+                            <HeaderSubtitle>
+                                Sleep, meds, body check-ins & symptom logs.
+                            </HeaderSubtitle>
                         </HeaderTitleGroup>
                     </HeaderLeft>
 
@@ -313,10 +326,16 @@ export default function HealthPage() {
                     <SectionTitleRow>
                         <SectionTitle>Daily health check-in</SectionTitle>
                     </SectionTitleRow>
-                    <SectionSub>A quick snapshot of how your body is doing today.</SectionSub>
-                    <SectionHint>No need for perfection — just a rough sense of sleep, stress and movement is already helpful.</SectionHint>
+                    <SectionSub>
+                        A quick snapshot of how your body is doing today.
+                    </SectionSub>
+                    <SectionHint>
+                        No need for perfection — just a rough sense of sleep, stress and
+                        movement is already helpful.
+                    </SectionHint>
 
                     <SoftDivider />
+
                     <SectionTitleRow>
                         <SectionTitle>Sleep</SectionTitle>
                     </SectionTitleRow>
@@ -326,12 +345,26 @@ export default function HealthPage() {
                         <span>Sleep hours</span>
                         <span>{sleepHours} h</span>
                     </SliderLabelRow>
-                    <RangeInput min={0} max={12} step={1} value={sleepHours} onChange={(e) => setSleepHours(Number(e.target.value))} />
+                    <RangeInput
+                        min={0}
+                        max={12}
+                        step={1}
+                        value={sleepHours}
+                        onChange={(e) => setSleepHours(Number(e.target.value))}
+                        aria-label="Sleep hours slider"
+                    />
                     <TickRow>
-                        <span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span><span>12</span>
+                        <span>0</span>
+                        <span>2</span>
+                        <span>4</span>
+                        <span>6</span>
+                        <span>8</span>
+                        <span>10</span>
+                        <span>12</span>
                     </TickRow>
 
                     <SoftDivider />
+
                     <SectionTitleRow>
                         <SectionTitle>Stress</SectionTitle>
                     </SectionTitleRow>
@@ -341,24 +374,52 @@ export default function HealthPage() {
                         <span>Stress level</span>
                         <span>{stressLevel}/10</span>
                     </SliderLabelRow>
-                    <RangeInput min={0} max={10} step={1} value={stressLevel} onChange={(e) => setStressLevel(Number(e.target.value))} />
+                    <RangeInput
+                        min={0}
+                        max={10}
+                        step={1}
+                        value={stressLevel}
+                        onChange={(e) => setStressLevel(Number(e.target.value))}
+                        aria-label="Stress level slider"
+                    />
                     <TickRow>
-                        <span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span>
+                        <span>0</span>
+                        <span>2</span>
+                        <span>4</span>
+                        <span>6</span>
+                        <span>8</span>
+                        <span>10</span>
                     </TickRow>
 
                     <SoftDivider />
+
                     <SectionTitleRow>
                         <SectionTitle>Movement</SectionTitle>
                     </SectionTitleRow>
-                    <SectionSub>Any movement counts — walking, stretching, workouts, dancing.</SectionSub>
+                    <SectionSub>
+                        Any movement counts — walking, stretching, workouts, dancing.
+                    </SectionSub>
 
                     <SliderLabelRow>
                         <span>Exercise minutes</span>
                         <span>{exerciseMinutes} min</span>
                     </SliderLabelRow>
-                    <RangeInput min={0} max={180} step={5} value={exerciseMinutes} onChange={(e) => setExerciseMinutes(Number(e.target.value))} />
+                    <RangeInput
+                        min={0}
+                        max={180}
+                        step={5}
+                        value={exerciseMinutes}
+                        onChange={(e) => setExerciseMinutes(Number(e.target.value))}
+                        aria-label="Exercise minutes slider"
+                    />
                     <TickRow>
-                        <span>0</span><span>30</span><span>60</span><span>90</span><span>120</span><span>150</span><span>180</span>
+                        <span>0</span>
+                        <span>30</span>
+                        <span>60</span>
+                        <span>90</span>
+                        <span>120</span>
+                        <span>150</span>
+                        <span>180</span>
                     </TickRow>
 
                     <SaveButton onClick={handleSave} disabled={saving || loading}>
@@ -370,19 +431,26 @@ export default function HealthPage() {
                     <SectionTitleRow>
                         <SectionTitle>Recent health logs</SectionTitle>
                     </SectionTitleRow>
-                    <SectionSub>These logs help personalize relapse-risk estimates and wellness insights on your Overview screen.</SectionSub>
+                    <SectionSub>
+                        These logs help personalize relapse-risk estimates and wellness
+                        insights on your Overview screen.
+                    </SectionSub>
 
                     {logsLoading ? (
                         <EmptyState>Loading recent logs…</EmptyState>
                     ) : logs.length === 0 ? (
-                        <EmptyState>No logs yet. When you save a health check-in, it will appear here.</EmptyState>
+                        <EmptyState>
+                            No logs yet. When you save a health check-in, it will appear
+                            here.
+                        </EmptyState>
                     ) : (
                         <LogsList>
                             {logs.map((log) => (
                                 <LogItem key={log._id}>
                                     <LogDate>📅 {formatDate(log.date)}</LogDate>
                                     <LogMeta>
-                                        • 😴 {log.sleepHours}h • 😰 Stress {log.stressLevel}/10 • 🏃‍♀️ {log.exerciseMinutes}min
+                                        • 😴 {log.sleepHours}h • 😰 Stress {log.stressLevel}/10
+                                        • 🏃‍♀️ {log.exerciseMinutes}min
                                     </LogMeta>
                                 </LogItem>
                             ))}
