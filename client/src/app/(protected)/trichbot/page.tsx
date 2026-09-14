@@ -1,14 +1,12 @@
 // client/src/app/(protected)/trichbot/page.tsx
+
 "use client";
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { useAuth, useTrichBot } from "@/hooks";
-import {
-    trichBotApi,
-    type TrichBotMessage
-} from "@/services";
+import { trichBotApi, type TrichBotMessage } from "@/services";
 import {
     TrichBotIcon,
     UserIcon,
@@ -16,6 +14,7 @@ import {
     ArrowEnterIcon
 } from "@/assets/icons";
 import { toImgSrc } from "@/utils";
+import { ThemeButton } from "@/components";
 
 
 /**----------------------
@@ -191,23 +190,14 @@ const ButtonRow = styled.div`
     gap: 0.5rem;
 `;
 
-const SaveButton = styled.button`
+/** ✅ Use ThemeButton for “Save conversation” (keeps theme, hover, disabled, etc.) */
+const SaveButton = styled(ThemeButton)`
+    width: auto; /* ThemeButton defaults to 100% */
+    border-radius: 999px;
+    padding: 0.55rem 0.9rem;
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    padding: 0.55rem 0.8rem;
-    border-radius: 12px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    background: #e1f7ff;
-    color: ${({ theme }) => theme.colors.primary};
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: default;
-    }
 `;
 
 const ClearButton = styled.button`
@@ -215,7 +205,7 @@ const ClearButton = styled.button`
     align-items: center;
     gap: 0.4rem;
     padding: 0.55rem 0.8rem;
-    border-radius: 12px;
+    border-radius: 999px;
     border: 1px solid rgba(0, 0, 0, 0.06);
     background: #f6f7fb;
     color: ${({ theme }) => theme.colors.text_secondary};
@@ -262,23 +252,24 @@ const TextInput = styled.textarea`
     font-size: 0.8rem;
     font-family: inherit;
     outline: none;
+
+    &:focus {
+        border-color: ${({ theme }) => theme.colors.primary};
+        box-shadow: 0 0 0 2px rgba(0, 196, 204, 0.15);
+    }
 `;
 
-const SendButton = styled.button`
-    width: 38px;
-    height: 38px;
+/**----------------------------------------------------------------------
+    ✅ Send button uses theme + looks consistent with your pill CTAs
+-------------------------------------------------------------------------*/
+const SendButton = styled(ThemeButton)`
+    width: 42px; /* override ThemeButton width: 100% */
+    height: 42px;
+    padding: 0;
     border-radius: 999px;
-    border: none;
-    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-
-    &:disabled {
-        opacity: 0.4;
-        cursor: default;
-    }
 `;
 
 const SendIconImg = styled.img`
@@ -332,8 +323,7 @@ export default function TrichBotPage() {
 
     const headerAvatarSrc = toImgSrc(user?.avatarUrl) || toImgSrc(UserIcon);
 
-    const clearKey =
-        user?.email ? `tm_trichbot_cleared_${user.email}` : "tm_trichbot_cleared";
+    const clearKey = user?.email ? `tm_trichbot_cleared_${user.email}` : "tm_trichbot_cleared";
 
     useEffect(() => {
         if (!isAuthenticated) router.replace("/login?next=/trichbot");
@@ -459,8 +449,12 @@ export default function TrichBotPage() {
                         <HeaderTitleGroup>
                             <HeaderTitle>TrichBot · TrichMind assistant</HeaderTitle>
                             <HeaderSubtitle>
-                                <p className="p-one">The in-app companion for people living with trichotillomania –</p>
-                                <p className="p-two">here to guide you through urges, tools, and gentle next steps.</p>
+                                <p className="p-one">
+                                    The in-app companion for people living with trichotillomania –
+                                </p>
+                                <p className="p-two">
+                                    here to guide you through urges, tools, and gentle next steps.
+                                </p>
                             </HeaderSubtitle>
                         </HeaderTitleGroup>
                     </HeaderLeft>
@@ -473,13 +467,15 @@ export default function TrichBotPage() {
                 <Card>
                     <SectionTitle>Conversation</SectionTitle>
                     <SectionSub>
-                        Share what&apos;s going on. TrichBot can help you reflect on urges, make sense of your relapse risk,
-                        and suggest ways to use TrichMind features like your dashboard, daily check-ins, coping strategies and journaling.
+                        Share what&apos;s going on. TrichBot can help you reflect on urges, make
+                        sense of your relapse risk, and suggest ways to use TrichMind features
+                        like your dashboard, daily check-ins, coping strategies and journaling.
                     </SectionSub>
 
                     {showIntroBotBubble && (
                         <EmptyState>
-                            No conversation yet. Say hello and tell TrichBot what&apos;s on your mind – or ask how to use TrichMind to support you today.
+                            No conversation yet. Say hello and tell TrichBot what&apos;s on your
+                            mind – or ask how to use TrichMind to support you today.
                         </EmptyState>
                     )}
 
@@ -488,10 +484,13 @@ export default function TrichBotPage() {
                             <MessageRow $role="bot">
                                 <AvatarBubble src={TrichBotIcon.src} alt="TrichBot" />
                                 <MessageBubble $role="bot">
-                                    Hi, I&apos;m TrichBot – the assistant inside the TrichMind app. I&apos;m here to support you with trichotillomania:
-                                    making sense of your relapse risk, tracking small wins, exploring coping strategies and using tools like your daily progress card,
-                                    urge check-ins and notes. When you&apos;re ready, tell me a bit about what you&apos;re feeling or what&apos;s been triggering you,
-                                    and we&apos;ll take the next step together.
+                                    Hi, I&apos;m TrichBot – the assistant inside the TrichMind app.
+                                    I&apos;m here to support you with trichotillomania: making sense
+                                    of your relapse risk, tracking small wins, exploring coping
+                                    strategies and using tools like your daily progress card, urge
+                                    check-ins and notes. When you&apos;re ready, tell me a bit about
+                                    what you&apos;re feeling or what&apos;s been triggering you, and
+                                    we&apos;ll take the next step together.
                                 </MessageBubble>
                             </MessageRow>
                         )}
@@ -511,11 +510,16 @@ export default function TrichBotPage() {
                                         <MessageRow $role="bot">
                                             <AvatarBubble src={TrichBotIcon.src} alt="TrichBot" />
                                             <MessageBubble $role="bot">
-                                                <BotIntroText $hasTips={tips.length > 0} dangerouslySetInnerHTML={{ __html: intro }} />
+                                                <BotIntroText
+                                                    $hasTips={tips.length > 0}
+                                                    dangerouslySetInnerHTML={{ __html: intro }}
+                                                />
                                                 {tips.length > 0 && (
                                                     <BotTipsList>
                                                         {tips.map((tip, idx) => (
-                                                            <BotTipsListItem key={idx}>{tip}</BotTipsListItem>
+                                                            <BotTipsListItem key={idx}>
+                                                                {tip}
+                                                            </BotTipsListItem>
                                                         ))}
                                                     </BotTipsList>
                                                 )}
@@ -529,18 +533,28 @@ export default function TrichBotPage() {
                         {loading && (
                             <MessageRow $role="bot">
                                 <AvatarBubble src={TrichBotIcon.src} alt="TrichBot" />
-                                <MessageBubble $role="bot">I’m thinking about that for you… 🌿</MessageBubble>
+                                <MessageBubble $role="bot">
+                                    I’m thinking about that for you… 🌿
+                                </MessageBubble>
                             </MessageRow>
                         )}
                     </ChatList>
 
                     <ButtonRow>
-                        <SaveButton type="button" onClick={handleSaveConversation} disabled={saving || messages.length === 0}>
+                        <SaveButton
+                            type="button"
+                            onClick={handleSaveConversation}
+                            disabled={saving || messages.length === 0}
+                        >
                             <SaveIconImg src={SaveIcon.src} alt="Save" />
                             {saving ? "Saving…" : "Save conversation"}
                         </SaveButton>
 
-                        <ClearButton type="button" onClick={handleClearConversation} disabled={messages.length === 0}>
+                        <ClearButton
+                            type="button"
+                            onClick={handleClearConversation}
+                            disabled={messages.length === 0}
+                        >
                             Clear chat
                         </ClearButton>
                     </ButtonRow>
@@ -551,8 +565,10 @@ export default function TrichBotPage() {
                 <Card>
                     <SectionTitle>Type your message…</SectionTitle>
                     <SectionSub>
-                        You can talk about urges, stress, wins, or questions about trichotillomania, or ask how to use TrichMind tools
-                        (like your risk dashboard, daily progress, or coping cards). TrichBot will respond with ideas, not judgment.
+                        You can talk about urges, stress, wins, or questions about
+                        trichotillomania, or ask how to use TrichMind tools (like your risk
+                        dashboard, daily progress, or coping cards). TrichBot will respond
+                        with ideas, not judgment.
                     </SectionSub>
 
                     <InputRow onSubmit={handleSubmit}>
