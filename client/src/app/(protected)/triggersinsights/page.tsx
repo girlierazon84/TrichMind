@@ -2,21 +2,15 @@
 
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { useAuth } from "@/hooks";
 import { journalApi, type JournalEntry } from "@/services";
 import { TriggersInsightsIcon } from "@/assets/icons";
-import {
-    ResponsiveContainer,
-    LineChart,
-    Line,
-    XAxis,
-    Tooltip,
-    CartesianGrid
-} from "recharts";
+import { ResponsiveContainer, LineChart, Line, XAxis, Tooltip, CartesianGrid } from "recharts";
 import { HeaderAvatar } from "@/components/common";
+import { ThemeButton } from "@/components";
 
 
 interface UrgeTrendPoint {
@@ -43,6 +37,9 @@ interface JournalWithTriggers extends JournalEntry {
     createdAt?: string;
 }
 
+/**----------------------
+    Styled Components
+-------------------------*/
 const PageWrapper = styled.main`
     width: 100%;
     min-height: 100vh;
@@ -109,7 +106,8 @@ const Card = styled.section`
 const SectionTitleRow = styled.div`
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    justify-content: space-between;
+    gap: 0.6rem;
     margin-bottom: 0.4rem;
 `;
 
@@ -173,7 +171,7 @@ const RiskBarThumb = styled.div<{ $position: number }>`
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: #ffffff;
+    background: ${({ theme }) => theme.colors.card_bg};
     box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.08);
 `;
 
@@ -197,7 +195,7 @@ const TableHeaderRow = styled.div`
     display: grid;
     grid-template-columns: 2fr 1fr;
     background: ${({ theme }) => theme.colors.primary};
-    color: #ffffff;
+    color: ${({ theme }) => theme.colors.card_bg};
     font-size: 0.78rem;
     font-weight: 600;
     padding: 0.45rem 0.7rem;
@@ -230,6 +228,24 @@ const Word = styled.span<{ $scale: number; $color: string }>`
     color: ${({ $color }) => $color};
     opacity: ${({ $scale }) => 0.4 + $scale * 0.6};
     font-size: ${({ $scale }) => 0.7 + $scale * 0.9}rem;
+`;
+
+/**-------------------------------------------------------------------------------------------
+    ✅ Remove inline style warning: replace inline SectionSub style with a styled variant
+----------------------------------------------------------------------------------------------*/
+const RiskExplanation = styled(SectionSub)`
+    margin-top: 0.5rem;
+`;
+
+/**-------------------------------------------------------------------------------------
+    ✅ Optional CTA using ThemeButton (no unused variable; only use if you want it)
+----------------------------------------------------------------------------------------*/
+const CTAButton = styled(ThemeButton)`
+    width: auto; /* override ThemeButton default width: 100% */
+    padding: 0.45rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    white-space: nowrap;
 `;
 
 const getTriggerColor = (recencyScore: number): string => {
@@ -270,12 +286,13 @@ export default function InsightsPage() {
                     .slice()
                     .reverse()
                     .map((e) => ({
-                        label: new Date((e as JournalEntry & { createdAt: string }).createdAt).toLocaleDateString(undefined, {
-                            month: "short",
-                            day: "numeric",
-                        }),
+                        label: new Date((e as JournalEntry & { createdAt: string }).createdAt).toLocaleDateString(
+                            undefined,
+                            { month: "short", day: "numeric" }
+                        ),
                         urgeIntensity: e.urgeIntensity ?? 0,
                     }));
+
                 setTrendData(points);
 
                 type TriggerAgg = { count: number; lastSeen: number };
@@ -297,7 +314,11 @@ export default function InsightsPage() {
 
                         const existing = triggerCounts.get(name);
                         if (!existing) triggerCounts.set(name, { count: 1, lastSeen: ts });
-                        else triggerCounts.set(name, { count: existing.count + 1, lastSeen: Math.max(existing.lastSeen, ts) });
+                        else
+                            triggerCounts.set(name, {
+                                count: existing.count + 1,
+                                lastSeen: Math.max(existing.lastSeen, ts),
+                            });
                     });
                 });
 
@@ -363,6 +384,8 @@ export default function InsightsPage() {
         return { score, label, explanation };
     }, [trendData, topTriggers]);
 
+    const handleGoToJournal = () => router.push("/journal");
+
     if (!isAuthenticated) return null;
 
     return (
@@ -373,7 +396,9 @@ export default function InsightsPage() {
                         <HeaderIcon src={TriggersInsightsIcon.src} alt="Triggers & Insights icon" />
                         <HeaderTitleGroup>
                             <HeaderTitle>Insights</HeaderTitle>
-                            <HeaderSubtitle>Charts, trends and a gentle relapse-risk preview based on your logs.</HeaderSubtitle>
+                            <HeaderSubtitle>
+                                Charts, trends and a gentle relapse-risk preview based on your logs.
+                            </HeaderSubtitle>
                         </HeaderTitleGroup>
                     </HeaderLeft>
 
@@ -383,8 +408,16 @@ export default function InsightsPage() {
                 <Card>
                     <SectionTitleRow>
                         <SectionTitle>Urge levels over time</SectionTitle>
+
+                        {/* ✅ ThemeButton usage, optional CTA; remove this block if you don't want a button */}
+                        <CTAButton type="button" onClick={handleGoToJournal}>
+                            Add journal entry
+                        </CTAButton>
                     </SectionTitleRow>
-                    <SectionSub>A soft overview of how your urge intensity has been moving in your recent journal entries.</SectionSub>
+
+                    <SectionSub>
+                        A soft overview of how your urge intensity has been moving in your recent journal entries.
+                    </SectionSub>
 
                     {loading ? (
                         <EmptyState>Loading urge trend…</EmptyState>
@@ -397,12 +430,20 @@ export default function InsightsPage() {
                                     <CartesianGrid strokeDasharray="2 2" stroke="#dde" />
                                     <XAxis dataKey="label" tickMargin={4} />
                                     <Tooltip
-                                        formatter={(v: number | undefined) => [`${(v ?? 0)}/10`, "Urge level"]}
-                                        labelFormatter={(label: string) => label}
+                                        formatter={(v: number | undefined) => [`${v ?? 0}/10`, "Urge level"]}
+                                        /** ✅ Fix TS error: label is ReactNode, not string */
+                                        labelFormatter={(label) => String(label ?? "")}
                                         contentStyle={{ borderRadius: 8, fontSize: "0.75rem" }}
                                         labelStyle={{ fontSize: "0.75rem" }}
                                     />
-                                    <Line type="monotone" dataKey="urgeIntensity" stroke="#00b3c4" strokeWidth={2} dot={{ r: 2 }} isAnimationActive={false} />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="urgeIntensity"
+                                        stroke="#00b3c4"
+                                        strokeWidth={2}
+                                        dot={{ r: 2 }}
+                                        isAnimationActive={false}
+                                    />
                                 </LineChart>
                             </ResponsiveContainer>
                         </TrendChartWrapper>
@@ -414,26 +455,32 @@ export default function InsightsPage() {
                         <SectionTitle>Relapse-risk preview</SectionTitle>
                     </SectionTitleRow>
                     <SectionSub>
-                        A simple visual based on your recent urge levels and how often triggers show up. This is for awareness only and is not medical advice.
+                        A simple visual based on your recent urge levels and how often triggers show up.
+                        This is for awareness only and is not medical advice.
                     </SectionSub>
 
                     {!riskSummary ? (
-                        <EmptyState>Log a few more urges and triggers, and you’ll see a small relapse-risk preview here.</EmptyState>
+                        <EmptyState>
+                            Log a few more urges and triggers, and you’ll see a small relapse-risk preview here.
+                        </EmptyState>
                     ) : (
                         <>
                             <RiskSummaryRow>
                                 <span>Current pattern (last entries)</span>
                                 <span>{riskSummary.label} risk</span>
                             </RiskSummaryRow>
+
                             <RiskBarTrack>
                                 <RiskBarThumb $position={riskSummary.score} />
                             </RiskBarTrack>
+
                             <RiskBarLabels>
                                 <span>Low</span>
                                 <span>Moderate</span>
                                 <span>High</span>
                             </RiskBarLabels>
-                            <SectionSub style={{ marginTop: "0.5rem" }}>{riskSummary.explanation}</SectionSub>
+
+                            <RiskExplanation>{riskSummary.explanation}</RiskExplanation>
                         </>
                     )}
                 </Card>
@@ -447,7 +494,9 @@ export default function InsightsPage() {
                     {loading ? (
                         <EmptyState>Loading triggers…</EmptyState>
                     ) : topTriggers.length === 0 ? (
-                        <EmptyState>No trigger data yet. As you log moods and triggers in your Journal, they’ll appear here.</EmptyState>
+                        <EmptyState>
+                            No trigger data yet. As you log moods and triggers in your Journal, they’ll appear here.
+                        </EmptyState>
                     ) : (
                         <Table>
                             <TableHeaderRow>
@@ -468,7 +517,9 @@ export default function InsightsPage() {
                     <SectionTitleRow>
                         <SectionTitle>Trigger word cloud</SectionTitle>
                     </SectionTitleRow>
-                    <SectionSub>Bigger, bolder words = triggers that show up more often, especially if they’ve appeared recently.</SectionSub>
+                    <SectionSub>
+                        Bigger, bolder words = triggers that show up more often, especially if they’ve appeared recently.
+                    </SectionSub>
 
                     {topTriggers.length === 0 ? (
                         <EmptyState>Once you have some trigger data, you’ll see a simple word cloud here.</EmptyState>
