@@ -2,18 +2,14 @@
 
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import styled from "styled-components";
 import { useAuth, useJournal } from "@/hooks";
 import { journalApi, type JournalEntry } from "@/services";
 import { ThemeButton } from "@/components";
-import {
-    MyJournalIcon,
-    CalendarClockIcon,
-    SaveIcon
-} from "@/assets/icons";
+import { MyJournalIcon, CalendarClockIcon, SaveIcon } from "@/assets/icons";
 import { HeaderAvatar } from "@/components/common";
 import {
     ResponsiveContainer,
@@ -77,7 +73,14 @@ const MOOD_OPTIONS: { value: MoodName; label: string; emoji: string }[] = [
     { value: "Proud", label: "Proud", emoji: "🏅" },
 ];
 
-const STRESS_MOODS: MoodName[] = ["Sad", "Anxious", "Stressed", "Overwhelmed", "Angry", "Bored"];
+const STRESS_MOODS: MoodName[] = [
+    "Sad",
+    "Anxious",
+    "Stressed",
+    "Overwhelmed",
+    "Angry",
+    "Bored",
+];
 const CALM_MOODS: MoodName[] = ["Calm", "Tired", "Neutral"];
 const HAPPY_MOODS: MoodName[] = ["Happy", "Proud", "Hopeful"];
 
@@ -97,15 +100,15 @@ const TRIGGER_OPTIONS: {
     emoji: string;
     helper?: string;
 }[] = [
-        { key: "Stress", label: "Stress", emoji: "🔥" },
-        { key: "Boredom", label: "Boredom", emoji: "💤" },
-        { key: "Anxiety", label: "Anxiety", emoji: "😟" },
-        { key: "Fatigue", label: "Tired / low energy", emoji: "😴" },
-        { key: "BodyFocus", label: "Body focus (skin, hair, scalp…)", emoji: "🪞" },
-        { key: "ScreenTime", label: "Screen time / scrolling", emoji: "📱" },
-        { key: "Social", label: "Social situations", emoji: "💬" },
-        { key: "Other", label: "Something else", emoji: "✏️" },
-    ];
+    { key: "Stress", label: "Stress", emoji: "🔥" },
+    { key: "Boredom", label: "Boredom", emoji: "💤" },
+    { key: "Anxiety", label: "Anxiety", emoji: "😟" },
+    { key: "Fatigue", label: "Tired / low energy", emoji: "😴" },
+    { key: "BodyFocus", label: "Body focus (skin, hair, scalp…)", emoji: "🪞" },
+    { key: "ScreenTime", label: "Screen time / scrolling", emoji: "📱" },
+    { key: "Social", label: "Social situations", emoji: "💬" },
+    { key: "Other", label: "Something else", emoji: "✏️" },
+];
 
 /**----------------------
     Styled Components
@@ -200,11 +203,14 @@ const SoftDivider = styled.hr`
     margin: 0.7rem 0 0.5rem;
 `;
 
-const PromptLabel = styled.label.attrs({ id: "journal-prompt-label" })`
+/** ✅ Accessibility: Nest <select> inside <label> for guaranteed accessible name */
+const PromptLabel = styled.label`
     font-size: 0.9rem;
     margin: 0;
     color: ${({ theme }) => theme.colors.text_primary};
     font-weight: 600;
+    display: block;
+    width: 100%;
 `;
 
 const PromptSelect = styled.select`
@@ -215,7 +221,7 @@ const PromptSelect = styled.select`
     font-size: 0.85rem;
     background: #f6fbfc;
     color: ${({ theme }) => theme.colors.text_primary};
-    margin-bottom: 0.6rem;
+    margin-top: 0.45rem;
     outline: none;
 
     &:focus {
@@ -259,8 +265,11 @@ const MoodOption = styled.label<{ $active: boolean }>`
     gap: 0.35rem;
     padding: 0.3rem 0.55rem;
     border-radius: 999px;
-    border: 1px solid ${({ $active, theme }) => ($active ? theme.colors.primary : "rgba(0,0,0,0.06)")};
-    background: ${({ $active }) => ($active ? "rgba(0,196,204,0.1)" : "rgba(255,255,255,0.9)")};
+    border: 1px solid
+        ${({ $active, theme }) =>
+            $active ? theme.colors.primary : "rgba(0,0,0,0.06)"};
+    background: ${({ $active }) =>
+        $active ? "rgba(0,196,204,0.1)" : "rgba(255,255,255,0.9)"};
     font-size: 0.78rem;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -287,8 +296,11 @@ const TriggerChip = styled.button<{ $active: boolean }>`
     gap: 0.3rem;
     padding: 0.28rem 0.6rem;
     border-radius: 999px;
-    border: 1px solid ${({ $active, theme }) => ($active ? theme.colors.primary : "rgba(0,0,0,0.08)")};
-    background: ${({ $active }) => ($active ? "rgba(0,196,204,0.1)" : "rgba(255,255,255,0.95)")};
+    border: 1px solid
+        ${({ $active, theme }) =>
+            $active ? theme.colors.primary : "rgba(0,0,0,0.08)"};
+    background: ${({ $active }) =>
+        $active ? "rgba(0,196,204,0.1)" : "rgba(255,255,255,0.95)"};
     font-size: 0.75rem;
     cursor: pointer;
     outline: none;
@@ -373,6 +385,9 @@ const TickRow = styled.div`
     margin-top: 0.05rem;
 `;
 
+/**------------------------------------------------------------------------------
+    ✅ Keep ThemeButton but make it match your “pill” game buttons (optional)
+---------------------------------------------------------------------------------*/
 const SaveButton = styled(ThemeButton)`
     width: 100%;
     margin-top: 0.7rem;
@@ -380,6 +395,9 @@ const SaveButton = styled(ThemeButton)`
     align-items: center;
     justify-content: center;
     gap: 0.45rem;
+
+    border-radius: 999px; /* ✅ nicer pill style */
+    padding: 0.7rem 1rem;  /* ✅ consistent sizing */
 `;
 
 const DateRow = styled.div`
@@ -449,7 +467,7 @@ const PROMPTS: string[] = [
 
 export default function JournalPage() {
     const router = useRouter();
-    const { user, isAuthenticated } = useAuth();
+    const { isAuthenticated } = useAuth();
     const { create, loading } = useJournal();
 
     const [prompt, setPrompt] = useState<string>(PROMPTS[0]);
@@ -486,7 +504,9 @@ export default function JournalPage() {
     }, [isAuthenticated]);
 
     const toggleTrigger = (key: TriggerKey) => {
-        setSelectedTriggers((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+        setSelectedTriggers((prev) =>
+            prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+        );
     };
 
     const handleSave = async () => {
@@ -497,7 +517,9 @@ export default function JournalPage() {
 
             const preUrgeTriggers =
                 selectedTriggers.length > 0
-                    ? selectedTriggers.map((k) => TRIGGER_OPTIONS.find((opt) => opt.key === k)?.label || k)
+                    ? selectedTriggers.map(
+                        (k) => TRIGGER_OPTIONS.find((opt) => opt.key === k)?.label || k
+                    )
                     : undefined;
 
             const payload: JournalEntryWithMetrics = {
@@ -553,7 +575,10 @@ export default function JournalPage() {
                 .reverse()
                 .map((e, idx) => ({
                     id: idx,
-                    label: new Date(e.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+                    label: new Date(e.createdAt).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                    }),
                     urgeIntensity: e.urgeIntensity ?? 0,
                 })),
         [entries]
@@ -571,7 +596,9 @@ export default function JournalPage() {
                         <Image src={MyJournalIcon} alt="Journal icon" width={32} height={32} />
                         <HeaderTitleGroup>
                             <HeaderTitle>Journal</HeaderTitle>
-                            <HeaderSubtitle>Gentle check-ins for mood, triggers and urges.</HeaderSubtitle>
+                            <HeaderSubtitle>
+                                Gentle check-ins for mood, triggers and urges.
+                            </HeaderSubtitle>
                         </HeaderTitleGroup>
                     </HeaderLeft>
 
@@ -582,7 +609,9 @@ export default function JournalPage() {
                     <SectionTitleRow>
                         <SectionTitle>Today&apos;s check-in</SectionTitle>
                     </SectionTitleRow>
-                    <SectionHint>You don&apos;t have to fill in everything – just what feels helpful today.</SectionHint>
+                    <SectionHint>
+                        You don&apos;t have to fill in everything – just what feels helpful today.
+                    </SectionHint>
 
                     <DateRow>
                         <Image src={CalendarClockIcon} alt="Date & time" width={16} height={16} />
@@ -618,7 +647,9 @@ export default function JournalPage() {
                     <SectionTitleRow>
                         <SectionTitle>Possible triggers</SectionTitle>
                     </SectionTitleRow>
-                    <SectionSub>If you notice anything around the urge, you can mark it here.</SectionSub>
+                    <SectionSub>
+                        If you notice anything around the urge, you can mark it here.
+                    </SectionSub>
 
                     <TriggerRow>
                         {TRIGGER_OPTIONS.map((opt) => (
@@ -666,28 +697,39 @@ export default function JournalPage() {
                     />
 
                     <TickRow>
-                        <span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span>
+                        <span>0</span>
+                        <span>2</span>
+                        <span>4</span>
+                        <span>6</span>
+                        <span>8</span>
+                        <span>10</span>
                     </TickRow>
 
                     <SoftDivider />
 
-                    <SectionTitleRow>
-                        <PromptLabel htmlFor="journal-prompt-select">Short note (optional)</PromptLabel>
-                    </SectionTitleRow>
-                    <SectionSub>Pick a prompt if you like, or just write a few lines.</SectionSub>
+                    <SectionSub id="journal-prompt-help">
+                        Pick a prompt if you like, or just write a few lines.
+                    </SectionSub>
 
-                    <PromptSelect
-                        id="journal-prompt-select"
-                        value={prompt}
-                        aria-labelledby="journal-prompt-label"
-                        onChange={(e) => setPrompt(e.target.value)}
-                    >
-                        {PROMPTS.map((p) => (
-                            <option key={p} value={p}>
-                                {p}
-                            </option>
-                        ))}
-                    </PromptSelect>
+                    <SectionTitleRow>
+                        <PromptLabel>
+                            Short note (optional)
+                            <PromptSelect
+                                id="journal-prompt-select"
+                                name="journalPrompt"
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                aria-describedby="journal-prompt-help"
+                                aria-label="Journal prompt"
+                            >
+                                {PROMPTS.map((p) => (
+                                    <option key={p} value={p}>
+                                        {p}
+                                    </option>
+                                ))}
+                            </PromptSelect>
+                        </PromptLabel>
+                    </SectionTitleRow>
 
                     <TextArea
                         value={text}
@@ -706,12 +748,16 @@ export default function JournalPage() {
                     <SectionTitleRow>
                         <SectionTitle>Recent entries</SectionTitle>
                     </SectionTitleRow>
-                    <SectionSub>A quick view of your latest check-ins. Older entries are still used in your Insights.</SectionSub>
+                    <SectionSub>
+                        A quick view of your latest check-ins. Older entries are still used in your Insights.
+                    </SectionSub>
 
                     {entriesLoading ? (
                         <EmptyState>Loading past entries…</EmptyState>
                     ) : recentEntries.length === 0 ? (
-                        <EmptyState>No entries yet. When you save a check-in, it will appear here.</EmptyState>
+                        <EmptyState>
+                            No entries yet. When you save a check-in, it will appear here.
+                        </EmptyState>
                     ) : (
                         <LogsList>
                             {recentEntries.map((e) => {
@@ -719,14 +765,18 @@ export default function JournalPage() {
                                     e.preUrgeTriggers && e.preUrgeTriggers.length > 0
                                         ? ` • Triggers: ${e.preUrgeTriggers.join(", ")}`
                                         : "";
-                                const notesLabel = e.preUrgeTriggerNotes ? ` • Notes: ${e.preUrgeTriggerNotes}` : "";
+                                const notesLabel = e.preUrgeTriggerNotes
+                                    ? ` • Notes: ${e.preUrgeTriggerNotes}`
+                                    : "";
 
                                 return (
                                     <LogItem key={e._id}>
                                         <LogDate>📝 {formatDateTime(e.createdAt)}</LogDate>
                                         <LogMeta>
                                             {e.mood ? ` • Mood: ${e.mood}` : ""}{" "}
-                                            {typeof e.urgeIntensity === "number" ? ` • Urge: ${e.urgeIntensity}/10` : ""}
+                                            {typeof e.urgeIntensity === "number"
+                                                ? ` • Urge: ${e.urgeIntensity}/10`
+                                                : ""}
                                             {triggerLabel}
                                             {notesLabel}
                                         </LogMeta>
@@ -741,23 +791,37 @@ export default function JournalPage() {
                     <SectionTitleRow>
                         <SectionTitle>Trend insights</SectionTitle>
                     </SectionTitleRow>
-                    <SectionSub>A gentle snapshot of how your urge levels have changed across recent entries.</SectionSub>
+                    <SectionSub>
+                        A gentle snapshot of how your urge levels have changed across recent entries.
+                    </SectionSub>
 
                     {trendData.length < 2 ? (
-                        <EmptyState>After a few more check-ins, you’ll see your urge trend here.</EmptyState>
+                        <EmptyState>
+                            After a few more check-ins, you’ll see your urge trend here.
+                        </EmptyState>
                     ) : (
                         <TrendChartWrapper>
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={trendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                                <LineChart
+                                    data={trendData}
+                                    margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+                                >
                                     <CartesianGrid strokeDasharray="2 2" stroke="#dde" />
                                     <XAxis dataKey="label" tickMargin={4} />
                                     <Tooltip
                                         formatter={(v: number | undefined) => [`${v ?? 0}/10`, "Urge"]}
-                                        labelFormatter={(label: string) => label}
+                                        labelFormatter={(label) => String(label ?? "")}
                                         contentStyle={{ borderRadius: 8, fontSize: "0.75rem" }}
                                         labelStyle={{ fontSize: "0.75rem" }}
                                     />
-                                    <Line type="monotone" dataKey="urgeIntensity" stroke="#ff5b7d" strokeWidth={2} dot={{ r: 2 }} isAnimationActive={false} />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="urgeIntensity"
+                                        stroke="#ff5b7d"
+                                        strokeWidth={2}
+                                        dot={{ r: 2 }}
+                                        isAnimationActive={false}
+                                    />
                                 </LineChart>
                             </ResponsiveContainer>
                         </TrendChartWrapper>
