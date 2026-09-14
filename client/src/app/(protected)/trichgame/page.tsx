@@ -2,18 +2,19 @@
 
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import styled, { css, keyframes } from "styled-components";
 import { useAuth, useTrichGame } from "@/hooks";
 import { TrichGameIcon } from "@/assets/icons";
+import { ThemeButton } from "@/components"; // ✅ use app ThemeButton
 import {
     ResponsiveContainer,
     LineChart,
     Line,
     XAxis,
     Tooltip,
-    CartesianGrid
+    CartesianGrid,
 } from "recharts";
 import { HeaderAvatar } from "@/components/common";
 
@@ -192,8 +193,11 @@ const ChallengeChip = styled.button<{ $active: boolean }>`
     border-radius: 999px;
     padding: 0.45rem 0.7rem;
     font-size: 0.75rem;
-    border: 1px solid ${({ theme, $active }) => ($active ? theme.colors.primary : "rgba(0,0,0,0.12)")};
-    background: ${({ $active }) => ($active ? "rgba(0, 179, 196, 0.15)" : "rgba(255,255,255,0.95)")};
+    border: 1px solid
+        ${({ theme, $active }) =>
+            $active ? theme.colors.primary : "rgba(0,0,0,0.12)"};
+    background: ${({ $active }) =>
+        $active ? "rgba(0, 179, 196, 0.15)" : "rgba(255,255,255,0.95)"};
     color: ${({ theme }) => theme.colors.text_primary};
     display: flex;
     align-items: center;
@@ -224,29 +228,34 @@ const GameButtonRow = styled.div`
     margin-top: 0.7rem;
 `;
 
-const PrimaryButton = styled.button`
-    flex: 1;
+/** ✅ Use ThemeButton for primary action */
+const PrimaryButton = styled(ThemeButton)`
     min-width: 120px;
+    width: auto;
+    flex: 1;
     border-radius: 999px;
-    border: none;
     padding: 0.55rem 0.7rem;
-    background: ${({ theme }) => theme.colors.primary};
-    color: #ffffff;
     font-size: 0.78rem;
-    font-weight: 600;
-    cursor: pointer;
 `;
 
-const SecondaryButton = styled.button`
-    flex: 1;
+/** ✅ Secondary styled from ThemeButton (neutral look, keeps theme hover/disabled behavior) */
+const SecondaryButton = styled(ThemeButton)`
     min-width: 120px;
+    width: auto;
+    flex: 1;
     border-radius: 999px;
-    border: 1px solid rgba(0, 0, 0, 0.15);
     padding: 0.55rem 0.7rem;
+    font-size: 0.78rem;
+
     background: rgba(255, 255, 255, 0.96);
     color: ${({ theme }) => theme.colors.text_primary};
-    font-size: 0.78rem;
-    cursor: pointer;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    box-shadow: ${({ theme }) => theme.colors.card_shadow};
+
+    &:hover {
+        background: rgba(255, 255, 255, 1);
+        transform: translateY(-2px);
+    }
 `;
 
 const PickyPadGrid = styled.div`
@@ -310,14 +319,23 @@ const HAIR_DOT_COUNT = 12;
 export default function TrichGamePage() {
     const router = useRouter();
     const { isAuthenticated } = useAuth();
-    const { startSession, completeSession, fetchSessions, sessions, loading: gameLoading } = useTrichGame();
+    const {
+        startSession,
+        completeSession,
+        fetchSessions,
+        sessions,
+        loading: gameLoading,
+    } = useTrichGame();
 
     const [mode, setMode] = useState<ChallengeMode>("focus_tap");
     const [currentUrge, setCurrentUrge] = useState<number>(3);
     const [points, setPoints] = useState<number>(0);
     const [streak, setStreak] = useState<number>(0);
 
-    const [focusTap, setFocusTap] = useState<FocusTapState>({ taps: 0, target: 30 });
+    const [focusTap, setFocusTap] = useState<FocusTapState>({
+        taps: 0,
+        target: 30,
+    });
 
     const [hairDots, setHairDots] = useState<HairDot[]>(() =>
         Array.from({ length: HAIR_DOT_COUNT }, (_, i) => ({ id: i, plucked: false }))
@@ -338,7 +356,12 @@ export default function TrichGamePage() {
 
     const resetLocalGameState = () => {
         setFocusTap({ taps: 0, target: 30 });
-        setHairDots(Array.from({ length: HAIR_DOT_COUNT }, (_, i) => ({ id: i, plucked: false })));
+        setHairDots(
+            Array.from({ length: HAIR_DOT_COUNT }, (_, i) => ({
+                id: i,
+                plucked: false,
+            }))
+        );
         setPickyMessage(null);
         setActiveSessionId(undefined);
         setPoints(0);
@@ -375,7 +398,9 @@ export default function TrichGamePage() {
         await ensureSession();
 
         setHairDots((prev) => {
-            const next = prev.map((d) => (d.id === dotId ? { ...d, plucked: !d.plucked } : d));
+            const next = prev.map((d) =>
+                d.id === dotId ? { ...d, plucked: !d.plucked } : d
+            );
             const pluckedNow = next.filter((d) => d.plucked).length;
 
             if (pluckedNow === HAIR_DOT_COUNT) {
@@ -407,7 +432,10 @@ export default function TrichGamePage() {
         const score = taps + pluckedCount;
 
         const newStreak = didResist ? streak + 1 : 0;
-        const finalUrge = Math.max(0, didResist ? currentUrge - 2 : currentUrge + 1);
+        const finalUrge = Math.max(
+            0,
+            didResist ? currentUrge - 2 : currentUrge + 1
+        );
 
         await completeSession(id, {
             score,
@@ -448,7 +476,11 @@ export default function TrichGamePage() {
     };
 
     const sessionChartData: SessionPoint[] = useMemo(
-        () => (sessions ?? []).slice().reverse().map((s, idx) => ({ label: `S${idx + 1}`, score: s.score ?? 0 })),
+        () =>
+            (sessions ?? [])
+                .slice()
+                .reverse()
+                .map((s, idx) => ({ label: `S${idx + 1}`, score: s.score ?? 0 })),
         [sessions]
     );
 
@@ -466,7 +498,9 @@ export default function TrichGamePage() {
                         <HeaderTitleGroup>
                             <HeaderTitle>TrichGame — Beat the Urge</HeaderTitle>
                             <HeaderSubtitle>
-                                <p className="p-one">Short, safe micro-challenges that keep your hands busy &</p>
+                                <p className="p-one">
+                                    Short, safe micro-challenges that keep your hands busy &
+                                </p>
                                 <p className="p-two">gently lower your urge meter.</p>
                             </HeaderSubtitle>
                         </HeaderTitleGroup>
@@ -512,20 +546,37 @@ export default function TrichGamePage() {
                         <SectionTitle>Choose a micro-challenge</SectionTitle>
                     </SectionTitleRow>
                     <SectionSub>
-                        Pick a quick task that looks doable right now. Each success is a small win and gently redirects the urge.
+                        Pick a quick task that looks doable right now. Each success is a
+                        small win and gently redirects the urge.
                     </SectionSub>
 
                     <ChallengeList>
-                        <ChallengeChip type="button" $active={mode === "focus_tap"} onClick={() => setMode("focus_tap")}>
+                        <ChallengeChip
+                            type="button"
+                            $active={mode === "focus_tap"}
+                            onClick={() => setMode("focus_tap")}
+                        >
                             Focus Tap
                         </ChallengeChip>
-                        <ChallengeChip type="button" $active={mode === "picky_pad"} onClick={() => setMode("picky_pad")}>
+                        <ChallengeChip
+                            type="button"
+                            $active={mode === "picky_pad"}
+                            onClick={() => setMode("picky_pad")}
+                        >
                             Safe Picky Pad
                         </ChallengeChip>
-                        <ChallengeChip type="button" $active={mode === "grounding"} onClick={() => setMode("grounding")}>
+                        <ChallengeChip
+                            type="button"
+                            $active={mode === "grounding"}
+                            onClick={() => setMode("grounding")}
+                        >
                             5-4-3-2-1 Grounding
                         </ChallengeChip>
-                        <ChallengeChip type="button" $active={mode === "breathing"} onClick={() => setMode("breathing")}>
+                        <ChallengeChip
+                            type="button"
+                            $active={mode === "breathing"}
+                            onClick={() => setMode("breathing")}
+                        >
                             Guided Breathing
                         </ChallengeChip>
                     </ChallengeList>
@@ -544,7 +595,8 @@ export default function TrichGamePage() {
                     {mode === "focus_tap" && (
                         <>
                             <SectionSub>
-                                Tap the button quickly to fill the bar. Imagine each tap sending a tiny “no thanks” to the urge.
+                                Tap the button quickly to fill the bar. Imagine each tap sending
+                                a tiny “no thanks” to the urge.
                             </SectionSub>
                             <SmallLabel>
                                 Taps: {focusTap.taps} / {focusTap.target}
@@ -566,11 +618,13 @@ export default function TrichGamePage() {
                     {mode === "picky_pad" && (
                         <>
                             <SectionSub>
-                                Gently “pluck” the little pads instead of hair. Feel the pop, watch the tuft vanish, and let your hands
-                                get that picky satisfaction in a safe way.
+                                Gently “pluck” the little pads instead of hair. Feel the pop,
+                                watch the tuft vanish, and let your hands get that picky
+                                satisfaction in a safe way.
                             </SectionSub>
                             <SmallLabel>
-                                Plucked dots: {pluckedCount} / {HAIR_DOT_COUNT} · Full pads cleared: {pickyClears}
+                                Plucked dots: {pluckedCount} / {HAIR_DOT_COUNT} · Full pads
+                                cleared: {pickyClears}
                             </SmallLabel>
 
                             <PickyPadGrid>
@@ -596,29 +650,40 @@ export default function TrichGamePage() {
 
                     {mode === "grounding" && (
                         <SectionSub>
-                            Look around and quietly notice: 5 things you can see, 4 you can touch, 3 you can hear, 2 you can smell,
-                            1 you can taste. You can log this as a game even without tapping anything.
+                            Look around and quietly notice: 5 things you can see, 4 you can
+                            touch, 3 you can hear, 2 you can smell, 1 you can taste. You can
+                            log this as a game even without tapping anything.
                         </SectionSub>
                     )}
 
                     {mode === "breathing" && (
                         <SectionSub>
-                            Try a gentle pattern: inhale for 4, hold for 4, exhale for 6. Repeat a few times while watching your urge
-                            number if you’d like.
+                            Try a gentle pattern: inhale for 4, hold for 4, exhale for 6.
+                            Repeat a few times while watching your urge number if you’d like.
                         </SectionSub>
                     )}
 
                     <GameButtonRow style={{ marginTop: "0.9rem" }}>
-                        <SecondaryButton type="button" onClick={() => void finishSession(false)} disabled={gameLoading}>
+                        <SecondaryButton
+                            type="button"
+                            onClick={() => void finishSession(false)}
+                            disabled={gameLoading}
+                        >
                             I gave in (log)
                         </SecondaryButton>
-                        <PrimaryButton type="button" onClick={() => void finishSession(true)} disabled={gameLoading}>
+                        <PrimaryButton
+                            type="button"
+                            onClick={() => void finishSession(true)}
+                            disabled={gameLoading}
+                        >
                             End challenge &amp; log
                         </PrimaryButton>
                     </GameButtonRow>
 
                     {gameLoading && (
-                        <SmallLabel style={{ display: "block", marginTop: "0.4rem" }}>Saving session…</SmallLabel>
+                        <SmallLabel style={{ display: "block", marginTop: "0.4rem" }}>
+                            Saving session…
+                        </SmallLabel>
                     )}
                 </Card>
 
@@ -627,32 +692,49 @@ export default function TrichGamePage() {
                         <SectionTitle>Session Log &amp; Insights</SectionTitle>
                     </SectionTitleRow>
                     <SectionSub>
-                        Each game adds a dot. Higher scores = more taps / safe pad plucks. You can export this to share with a
-                        therapist or keep for yourself.
+                        Each game adds a dot. Higher scores = more taps / safe pad plucks.
+                        You can export this to share with a therapist or keep for yourself.
                     </SectionSub>
 
                     {sessionChartData.length === 0 ? (
-                        <EmptyState>Play a few rounds of TrichGame and your session chart will appear here.</EmptyState>
+                        <EmptyState>
+                            Play a few rounds of TrichGame and your session chart will appear
+                            here.
+                        </EmptyState>
                     ) : (
                         <ChartWrapper>
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={sessionChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                                <LineChart
+                                    data={sessionChartData}
+                                    margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+                                >
                                     <CartesianGrid strokeDasharray="2 2" stroke="#dde" />
                                     <XAxis dataKey="label" tickMargin={4} />
                                     <Tooltip
                                         formatter={(v: number | undefined) => [`${v ?? 0}`, "Score"]}
-                                        labelFormatter={(label: string) => label}
+                                        labelFormatter={(label) => String(label ?? "")}
                                         contentStyle={{ borderRadius: 8, fontSize: "0.75rem" }}
                                         labelStyle={{ fontSize: "0.75rem" }}
                                     />
-                                    <Line type="monotone" dataKey="score" stroke="#00b3c4" strokeWidth={2} dot={{ r: 2 }} isAnimationActive={false} />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="score"
+                                        stroke="#00b3c4"
+                                        strokeWidth={2}
+                                        dot={{ r: 2 }}
+                                        isAnimationActive={false}
+                                    />
                                 </LineChart>
                             </ResponsiveContainer>
                         </ChartWrapper>
                     )}
 
                     <GameButtonRow style={{ marginTop: "0.8rem" }}>
-                        <SecondaryButton type="button" onClick={handleExportLog} disabled={!sessions || sessions.length === 0}>
+                        <SecondaryButton
+                            type="button"
+                            onClick={handleExportLog}
+                            disabled={!sessions || sessions.length === 0}
+                        >
                             Export session log (JSON)
                         </SecondaryButton>
                     </GameButtonRow>
