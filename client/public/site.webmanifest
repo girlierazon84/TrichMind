@@ -1,6 +1,12 @@
 {
-    "name": "TrichMind App Logo",
-    "short_name": "App - Logo",
+    "name": "TrichMind",
+    "short_name": "TrichMind",
+    "description": "Mindful relapse support for trichotillomania.",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#0d6275",
     "icons": [
         {
             "src": "/android-chrome-192x192.png",
@@ -11,9 +17,12 @@
             "src": "/android-chrome-512x512.png",
             "sizes": "512x512",
             "type": "image/png"
+        },
+        {
+            "src": "/maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
         }
-    ],
-    "theme_color": "#ffffff",
-    "background_color": "#ffffff",
-    "display": "standalone"
+    ]
 }
