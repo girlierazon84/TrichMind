@@ -2,12 +2,24 @@
 
 "use client";
 
-import React, { useEffect, useId, useState } from "react";
-import styled, { keyframes } from "styled-components";
+import React, {
+    useEffect,
+    useId,
+    useState,
+} from "react";
+import styled, {
+    keyframes,
+} from "styled-components";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth, useLogger } from "@/hooks";
-import { ThemeButton, FormInput } from "@/components";
+import {
+    useAuth,
+    useLogger,
+} from "@/hooks";
+import {
+    ThemeButton,
+    FormInput,
+} from "@/components";
 import { GlobalStyle } from "@/styles";
 import { AppLogo } from "@/assets/images";
 
@@ -21,8 +33,15 @@ const fadeIn = keyframes`
 `;
 
 const rise = keyframes`
-    from { opacity: 0; transform: translateY(14px) scale(0.99); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
+    from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.99);
+    }
+
+    to   {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    }
 `;
 
 /**------------------------
@@ -37,7 +56,9 @@ const Shell = styled.main`
     animation: ${fadeIn} 0.5s ease-out;
 
     /* mobile safe-area friendly */
-    padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(
+        28px + env(safe-area-inset-bottom, 0px)
+    );
 
     @media (min-width: 768px) {
         align-items: center;
@@ -50,17 +71,32 @@ const Wrap = styled.div`
     max-width: 520px;
 `;
 
-const Card = styled.section<{ $visible: boolean }>`
+const Card = styled.section<{
+    $visible: boolean;
+}>`
     width: 100%;
-    background: ${({ theme }) => theme.colors.card_bg};
+    background: ${({ theme }) => 
+        theme.colors.card_bg};
     border-radius: 22px;
     padding: 16px 14px;
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    box-shadow: ${({ theme }) => theme.colors.card_shadow};
+    border: 1px solid
+        rgba(0, 0, 0, 0.06);
+    box-shadow: ${({ theme }) => 
+        theme.colors.card_shadow};
+
     animation: ${rise} 0.55s ease-out;
-    opacity: ${({ $visible }) => ($visible ? 1 : 0)};
-    transform: ${({ $visible }) => ($visible ? "translateY(0)" : "translateY(10px)")};
-    transition: opacity 0.35s ease, transform 0.35s ease;
+
+    opacity: ${({ $visible }) =>
+        $visible ? 1 : 0};
+
+    transform: ${({ $visible }) =>
+        $visible
+            ? "translateY(0)"
+            : "translateY(10px)"};
+
+    transition:
+        opacity 0.35s ease,
+        transform 0.35s ease;
 
     @media (min-width: 768px) {
         padding: 20px 18px;
@@ -87,7 +123,8 @@ const Title = styled.h1`
     font-size: 1.45rem;
     font-weight: 900;
     text-align: center;
-    color: ${({ theme }) => theme.colors.primary};
+    color: ${({ theme }) =>
+        theme.colors.primary};
 
     @media (min-width: 768px) {
         font-size: 1.6rem;
@@ -99,7 +136,8 @@ const Subtitle = styled.p`
     font-size: 0.92rem;
     line-height: 1.45;
     text-align: center;
-    color: ${({ theme }) => theme.colors.text_secondary};
+    color: ${({ theme }) =>
+        theme.colors.text_secondary};
 `;
 
 const Form = styled.form`
@@ -112,9 +150,16 @@ const Form = styled.form`
 const ErrorBox = styled.div`
     border-radius: 14px;
     padding: 10px 12px;
-    background: rgba(255, 80, 80, 0.08);
-    border: 1px solid rgba(255, 80, 80, 0.22);
-    color: ${({ theme }) => theme.colors.high_risk};
+    background: rgba(
+        255,
+        80,
+        80,
+        0.08
+    );
+    border: 1px solid
+        rgba(255, 80, 80, 0.22);
+    color: ${({ theme }) =>
+        theme.colors.high_risk};
     font-size: 0.9rem;
     font-weight: 700;
 `;
@@ -129,9 +174,14 @@ const StickyBar = styled.div`
     background: linear-gradient(
         to bottom,
         rgba(255, 255, 255, 0),
-        ${({ theme }) => theme.colors.card_bg} 35%
+        ${({ theme }) =>
+                theme.colors.card_bg}
+            35%
     );
-    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+
+    padding-bottom: calc(
+        12px + env(safe-area-inset-bottom, 0px)
+    );
 
     @media (min-width: 820px) {
         position: static;
@@ -140,7 +190,9 @@ const StickyBar = styled.div`
     }
 `;
 
-const FullWidthButton = styled(ThemeButton)`
+const FullWidthButton = styled(
+    ThemeButton
+)`
     width: 100%;
 `;
 
@@ -148,15 +200,18 @@ const FooterText = styled.p`
     margin: 10px 0 0;
     font-size: 0.9rem;
     text-align: center;
-    color: ${({ theme }) => theme.colors.text_secondary};
+    color: ${({ theme }) =>
+        theme.colors.text_secondary};
 
     a {
-        color: ${({ theme }) => theme.colors.primary};
+        color: ${({ theme }) =>
+            theme.colors.primary};
         font-weight: 800;
         text-decoration: none;
 
         &:hover {
-            color: ${({ theme }) => theme.colors.fifthly};
+            color: ${({ theme }) =>
+                theme.colors.fifthly};
         }
     }
 `;
@@ -178,28 +233,48 @@ const EyeButton = styled.button`
     right: 10px;
     top: 55%;
     transform: translateY(-50%);
+
     height: 32px;
     width: 32px;
+
     border: none;
     border-radius: 10px;
     background: transparent;
+
     cursor: pointer;
+
     display: grid;
     place-items: center;
-    color: ${({ theme }) => theme.colors.text_secondary};
+
+    color: ${({ theme }) =>
+        theme.colors.text_secondary};
 
     &:hover {
-        background: rgba(0, 0, 0, 0.05);
-        color: ${({ theme }) => theme.colors.text_primary};
+        background: rgba(
+            0,
+            0,
+            0,
+            0.05
+        );
+
+        color: ${({ theme }) =>
+            theme.colors.text_primary};
     }
 
     &:focus-visible {
-        outline: 2px solid ${({ theme }) => theme.colors.primary};
+        outline: 2px solid
+            ${({ theme }) =>
+                theme.colors.primary};
+
         outline-offset: 2px;
     }
 `;
 
-function EyeIcon({ off }: { off?: boolean }) {
+function EyeIcon({
+    off,
+}: {
+    off?: boolean;
+}) {
     return off ? (
         <svg
             width="18"
@@ -231,7 +306,11 @@ function EyeIcon({ off }: { off?: boolean }) {
             strokeLinejoin="round"
         >
             <path d="M2 12s3-8 10-8 10 8 10 8-3 8-10 8-10-8-10-8Z" />
-            <circle cx="12" cy="12" r="3" />
+            <circle
+                cx="12"
+                cy="12"
+                r="3"
+            />
         </svg>
     );
 }
@@ -240,47 +319,120 @@ type Props = {
     redirectTo: string;
 };
 
-export default function LoginClient({ redirectTo }: Props) {
+export default function LoginClient({
+    redirectTo,
+}: Props) {
     const router = useRouter();
 
-    const { user, login, loading } = useAuth();
-    const { log, error: logError } = useLogger();
+    const {
+        status,
+        login,
+        loading,
+    } = useAuth();
 
-    const [cardVisible, setCardVisible] = useState(false);
+    const {
+        log,
+        error: logError,
+    } = useLogger();
 
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+    const [cardVisible, setCardVisible] =
+        useState(false);
 
-    const [showPassword, setShowPassword] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [email, setEmail] =
+        useState("");
+
+    const [password, setPassword] =
+        useState("");
+
+    const [
+        showPassword,
+        setShowPassword,
+    ] = useState(false);
+
+    const [error, setError] =
+        useState<string | null>(null);
 
     const errorId = useId();
 
+    /**-----------------------
+        Entrance animation
+    --------------------------*/
     useEffect(() => {
-        const t = window.setTimeout(() => setCardVisible(true), 50);
-        return () => window.clearTimeout(t);
+        const timer =
+            window.setTimeout(
+                () =>
+                    setCardVisible(true),
+                50
+            );
+
+        return () =>
+            window.clearTimeout(timer);
     }, []);
 
+    /**--------------------------------------------------------------
+        Navigate only AFTER the provider confirms authentication.
+    -----------------------------------------------------------------*/
     useEffect(() => {
-        if (user) router.replace(redirectTo);
-    }, [user, router, redirectTo]);
+        if (
+            status === "authenticated"
+        ) {
+            router.replace(redirectTo);
+        }
+    }, [
+        status,
+        redirectTo,
+        router,
+    ]);
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    /**-------------------------------------------------------------------------------------------------
+        Login form submission handler.
+        Trims the email, calls the login function, and handles success or error states.
+        On success, logs the event and redirects; on error, sets the error state and logs the error.
+    ----------------------------------------------------------------------------------------------------*/
+    const handleSubmit = async (
+        e: React.FormEvent<HTMLFormElement>
+    ) => {
         e.preventDefault();
         setError(null);
 
-        const cleanEmail = email.trim();
+        const cleanEmail =
+            email.trim();
 
         try {
-            const result = await login({ email: cleanEmail, password });
-            if (result?.token) {
-                await log("User logged in", { email: cleanEmail });
-                router.replace(redirectTo);
-            }
+            await login({
+                email: cleanEmail,
+                password,
+            });
+
+            /**----------------------------------------------------------------------------------
+                Logging should never block navigation.
+                AuthProvider changing status to "authenticated" triggers the redirect effect.
+            -------------------------------------------------------------------------------------*/
+            void Promise.resolve(
+                log(
+                    "User logged in",
+                    {
+                        email: cleanEmail
+                    }
+                )
+            ).catch(() => undefined);
         } catch (err) {
-            const msg = err instanceof Error ? err.message : "Login failed.";
-            setError(msg);
-            await logError("Login failed", { email: cleanEmail, error: msg });
+            const message =
+                err instanceof Error
+                    ? err.message
+                    : "Login failed.";
+
+            setError(message);
+
+            void Promise.resolve (
+                logError(
+                    "Login failed",
+                    {
+                        email: cleanEmail,
+                        error: message,
+                    }
+                )
+            ).catch(() => undefined);
         }
     };
 
@@ -290,59 +442,143 @@ export default function LoginClient({ redirectTo }: Props) {
 
             <Shell>
                 <Wrap>
-                    <Card $visible={cardVisible} aria-label="Login">
+                    <Card
+                        $visible={
+                            cardVisible
+                        }
+                        aria-label="Login"
+                    >
                         <Top>
-                            <Logo src={AppLogo.src} alt="TrichMind Logo" />
-                            <Title>Welcome back</Title>
-                            <Subtitle>Your calm recovery journey continues here 🌱</Subtitle>
+                            <Logo
+                                src={
+                                    AppLogo.src
+                                }
+                                alt="TrichMind Logo"
+                            />
+
+                            <Title>
+                                Welcome back
+                            </Title>
+
+                            <Subtitle>
+                                Your calm recovery journey continues here 🌱
+                            </Subtitle>
                         </Top>
 
-                        <Form onSubmit={handleSubmit}>
+                        <Form
+                            onSubmit={
+                                handleSubmit
+                            }
+                        >
                             <FormInput
                                 label="Email"
                                 type="email"
                                 name="email"
-                                value={email}
+                                value={
+                                    email
+                                }
                                 autoComplete="email"
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+                                onChange={(
+                                    e: React.ChangeEvent<HTMLInputElement>
+                                ) =>
+                                    setEmail(
+                                        e
+                                            .target
+                                            .value
+                                    )
+                                }
                                 required
                             />
 
                             <PasswordField>
                                 <FormInput
                                     label="Password"
-                                    type={showPassword ? "text" : "password"}
+                                    type={
+                                        showPassword
+                                        ? "text"
+                                        : "password"
+                                    }
                                     name="password"
-                                    value={password}
+                                    value={
+                                        password
+                                    }
                                     autoComplete="current-password"
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+                                    onChange={(
+                                        e: React.ChangeEvent<HTMLInputElement>
+                                    ) =>
+                                        setPassword(
+                                            e
+                                                .target
+                                                .value
+                                        )
+                                    }
                                     required
-                                    aria-describedby={error ? errorId : undefined}
+                                    aria-describedby={
+                                        error
+                                        ? errorId
+                                        : undefined
+                                    }
                                 />
 
                                 <EyeButton
                                     type="button"
-                                    onClick={() => setShowPassword((v) => !v)}
-                                    aria-label={showPassword ? "Hide password" : "Show password"}
-                                    title={showPassword ? "Hide password" : "Show password"}
+                                    onClick={() =>
+                                        setShowPassword(
+                                            (
+                                                value
+                                            ) =>
+                                                !value
+                                        )
+                                    }
+                                    aria-label={
+                                        showPassword
+                                        ? "Hide password"
+                                        : "Show password"
+                                    }
+                                    title={
+                                        showPassword
+                                        ? "Hide password"
+                                        : "Show password"
+                                    }
                                 >
-                                    <EyeIcon off={showPassword} />
+                                    <EyeIcon
+                                        off={
+                                            showPassword
+                                        }
+                                    />
                                 </EyeButton>
                             </PasswordField>
 
                             {error && (
-                                <ErrorBox role="alert" id={errorId}>
-                                    {error}
+                                <ErrorBox
+                                    role="alert"
+                                    id={
+                                        errorId
+                                    }
+                                >
+                                    {
+                                    error
+                                    }
                                 </ErrorBox>
                             )}
 
                             <StickyBar>
-                                <FullWidthButton type="submit" disabled={loading}>
-                                    {loading ? "Signing in…" : "Log in"}
+                                <FullWidthButton
+                                    type="submit"
+                                    disabled={
+                                        loading
+                                    }
+                                >
+                                    {loading
+                                        ? "Signing in…"
+                                        : "Log in"}
                                 </FullWidthButton>
 
                                 <FooterText>
-                                    Don’t have an account? <Link href="/register">Sign up</Link>
+                                    Don’t have an account?{" "}
+                                    <Link href="/register">
+                                        Sign up
+                                    </Link>
                                 </FooterText>
                             </StickyBar>
                         </Form>
