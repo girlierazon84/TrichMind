@@ -66,12 +66,14 @@ export const AuthContext =
     );
 
 /**-------------------------
-    LocalStorage helpers
+    localStorage helpers
 ----------------------------*/
 function safeGet(
     key: string
 ): string | null {
-    if (typeof window === "undefined") {
+    if (
+        typeof window === "undefined"
+    ) {
         return null;
     }
 
@@ -88,7 +90,9 @@ function safeSet(
     key: string,
     value: string
 ): void {
-    if (typeof window === "undefined") {
+    if (
+        typeof window === "undefined"
+    ) {
         return;
     }
 
@@ -105,7 +109,9 @@ function safeSet(
 function safeRemove(
     key: string
 ): void {
-    if (typeof window === "undefined") {
+    if (
+        typeof window === "undefined"
+    ) {
         return;
     }
 
@@ -123,7 +129,10 @@ function safeRemove(
 ----------------------------------*/
 function isRecord(
     value: unknown
-): value is Record<string, unknown> {
+): value is Record<
+    string,
+    unknown
+> {
     return (
         typeof value === "object" &&
         value !== null
@@ -143,9 +152,10 @@ type UserWire =
 function normalizeUser(
     raw: unknown
 ): AuthUser {
-    const obj = isRecord(raw)
-        ? raw
-        : {};
+    const obj =
+        isRecord(raw)
+            ? raw
+            : {};
 
     const maybeUser = (
         isRecord(obj.user)
@@ -210,21 +220,28 @@ export function AuthProvider({
     children: React.ReactNode;
 }) {
     const [status, setStatus] =
-        useState<AuthStatus>("hydrating");
+        useState<AuthStatus>(
+            "hydrating"
+        );
 
     const [user, setUser] =
-        useState<AuthUser | null>(null);
+        useState<AuthUser | null>(
+            null
+        );
 
     const [token, setToken] =
-        useState<string | null>(null);
+        useState<string | null>(
+            null
+        );
 
     const [loading, setLoading] =
         useState(false);
 
-    /**----------------------------------------------------------------------------
-        Prevent stale hydration requests from overwriting a newer login/logout.
-    -------------------------------------------------------------------------------*/
-    const authVersionRef = useRef(0);
+    /**---------------------------------------------------------------------
+        Prevent stale hydration requests from overwriting a newer login.
+    ------------------------------------------------------------------------*/
+    const authVersionRef =
+        useRef(0);
 
     /**-------------------------------------------
         Prevent repeated invalid-session logs.
@@ -232,8 +249,11 @@ export function AuthProvider({
     const didLogInvalidRef =
         useRef(false);
 
-    const setAuthHeader = useCallback(
-        (jwt: string | null) => {
+    const setAuthHeader =
+        useCallback(
+            (
+                jwt: string | null
+            ) => {
             if (jwt) {
                 axiosClient.defaults.headers.common.Authorization =
                     `Bearer ${jwt}`;
@@ -248,22 +268,33 @@ export function AuthProvider({
         []
     );
 
-    const persistUser = useCallback(
-        (nextUser: AuthUser) => {
-            setUser(nextUser);
+    const saveUser =
+        useCallback(
+            (
+                nextUser: AuthUser
+            ) => {
+                setUser(nextUser);
 
-            safeSet(
-                "user",
-                JSON.stringify(nextUser)
+                safeSet(
+                    "user",
+                    JSON.stringify(
+                        nextUser
+                    )
+                );
+            },
+            []
+        );
+
+    const clearAuth =
+        useCallback(() => {
+            safeRemove(
+                "access_token"
             );
-        },
-        []
-    );
 
-    const clearAuth = useCallback(
-        () => {
-            safeRemove("access_token");
-            safeRemove("refresh_token");
+            safeRemove(
+                "refresh_token"
+            );
+
             safeRemove("user");
 
             setUser(null);
@@ -278,197 +309,261 @@ export function AuthProvider({
         [setAuthHeader]
     );
 
-    const storeAuth = useCallback(
-        (
-            res: AuthResponse
-        ): AuthUser => {
-            const normalized =
-                normalizeUser(res.user);
-
-            safeSet(
-                "access_token",
-                res.token
-            );
-
-            if (res.refreshToken) {
-                safeSet(
-                    "refresh_token",
-                    res.refreshToken
-                );
-            }
-
-            setAuthHeader(res.token);
-            setToken(res.token);
-
-            persistUser(normalized);
-
-            setStatus(
-                "authenticated"
-            );
-
-            didLogInvalidRef.current =
-                false;
-
-            return normalized;
-        },
-        [
-            persistUser,
-            setAuthHeader,
-        ]
-    );
-
-    /**------------------------------------------
-        Retrieves the complete user profile.
-        The profile endpoint contains fields
-        that may not be included in the login
-        response, including avatarurl.
-    ---------------------------------------------*/
-    const loadFullProfile =
-        useCallback(async (): Promise<AuthUser | null> => {
-            try {
-                const raw: unknown =
-                    await userApi.getProfile();
-
+    /**-------------------------------------------------
+        Store credentials first so authenticated
+        profile endpoints can immediately be called.
+    ----------------------------------------------------*/
+    const storeCredentials =
+        useCallback(
+            (
+                res: AuthResponse
+            ): AuthUser => {
                 const normalized =
-                    normalizeUser(raw);
+                    normalizeUser(
+                        res.user
+                    );
 
-                if (
-                    !normalized.id ||
-                    !normalized.email
-                ) {
-                    return null;
-                }
-
-                persistUser(normalized);
-
-                return normalized;
-            } catch {
-                return null;
-            }
-        }, [persistUser]);
-
-    /**----------------------
-        Initial hydration
-    -------------------------*/
-    const hydrate =
-        useCallback(async () => {
-            const hydrationVersion =
-                authVersionRef.current;
-
-            const storedToken =
-                safeGet("access_token");
-
-            const storedUser =
-                safeGet("user");
-
-            if (!storedToken) {
-                setUser(null);
-                setToken(null);
-
-                setAuthHeader(null);
-
-                setStatus(
-                    "unauthenticated"
+                safeSet(
+                    "access_token",
+                    res.token
                 );
 
-                return;
-            }
-
-            setToken(storedToken);
-            setAuthHeader(storedToken);
-
-            if (storedUser) {
-                try {
-                    const parsed =
-                        JSON.parse(
-                            storedUser
-                        ) as AuthUser;
-
-                    setUser(parsed);
-                } catch {
-                    safeRemove("user");
-                }
-            }
-
-            try {
-                const meUser =
-                    await authApi.me();
-
                 if (
-                    hydrationVersion !==
-                    authVersionRef.current
+                    res.refreshToken
                 ) {
-                    return;
+                    safeSet(
+                        "refresh_token",
+                        res.refreshToken
+                    );
                 }
 
-                /**------------------------------------------------
-                    /auth/me is enough to validate the session.
-                ---------------------------------------------------*/
-                persistUser(
-                    normalizeUser(meUser)
+                setAuthHeader(
+                    res.token
                 );
 
-                setStatus(
-                    "authenticated"
+                setToken(
+                    res.token
+                );
+
+                saveUser(
+                    normalized
                 );
 
                 didLogInvalidRef.current =
                     false;
 
-                /**--------------------------------------------------------------------------------------
-                    Then fetch the complete profile so avatarUrl and profile fields are synchronized.
-                -----------------------------------------------------------------------------------------*/
-                await loadFullProfile();
-            } catch (err: unknown) {
-                if(
-                    hydrationVersion !==
-                    authVersionRef.current
+                return normalized;
+            },
+            [
+                saveUser,
+                setAuthHeader,
+            ]
+        );
+
+    /**----------------------------------------------
+        Fetch the canonical profile.
+        This ensures fields such as avatarUrl are
+        present even when the login response only
+        returns basic authentication information.
+    -------------------------------------------------*/
+    const syncFullProfile =
+        useCallback(
+            async (): Promise<
+                AuthUser | null
+            > => {
+                try {
+                    const response =
+                        await userApi.getProfile();
+
+                    if (
+                        !response.ok
+                    ) {
+                        return null;
+                    }
+
+                    const normalized =
+                        normalizeUser(
+                            response.user
+                        );
+
+                    if (
+                        !normalized.id ||
+                        !normalized.email
+                    ) {
+                        return null;
+                    }
+
+                    saveUser(
+                        normalized
+                    );
+
+                    return normalized;
+                } catch {
+                    return null;
+                    }
+            },
+            [saveUser]
+        );
+
+    /**----------------------
+        Session hydration
+    -------------------------*/
+    const hydrate =
+        useCallback(
+            async () => {
+                const hydrationVersion =
+                    authVersionRef.current;
+
+                const storedToken =
+                    safeGet(
+                        "access_token"
+                    );
+
+                const storedUser =
+                    safeGet(
+                        "user"
+                    );
+
+                if (
+                    !storedToken
                 ) {
+                    setUser(null);
+                    setToken(null);
+
+                    setAuthHeader(
+                        null
+                    );
+
+                    setStatus(
+                        "unauthenticated"
+                    );
+
                     return;
                 }
 
-                if(
-                    !didLogInvalidRef.current
+                setToken(
+                    storedToken
+                );
+
+                setAuthHeader(
+                    storedToken
+                );
+
+                if (
+                    storedUser
                 ) {
-                    didLogInvalidRef.current =
-                        true;
+                    try {
+                        const parsed =
+                            JSON.parse(
+                                storedUser
+                            ) as AuthUser;
 
-                    const axiosErr =
-                        err as AxiosError<{
-                            message?: string;
-                            error?: string;
-                        }>;
-
-                    const message =
-                        axiosErr.response
-                            ?.data
-                            ?.message ||
-                        axiosErr.response
-                            ?.data
-                            ?.error ||
-                        (
-                            err instanceof
-                            Error
-                                ? err.message
-                                : "Auth failed"
+                        setUser(
+                            parsed
                         );
-
-                    void loggerApi.warn(
-                        "Auth session invalid - clearing session",
-                        { message }
-                    );
+                    } catch {
+                        safeRemove(
+                            "user"
+                        );
+                    }
                 }
 
-                clearAuth();
-            }
-        },
-        [
-            clearAuth,
-            loadFullProfile,
-            persistUser,
-            setAuthHeader,
-        ]
-    );
+                try {
+                    const meUser =
+                        await authApi.me();
+
+                    if (
+                        hydrationVersion !==
+                        authVersionRef.current
+                    ) {
+                        return;
+                    }
+
+                    const normalized =
+                        normalizeUser(
+                            meUser
+                        );
+
+                    saveUser(
+                        normalized
+                    );
+
+                    /**-------------------------------------------------
+                        Pull full profile to make sure avatarUrl and
+                        other profile fields are current.
+                    ----------------------------------------------------*/
+                    await syncFullProfile();
+
+                    if (
+                        hydrationVersion !==
+                        authVersionRef.current
+                    ) {
+                        return;
+                    }
+
+                    setStatus(
+                        "authenticated"
+                    );
+
+                    didLogInvalidRef.current =
+                        false;
+
+                } catch (
+                    err: unknown
+                ) {
+                    if(
+                        hydrationVersion !==
+                        authVersionRef.current
+                    ) {
+                        return;
+                    }
+
+                    if(
+                        !didLogInvalidRef.current
+                    ) {
+                        didLogInvalidRef.current =
+                            true;
+
+                        const axiosErr =
+                            err as AxiosError<{
+                                message?: string;
+                                error?: string;
+                            }>;
+
+                        const message =
+                            axiosErr
+                                .response
+                                ?.data
+                                ?.message ||
+                            axiosErr
+                                .response
+                                ?.data
+                                ?.error ||
+                            (
+                                err instanceof
+                                Error
+                                    ? err.message
+                                    : "Auth failed"
+                            );
+
+                        void loggerApi.warn(
+                            "Auth session invalid - clearing session",
+                            {
+                                message,
+                            }
+                        );
+                    }
+
+                    clearAuth();
+                }
+            },
+            [
+                clearAuth,
+                saveUser,
+                setAuthHeader,
+                syncFullProfile,
+            ]
+        );
 
     useEffect(() => {
         void hydrate();
@@ -478,174 +573,202 @@ export function AuthProvider({
         Login function that calls the auth API and stores the returned token and user information.
         It also sets the loading state while the request is in progress.
     --------------------------------------------------------------------------------------------------*/
-    const login = useCallback(
-        async (
-            data: LoginData
-        ): Promise<AuthResponse> => {
-            /**---------------------------------------------
-                Invalidates any older hydration request.
-            ------------------------------------------------*/
-            const operationVersion =
-                ++authVersionRef.current;
+    const login =
+        useCallback(
+            async (
+                data: LoginData
+            ): Promise<AuthResponse> => {
+                const operationVersion =
+                    ++authVersionRef.current;
 
-            setLoading(true);
+                setLoading(true);
 
-            try {
-                const res =
-                    await authApi.login(
-                        data
+                try {
+                    const res =
+                        await authApi.login(
+                            data
+                        );
+
+                    if (
+                        operationVersion !==
+                        authVersionRef.current
+                    ) {
+                        return res;
+                    }
+
+                    /**----------------------------------------------------------
+                        First store token so /users/profile can authenticate.
+                    -------------------------------------------------------------*/
+                    storeCredentials(
+                        res
                     );
 
-                /**---------------------------------------------------------------------
-                    Ignore only if another newer auth operation replaced this login.
-                ------------------------------------------------------------------------*/
-                if (
-                    operationVersion !==
-                    authVersionRef.current
-                ) {
-                    return res;
-                }
+                    /**---------------------------------------------------------------------------
+                        Get authoritative user profile before announcing authenticated status.
+                    ------------------------------------------------------------------------------*/
+                    await syncFullProfile();
 
-                /**------------------------------------------------------
-                    Immediately establish the authenticated sessiion.
-                ---------------------------------------------------------*/
-                storeAuth(res);
+                    if (
+                        operationVersion !==
+                        authVersionRef.current
+                    ) {
+                        return res;
+                    }
 
-                /**-------------------------------------------------------------------
-                    Fetch complete profile after token/header have been stored.
-                    This ensures avatarUrl is available before/while Home renders.
-                ----------------------------------------------------------------------*/
-                await loadFullProfile();
-
-                return res;
-            } catch (err) {
-                if (
-                    operationVersion ===
-                    authVersionRef.current
-                ) {
                     setStatus(
-                        "unauthenticated"
+                        "authenticated"
                     );
-                }
 
-                throw err;
-            } finally {
-                /**------------------------------------
-                    FIX: This must be ===, not !==.
-                ---------------------------------------*/
-                if (
-                    operationVersion ===
-                    authVersionRef.current
-                ) {
-                    setLoading(false);
+                    return res;
+                } catch (err) {
+                    if (
+                        operationVersion ===
+                        authVersionRef.current
+                    ) {
+                        setStatus(
+                            "unauthenticated"
+                        );
+                    }
+
+                    throw err;
+                } finally {
+                    /**-----------------------------------------------
+                        Important: normal operation uses === here.
+                    --------------------------------------------------*/
+                    if (
+                        operationVersion ===
+                        authVersionRef.current
+                    ) {
+                        setLoading(
+                            false
+                        );
+                    }
                 }
-            }
-        },
-        [
-            loadFullProfile,
-            storeAuth,
-        ]
-    );
+            },
+            [
+                storeCredentials,
+                syncFullProfile,
+            ]
+        );
 
     /**-------------------------------------------------------------------------------------------------------------------------------
         Register function that calls the auth API to create a new user account and stores the returned token and user information.
         It also sets the loading state while the request is in progress.
     ----------------------------------------------------------------------------------------------------------------------------------*/
-    const register = useCallback(
-        async (
-            data: RegisterData
-        ): Promise<AuthResponse> => {
-            const operationVersion =
-                ++authVersionRef.current;
+    const register =
+        useCallback(
+            async (
+                data: RegisterData
+            ): Promise<AuthResponse> => {
+                const operationVersion =
+                    ++authVersionRef.current;
 
-            setLoading(true);
+                setLoading(true);
 
-            try {
-                const res =
-                    await authApi.register(
-                        data
+                try {
+                    const res =
+                        await authApi.register(
+                            data
+                        );
+
+                    if (
+                        operationVersion !==
+                        authVersionRef.current
+                    ) {
+                        return res;
+                    }
+
+                    storeCredentials(
+                        res
                     );
 
-                if (
-                    operationVersion !==
-                    authVersionRef.current
-                ) {
-                    return res;
-                }
+                    await syncFullProfile();
 
-                storeAuth(res);
+                    if (
+                        operationVersion !==
+                        authVersionRef.current
+                    ) {
+                        return res;
+                    }
 
-                await loadFullProfile();
-
-                return res;
-            } catch (err) {
-                if (
-                    operationVersion ===
-                    authVersionRef.current
-                ) {
                     setStatus(
-                        "unauthenticated"
-                    );
-                }
+                        "authenticated"
+                    )
 
-                throw err;
-            } finally {
-                if (
-                    operationVersion ===
-                    authVersionRef.current
-                ) {
-                    setLoading(false);
+                    return res;
+                } catch (err) {
+                    if (
+                        operationVersion ===
+                        authVersionRef.current
+                    ) {
+                        setStatus(
+                            "unauthenticated"
+                        );
+                    }
+
+                    throw err;
+                } finally {
+                    if (
+                        operationVersion ===
+                        authVersionRef.current
+                    ) {
+                        setLoading(
+                            false
+                        );
+                    }
                 }
-            }
-        },
-        [
-            loadFullProfile,
-            storeAuth,
-        ]
-    );
+            },
+            [
+                storeCredentials,
+                syncFullProfile,
+            ]
+        );
 
     /**--------------------------------------------------------------------------------
         Logout function that clears the authentication state and logs the user out.
     -----------------------------------------------------------------------------------*/
-    const logout = useCallback(() => {
-        /**----------------------------------------
-            Invalidate in-flight auth requests.
-        -------------------------------------------*/
-        authVersionRef.current += 1;
+    const logout =
+        useCallback(() => {
+            authVersionRef.current +=
+                1;
 
-        void loggerApi.log({
-            level: "info",
-            category: "auth",
-            message: "User logged out",
-        });
+            void loggerApi.log({
+                level: "info",
+                category: "auth",
+                message: "User logged out",
+            });
 
-        clearAuth();
+            clearAuth();
 
-        setLoading(false);
-    }, [clearAuth]);
+            setLoading(false);
+        }, [clearAuth]);
 
     /**-----------------------------------------------------------------------------------------------------------
         Refresh profile function that fetches the latest user profile from the API and updates the user state.
         It does nothing if there is no token available.
     --------------------------------------------------------------------------------------------------------------*/
     const refreshUser =
-        useCallback(async () => {
-            const activeToken =
-                token ??
-                safeGet(
-                    "access_token"
-                );
+        useCallback(
+            async () => {
+                const activeToken =
+                    token ??
+                    safeGet(
+                        "access_token"
+                    );
 
-            if (!activeToken) {
-                return;
-            }
+                if (
+                    !activeToken
+                ) {
+                    return;
+                }
 
-            await loadFullProfile();
-
-        }, [
-            token,
-            loadFullProfile,
-        ]);
+                await syncFullProfile();
+            },
+            [
+                token,
+                syncFullProfile,
+            ]
+        );
 
     /**--------------------------------------------------------------------------------------------------------------------
         Context value memoization to prevent unnecessary re-renders of consumers when the context value hasn't changed.
