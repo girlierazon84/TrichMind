@@ -24,6 +24,7 @@ const AvatarButton = styled.button`
         outline: 2px solid
             ${({ theme }) =>
                 theme.colors.primary};
+
         outline-offset: 3px;
     }
 `;
@@ -62,7 +63,9 @@ export default function HeaderAvatar({
         AuthProvider is the single source of truth for the user's avatar.
     -------------------------------------------------------------------------*/
     const src =
-        toImgSrc(user?.avatarUrl) ||
+        toImgSrc(
+            user?.avatarUrl
+        ) ||
         toImgSrc(UserIcon);
 
     return (
@@ -70,6 +73,7 @@ export default function HeaderAvatar({
             type="button"
             onClick={onClick}
             aria-label="Open profile"
+            title="Open profile"
         >
             <AvatarImg
                 src={src}
