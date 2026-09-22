@@ -7,60 +7,12 @@ import Image from "next/image";
 import styled, { css, keyframes } from "styled-components";
 import { useRouter } from "next/navigation";
 import { useAuth, useCopingStrategies } from "@/hooks";
-import { axiosClient, authApi } from "@/services";
+import { authApi, userApi } from "@/services";
 import { ThemeButton, FormInput } from "@/components";
 import { BackIcon, UserIcon } from "@/assets/icons";
 import { toImgSrc } from "@/utils";
+import Response from 'express';
 
-
-/**-----------------
-    Avatar cache
--------------------*/
-type AvatarCache = {
-    email: string;
-    avatarUrl: string;
-    updatedAt: number;
-};
-
-const AVATAR_CACHE_KEY = "tm_avatar_cache_v1";
-
-function safeGetAvatarCache(): AvatarCache | null {
-    if (typeof window === "undefined") return null;
-    try {
-        const raw = window.localStorage.getItem(AVATAR_CACHE_KEY);
-        if (!raw) return null;
-
-        const parsed: unknown = JSON.parse(raw);
-        if (!parsed || typeof parsed !== "object") return null;
-
-        const obj = parsed as Partial<AvatarCache>;
-        if (typeof obj.email !== "string") return null;
-        if (typeof obj.avatarUrl !== "string") return null;
-        if (typeof obj.updatedAt !== "number") return null;
-
-        return { email: obj.email, avatarUrl: obj.avatarUrl, updatedAt: obj.updatedAt };
-    } catch {
-        return null;
-    }
-}
-
-function safeSetAvatarCache(cache: AvatarCache) {
-    if (typeof window === "undefined") return;
-    try {
-        window.localStorage.setItem(AVATAR_CACHE_KEY, JSON.stringify(cache));
-    } catch {
-        // ignore
-    }
-}
-
-function safeClearAvatarCache() {
-    if (typeof window === "undefined") return;
-    try {
-        window.localStorage.removeItem(AVATAR_CACHE_KEY);
-    } catch {
-        // ignore
-    }
-}
 
 /**---------------
     Animations
@@ -482,12 +434,14 @@ export default function ProfilePage() {
     const [saving, setSaving] = useState(false);
 
     // ✅ Fix: keep avatar visible across re-login via localStorage cache (scoped by email)
-    const [avatarPreview, setAvatarPreview] = useState<string>(() => {
-        const cached = safeGetAvatarCache();
-        const email = user?.email;
-        if (cached && email && cached.email === email && cached.avatarUrl) return cached.avatarUrl;
-        return user?.avatarUrl || toImgSrc(UserIcon);
-    });
+    const [
+        avatarPreview,
+        setAvatarPreview
+    ] = useState<string>(
+        () =>
+            user?.avatarUrl ||
+            toImgSrc(UserIcon)
+    );
 
     const [avatarSource, setAvatarSource] = useState<HTMLImageElement | null>(null);
 
@@ -518,7 +472,10 @@ export default function ProfilePage() {
 
     useEffect(() => {
         if (!isAuthenticated) {
-            router.replace("/login?next=/profile");
+            router.replace(
+                "/login?next=/profile"
+            );
+
             return;
         }
 
@@ -526,37 +483,53 @@ export default function ProfilePage() {
 
         const load = async () => {
             setLoading(true);
-            try {
-                const res = await axiosClient.get<{ ok: boolean; user: ExtendedUser }>("/auth/me");
-                if (cancelled) return;
 
-                const u = res.data.user;
+            try {
+                const response =
+                    await userApi.getProfile();
+
+                if (
+                    cancelled ||
+                    !response.ok
+                ) {
+                    return;
+                }
+
+                const u =
+                    response.user as ExtendedUser;
+
                 setProfile(u);
                 setInitialProfile(u);
 
-                const nextAvatar = u.avatarUrl || toImgSrc(UserIcon);
-                setAvatarPreview(nextAvatar);
+                setAvatarPreview(
+                    u.avatarUrl ||
+                        user?.avatarUrl ||
+                        toImgSrc(UserIcon)
+                );
 
-                // ✅ cache avatar so it survives re-login even if auth payload misses avatarUrl
-                if (u.email && u.avatarUrl) {
-                    safeSetAvatarCache({ email: u.email, avatarUrl: u.avatarUrl, updatedAt: Date.now() });
-                } else if (u.email && !u.avatarUrl) {
-                    // if user removed avatar, clear cached value for safety
-                    const cached = safeGetAvatarCache();
-                    if (cached?.email === u.email) safeClearAvatarCache();
-                }
+                setFromBackendRef.current(
+                    u.coping_worked,
+                    u.coping_not_worked
+                );
 
-                setFromBackendRef.current(u.coping_worked, u.coping_not_worked);
             } finally {
-                if (!cancelled) setLoading(false);
+                if (!cancelled) {
+                    setLoading(false);
+                }
             }
         };
 
         void load();
+
         return () => {
             cancelled = true;
         };
-    }, [isAuthenticated, router]);
+
+    }, [
+        isAuthenticated,
+        router,
+        user?.avatarUrl,
+    ]);
 
     const hasChanges = useMemo(() => {
         if (!profile || !initialProfile) return false;
@@ -669,36 +642,69 @@ export default function ProfilePage() {
         closeCropper();
     }, [avatarSource, zoom, closeCropper]);
 
-    const handleSave = useCallback(async () => {
-        if (!profile) return;
+    const handleSave =
+        useCallback(async () => {
+            if (!profile) return;
 
-        setSaving(true);
-        try {
-            const payload: ExtendedUser & { coping_worked: string[]; coping_not_worked: string[] } = {
-                ...profile,
-                coping_worked: copingWorked,
-                coping_not_worked: copingNotWorked,
-            };
+            setSaving(true);
 
-            const res = await axiosClient.patch<{ ok: boolean; user: ExtendedUser }>("/users/profile", payload);
+            try {
+                const payload = {
+                    ...profile,
 
-            const updated = res.data.user;
-            setProfile(updated);
-            setInitialProfile(updated);
+                    coping_worked:
+                        copingWorked,
 
-            // ✅ cache saved avatar for the next login
-            if (updated.email && updated.avatarUrl) {
-                safeSetAvatarCache({ email: updated.email, avatarUrl: updated.avatarUrl, updatedAt: Date.now() });
-            } else if (updated.email && !updated.avatarUrl) {
-                const cached = safeGetAvatarCache();
-                if (cached?.email === updated.email) safeClearAvatarCache();
+                    coping_not_worked:
+                        copingNotWorked,
+                };
+
+            const response =
+                await userApi.updateProfile(
+                    payload
+                );
+
+            if (!response.ok) {
+                throw new Error(
+                    response.message ||
+                        response.error ||
+                        "Unable to save profile."
+                );
             }
 
+            const updated =
+                response.user as ExtendedUser;
+
+            setProfile(
+                updated
+            );
+
+            setInitialProfile(
+                updated
+            );
+
+            setAvatarPreview(
+                updated.avatarUrl ||
+                    toImgSrc(
+                        UserIcon
+                    )
+            );
+
+            /**-------------------------------------------
+                Synchronize AuthProvider.
+                HeaderAvatar on Home, Health, Journal,
+                etc. updates immediately.
+            ----------------------------------------------*/
             await refreshUser();
         } finally {
             setSaving(false);
         }
-    }, [profile, copingWorked, copingNotWorked, refreshUser]);
+    }, [
+        profile,
+        copingWorked,
+        copingNotWorked,
+        refreshUser
+    ]);
 
     const handlePasswordChange = useCallback(async () => {
         setPasswordMsg(null);
