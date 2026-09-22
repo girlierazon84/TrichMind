@@ -22,11 +22,15 @@ export interface LoginData {
     password: string;
 }
 
+/**-----------------------------------------------------------------------------
+    Minimal authenticated user shape shared by login, register and /auth/me.
+--------------------------------------------------------------------------------*/
 // Authenticated user info
 export interface AuthUser {
     id: string;
     email: string;
     displayName?: string;
+    avatarUrl?: string;
 }
 
 // Response from auth endpoints
@@ -36,94 +40,194 @@ export interface AuthResponse {
     user: AuthUser;
 }
 
-/*---------------
-    RAW CALLS
------------------*/
+/**--------------------------
+    RAW CALLS / RESPONSES
+-----------------------------*/
+interface RawAuthUser {
+    id?: string;
+    _id?: string;
+    email: string;
+    displayName?: string;
+    avatarUrl?: string;
+    avatar_url?: string;
+}
+
 interface RawAuthResponse {
     token: string;
     refreshToken?: string;
-    user: { id: string; email: string; displayName?: string };
+    user: RawAuthUser;
 }
 
-/**------------------------------------------------
-    Normalize raw auth response to AuthResponse
----------------------------------------------------*/
-function normalize(raw: RawAuthResponse): AuthResponse {
-    // Map raw response to AuthResponse structure
+/**--------------------------------------
+    Normalize authenticated user data
+-----------------------------------------*/
+function normalizeUser(raw: RawAuthUser): AuthUser {
     return {
-        token: raw.token,
-        refreshToken: raw.refreshToken,
-        user: {
-            id: raw.user.id,
-            email: raw.user.email,
-            displayName: raw.user.displayName,
-        },
+        id: raw.id ?? raw._id ?? "",
+        email: raw.email,
+        displayName: raw.displayName,
+        avatarUrl:
+            raw.avatarUrl ??
+            raw.avatar_url ??
+            undefined,
     };
 }
 
-/**----------------------------------------------------------
-    RAW CALLS (axiosClient baseURL already includes /api)
--------------------------------------------------------------*/
-async function rawRegister(data: RegisterData): Promise<AuthResponse> {
+/**--------------------------------------
+    Normalize authentication response
+-----------------------------------------*/
+function normalize(
+    raw: RawAuthResponse
+): AuthResponse {
+    return {
+        token: raw.token,
+        refreshToken: raw.refreshToken,
+        user: normalizeUser(raw.user),
+    };
+}
+
+/**------------------
+    Raw API calls
+---------------------*/
+async function rawRegister(
+    data: RegisterData
+): Promise<AuthResponse> {
     // Make POST request to /auth/register
-    const res = await axiosClient.post<RawAuthResponse>("/auth/register", data);
+    const res =
+        await axiosClient.post<RawAuthResponse>(
+            "/auth/register",
+            data
+        );
+
     return normalize(res.data);
 }
 
 // Login raw call
-async function rawLogin(data: LoginData): Promise<AuthResponse> {
+async function rawLogin(
+    data: LoginData
+): Promise<AuthResponse> {
     // Make POST request to /auth/login
-    const res = await axiosClient.post<RawAuthResponse>("/auth/login", data);
+    const res =
+        await axiosClient.post<RawAuthResponse>(
+            "/auth/login",
+            data
+        );
+
     return normalize(res.data);
 }
 
-/**------------------------------------------------------------------------------------------
-    IMPORTANT:
-    /auth/me is called frequently (rehydration, route transitions, protected pages).
-    Don’t wrap with withLogging to avoid log storms if there’s any redirect/remount loop.
----------------------------------------------------------------------------------------------*/
+/**------------------------------------------------------------
+    /auth/me is intentionally not wrapped with withLogging.
+    It is used during authentication hydration and should
+    not generate repeated logs during route transitions.
+---------------------------------------------------------------*/
 async function rawMe(): Promise<AuthUser> {
     // Make GET request to /auth/me
-    const res = await axiosClient.get<{ ok: boolean; user: AuthUser }>("/auth/me");
-    return res.data.user;
+    const res =
+        await axiosClient.get<{
+            ok: boolean;
+            user: RawAuthUser;
+        }>("/auth/me");
+
+    return normalizeUser(res.data.user);
 }
 
 // Forgot password raw call
-async function rawForgotPassword(email: string): Promise<{ message: string }> {
+async function rawForgotPassword(
+    email: string
+): Promise<{ message: string }> {
     // Make POST request to /auth/forgot-password
-    const res = await axiosClient.post<{ message: string }>("/auth/forgot-password", { email });
+    const res =
+        await axiosClient.post<{
+            message: string
+        }>(
+            "/auth/forgot-password",
+            { email }
+        );
+
     return res.data;
 }
 
 // Reset password raw call
-async function rawResetPassword(data: { token: string; newPassword: string }): Promise<{ message: string }> {
+async function rawResetPassword(data: {
+    token: string;
+    newPassword: string
+}): Promise<{ message: string }> {
     // Make POST request to /auth/reset-password
-    const res = await axiosClient.post<{ message: string }>("/auth/reset-password", data);
+    const res =
+        await axiosClient.post<{
+            message: string
+        }>(
+            "/auth/reset-password",
+            data
+        );
+
     return res.data;
 }
 
 // Change password raw call
-async function rawChangePassword(data: { oldPassword: string; newPassword: string }) {
+async function rawChangePassword(data: {
+    oldPassword: string;
+    newPassword: string;
+}) {
     // Make POST request to /auth/change-password
-    const res = await axiosClient.post("/auth/change-password", data);
+    const res =
+        await axiosClient.post(
+            "/auth/change-password",
+            data
+        );
+
     return res.data;
 }
 
-/*----------------------------
-    EXPORTS Auth API CALLS
-------------------------------*/
+/**-----------------
+    Exported API
+--------------------*/
 export const authApi = {
     // ✅ wrapped with withLogging
-    register: withLogging(rawRegister, { category: "auth", action: "auth_register" }),
-    login: withLogging(rawLogin, { category: "auth", action: "auth_login" }),
+    register: withLogging(
+        rawRegister,
+        {
+            category: "auth",
+            action: "auth_register",
+        }
+    ),
+
+    login: withLogging(
+        rawLogin,
+        {
+            category: "auth",
+            action: "auth_login",
+        }
+    ),
 
     // ✅ no withLogging here
     me: rawMe,
 
     // ✅ wrapped with withLogging
-    forgotPassword: withLogging(rawForgotPassword, { category: "auth", action: "auth_forgotPassword" }),
-    resetPassword: withLogging(rawResetPassword, { category: "auth", action: "auth_resetPassword" }),
-    changePassword: withLogging(rawChangePassword, { category: "auth", action: "auth_changePassword" }),
+    forgotPassword: withLogging(
+        rawForgotPassword,
+        {
+            category: "auth",
+            action: "auth_forgotPassword",
+        }
+    ),
+
+    resetPassword: withLogging(
+        rawResetPassword,
+        {
+            category: "auth",
+            action: "auth_resetPassword",
+        }
+    ),
+
+    changePassword: withLogging(
+        rawChangePassword,
+        {
+            category: "auth",
+            action: "auth_changePassword",
+        }
+    ),
 };
 
 export default authApi;
