@@ -1,5 +1,6 @@
 // client/src/providers/AuthProvider.tsx
 // Fix authVersionRef to avoid login, refresh, login again behavior.
+// Central authentication and user-profile state.
 
 "use client";
 
@@ -23,9 +24,9 @@ import {
 } from "@/services";
 
 
-/**-----------------------------
+/**----------
     Types
-----------------------------*/
+-------------*/
 export interface AuthUser {
     id: string;
     email: string;
@@ -33,7 +34,10 @@ export interface AuthUser {
     avatarUrl?: string;
 }
 
-type AuthStatus = "hydrating" | "authenticated" | "unauthenticated";
+type AuthStatus =
+    | "hydrating"
+    | "authenticated"
+    | "unauthenticated";
 
 type AuthContextValue = {
     status: AuthStatus;
@@ -43,45 +47,74 @@ type AuthContextValue = {
 
     isAuthenticated: boolean;
 
-    login: (data: LoginData) => Promise<AuthResponse>;
-    register: (data: RegisterData) => Promise<AuthResponse>;
+    login: (
+        data: LoginData
+    ) => Promise<AuthResponse>;
+
+    register: (
+        data: RegisterData
+    ) => Promise<AuthResponse>;
+
     logout: () => void;
 
     refreshUser: () => Promise<void>;
 };
 
-export const AuthContext = createContext<AuthContextValue | null>(null);
+export const AuthContext =
+    createContext<AuthContextValue | null>(
+        null
+    );
 
-/** -----------------------------
- * SSR-safe localStorage helpers
- * ----------------------------*/
-function safeGet(key: string): string | null {
-    if (typeof window === "undefined") return null;
+/**-------------------------
+    LocalStorage helpers
+----------------------------*/
+function safeGet(
+    key: string
+): string | null {
+    if (typeof window === "undefined") {
+        return null;
+    }
 
     try {
-        return window.localStorage.getItem(key);
+        return window.localStorage.getItem(
+            key
+        );
     } catch {
         return null;
     }
 }
 
-function safeSet(key: string, value: string): void {
-    if (typeof window === "undefined") return;
+function safeSet(
+    key: string,
+    value: string
+): void {
+    if (typeof window === "undefined") {
+        return;
+    }
 
     try {
-        window.localStorage.setItem(key, value);
+        window.localStorage.setItem(
+            key,
+            value
+        );
     } catch {
-        // ignore - Storage may be unavailable.
+        // Storage may be unavailable.
     }
 }
 
-function safeRemove(key: string): void {
-    if (typeof window === "undefined") return;
+function safeRemove(
+    key: string
+): void {
+    if (typeof window === "undefined") {
+        return;
+    }
 
     try {
-        window.localStorage.removeItem(key);
+        window.localStorage.removeItem(
+            key
+        );
     } catch {
-        // ignore - Storage may be unavailable.
+        // Storage may be unavailable.
     }
 }
 
@@ -89,39 +122,75 @@ function safeRemove(key: string): void {
     User normalization helpers
 ----------------------------------*/
 function isRecord(
-    v: unknown
-): v is Record<string, unknown> {
-    return typeof v === "object" && v !== null;
+    value: unknown
+): value is Record<string, unknown> {
+    return (
+        typeof value === "object" &&
+        value !== null
+    );
 }
 
-type UserWire = Record<string, unknown> & {
-    _id?: string;
-    id?: string;
-    email?: string;
-    displayName?: string;
-    avatarUrl?: string;
-    avatar_url?: string;
-};
+type UserWire =
+    Record<string, unknown> & {
+        _id?: string;
+        id?: string;
+        email?: string;
+        displayName?: string;
+        avatarUrl?: string;
+        avatar_url?: string;
+    };
 
-function normalizeUser(raw: unknown): AuthUser {
-    const obj = isRecord(raw) ? raw : {};
+function normalizeUser(
+    raw: unknown
+): AuthUser {
+    const obj = isRecord(raw)
+        ? raw
+        : {};
 
     const maybeUser = (
-        isRecord(obj.user) ? obj.user : obj
+        isRecord(obj.user)
+            ? obj.user
+            : obj
     ) as UserWire;
 
     const id =
-        (typeof maybeUser._id === "string" && maybeUser._id) ||
-        (typeof maybeUser.id === "string" && maybeUser.id) ||
+        (
+            typeof maybeUser._id ===
+                "string" &&
+            maybeUser._id
+        ) ||
+        (
+            typeof maybeUser.id ===
+                "string" &&
+            maybeUser.id
+        ) ||
         "";
 
-    const email = (typeof maybeUser.email === "string" && maybeUser.email) || "";
+    const email =
+        (
+            typeof maybeUser.email ===
+                "string" &&
+            maybeUser.email
+        ) ||
+        "";
 
-    const displayName = typeof maybeUser.displayName === "string" ? maybeUser.displayName : undefined;
+    const displayName =
+        typeof maybeUser.displayName ===
+            "string"
+                ? maybeUser.displayName
+                : undefined;
 
     const avatarUrl =
-        (typeof maybeUser.avatarUrl === "string" && maybeUser.avatarUrl) ||
-        (typeof maybeUser.avatar_url === "string" && maybeUser.avatar_url) ||
+        (
+            typeof maybeUser.avatarUrl ===
+                "string" &&
+            maybeUser.avatarUrl
+        ) ||
+        (
+            typeof maybeUser.avatar_url ===
+                "string" &&
+            maybeUser.avatar_url
+        ) ||
         undefined;
 
     return {
@@ -140,52 +209,86 @@ export function AuthProvider({
 }: {
     children: React.ReactNode;
 }) {
-    const [status, setStatus] = useState<AuthStatus>("hydrating");
-    const [user, setUser] = useState<AuthUser | null>(null);
-    const [token, setToken] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [status, setStatus] =
+        useState<AuthStatus>("hydrating");
 
-    /**--------------------------------------------------------------
-        Every new authentication operation increments this value.
-        This prevents an older /auth/me hydration request from
-        clearing a newly created login session.
-    -----------------------------------------------------------------*/
+    const [user, setUser] =
+        useState<AuthUser | null>(null);
+
+    const [token, setToken] =
+        useState<string | null>(null);
+
+    const [loading, setLoading] =
+        useState(false);
+
+    /**----------------------------------------------------------------------------
+        Prevent stale hydration requests from overwriting a newer login/logout.
+    -------------------------------------------------------------------------------*/
     const authVersionRef = useRef(0);
 
-    /**--------------------------------------------
-        Prevent repeated “session invalid” logs
-    -----------------------------------------------*/
-    const didLogInvalidRef = useRef(false);
+    /**-------------------------------------------
+        Prevent repeated invalid-session logs.
+    ----------------------------------------------*/
+    const didLogInvalidRef =
+        useRef(false);
 
     const setAuthHeader = useCallback(
         (jwt: string | null) => {
             if (jwt) {
-                axiosClient.defaults.headers.common.Authorization = `Bearer ${jwt}`;
+                axiosClient.defaults.headers.common.Authorization =
+                    `Bearer ${jwt}`;
             } else {
-                delete axiosClient.defaults.headers.common.Authorization;
+                delete axiosClient
+                    .defaults
+                    .headers
+                    .common
+                    .Authorization;
             }
         },
         []
     );
 
-    const clearAuth = useCallback(() => {
+    const persistUser = useCallback(
+        (nextUser: AuthUser) => {
+            setUser(nextUser);
+
+            safeSet(
+                "user",
+                JSON.stringify(nextUser)
+            );
+        },
+        []
+    );
+
+    const clearAuth = useCallback(
+        () => {
             safeRemove("access_token");
             safeRemove("refresh_token");
             safeRemove("user");
 
             setUser(null);
             setToken(null);
+
             setAuthHeader(null);
-            setStatus("unauthenticated");
+
+            setStatus(
+                "unauthenticated"
+            );
         },
         [setAuthHeader]
     );
 
     const storeAuth = useCallback(
-        (res: AuthResponse): AuthUser => {
-            const normalized = normalizeUser(res.user);
+        (
+            res: AuthResponse
+        ): AuthUser => {
+            const normalized =
+                normalizeUser(res.user);
 
-            safeSet("access_token", res.token);
+            safeSet(
+                "access_token",
+                res.token
+            );
 
             if (res.refreshToken) {
                 safeSet(
@@ -194,114 +297,178 @@ export function AuthProvider({
                 );
             }
 
-            safeSet(
-                "user",
-                JSON.stringify(normalized)
-            );
-
             setAuthHeader(res.token);
             setToken(res.token);
-            setUser(normalized);
-            setStatus("authenticated");
 
-            didLogInvalidRef.current = false;
+            persistUser(normalized);
+
+            setStatus(
+                "authenticated"
+            );
+
+            didLogInvalidRef.current =
+                false;
 
             return normalized;
         },
-        [setAuthHeader]
+        [
+            persistUser,
+            setAuthHeader,
+        ]
     );
 
-
-    /**------------------------------
-        Initial session hydration
-    ---------------------------------*/
-    const hydrate = useCallback(async () => {
-        const hydrationVersion = authVersionRef.current;
-
-        const storedToken = safeGet("access_token");
-
-        const storedUser = safeGet("user");
-
-        if (!storedToken) {
-            setUser(null);
-            setToken(null);
-            setAuthHeader(null);
-            setStatus("unauthenticated");
-            return;
-        }
-
-        setToken(storedToken);
-        setAuthHeader(storedToken);
-
-        if (storedUser) {
+    /**------------------------------------------
+        Retrieves the complete user profile.
+        The profile endpoint contains fields
+        that may not be included in the login
+        response, including avatarurl.
+    ---------------------------------------------*/
+    const loadFullProfile =
+        useCallback(async (): Promise<AuthUser | null> => {
             try {
-                const parsed = JSON.parse(storedUser) as AuthUser;
+                const raw: unknown =
+                    await userApi.getProfile();
 
-                setUser(parsed);
+                const normalized =
+                    normalizeUser(raw);
+
+                if (
+                    !normalized.id ||
+                    !normalized.email
+                ) {
+                    return null;
+                }
+
+                persistUser(normalized);
+
+                return normalized;
             } catch {
-                safeRemove("user");
+                return null;
             }
-        }
+        }, [persistUser]);
 
-        try {
-            const profile = await authApi.me();
+    /**----------------------
+        Initial hydration
+    -------------------------*/
+    const hydrate =
+        useCallback(async () => {
+            const hydrationVersion =
+                authVersionRef.current;
 
-            /**----------------------------------------------------------------
-                Another auth operation happened while /auth/me was running.
-                Ignore this stale hydration result.
-            -------------------------------------------------------------------*/
-            if (
-                hydrationVersion !== authVersionRef.current
-            ) {
-                return;
-            }
+            const storedToken =
+                safeGet("access_token");
 
-            const normalized = normalizeUser(profile);
+            const storedUser =
+                safeGet("user");
 
-            setUser(normalized);
+            if (!storedToken) {
+                setUser(null);
+                setToken(null);
 
-            safeSet(
-                "user",
-                JSON.stringify(normalized)
-            );
+                setAuthHeader(null);
 
-            setStatus("authenticated");
-            didLogInvalidRef.current = false;
-        } catch (err: unknown) {
-            /**---------------------------------------------------------------
-                If login/register/logout happened after hydration started,
-                do not clear that newer authentication state.
-            ------------------------------------------------------------------*/
-            if (
-                hydrationVersion !== authVersionRef.current
-            ) {
-                return;
-            }
-
-            if (!didLogInvalidRef.current) {
-                didLogInvalidRef.current = true;
-
-                const axiosErr =
-                    err as AxiosError<{
-                        message?: string;
-                        error?: string
-                    }>;
-
-                const message =
-                    axiosErr.response?.data?.message ||
-                    axiosErr.response?.data?.error ||
-                    (err instanceof Error
-                        ? err.message
-                        : "Auth failed");
-
-                void loggerApi.warn(
-                    "Auth session invalid - clearing session",
-                    { message }
+                setStatus(
+                    "unauthenticated"
                 );
+
+                return;
             }
-            clearAuth();
-        }
-    }, [clearAuth, setAuthHeader]);
+
+            setToken(storedToken);
+            setAuthHeader(storedToken);
+
+            if (storedUser) {
+                try {
+                    const parsed =
+                        JSON.parse(
+                            storedUser
+                        ) as AuthUser;
+
+                    setUser(parsed);
+                } catch {
+                    safeRemove("user");
+                }
+            }
+
+            try {
+                const meUser =
+                    await authApi.me();
+
+                if (
+                    hydrationVersion !==
+                    authVersionRef.current
+                ) {
+                    return;
+                }
+
+                /**------------------------------------------------
+                    /auth/me is enough to validate the session.
+                ---------------------------------------------------*/
+                persistUser(
+                    normalizeUser(meUser)
+                );
+
+                setStatus(
+                    "authenticated"
+                );
+
+                didLogInvalidRef.current =
+                    false;
+
+                /**--------------------------------------------------------------------------------------
+                    Then fetch the complete profile so avatarUrl and profile fields are synchronized.
+                -----------------------------------------------------------------------------------------*/
+                await loadFullProfile();
+            } catch (err: unknown) {
+                if(
+                    hydrationVersion !==
+                    authVersionRef.current
+                ) {
+                    return;
+                }
+
+                if(
+                    !didLogInvalidRef.current
+                ) {
+                    didLogInvalidRef.current =
+                        true;
+
+                    const axiosErr =
+                        err as AxiosError<{
+                            message?: string;
+                            error?: string;
+                        }>;
+
+                    const message =
+                        axiosErr.response
+                            ?.data
+                            ?.message ||
+                        axiosErr.response
+                            ?.data
+                            ?.error ||
+                        (
+                            err instanceof
+                            Error
+                                ? err.message
+                                : "Auth failed"
+                        );
+
+                    void loggerApi.warn(
+                        "Auth session invalid - clearing session",
+                        { message }
+                    );
+                }
+
+                clearAuth();
+            }
+        },
+        [
+            clearAuth,
+            loadFullProfile,
+            persistUser,
+            setAuthHeader,
+        ]
+    );
 
     useEffect(() => {
         void hydrate();
@@ -318,42 +485,66 @@ export function AuthProvider({
             /**---------------------------------------------
                 Invalidates any older hydration request.
             ------------------------------------------------*/
-            const operationVersion = ++authVersionRef.current;
+            const operationVersion =
+                ++authVersionRef.current;
 
             setLoading(true);
 
             try {
-                const res = await authApi.login(data);
+                const res =
+                    await authApi.login(
+                        data
+                    );
 
                 /**---------------------------------------------------------------------
                     Ignore only if another newer auth operation replaced this login.
                 ------------------------------------------------------------------------*/
                 if (
-                    operationVersion !== authVersionRef.current
+                    operationVersion !==
+                    authVersionRef.current
                 ) {
                     return res;
                 }
 
+                /**------------------------------------------------------
+                    Immediately establish the authenticated sessiion.
+                ---------------------------------------------------------*/
                 storeAuth(res);
+
+                /**-------------------------------------------------------------------
+                    Fetch complete profile after token/header have been stored.
+                    This ensures avatarUrl is available before/while Home renders.
+                ----------------------------------------------------------------------*/
+                await loadFullProfile();
 
                 return res;
             } catch (err) {
                 if (
-                    operationVersion === authVersionRef.current
+                    operationVersion ===
+                    authVersionRef.current
                 ) {
-                    setStatus("unauthenticated");
+                    setStatus(
+                        "unauthenticated"
+                    );
                 }
 
                 throw err;
             } finally {
+                /**------------------------------------
+                    FIX: This must be ===, not !==.
+                ---------------------------------------*/
                 if (
-                    operationVersion !== authVersionRef.current
+                    operationVersion ===
+                    authVersionRef.current
                 ) {
                     setLoading(false);
                 }
             }
         },
-        [storeAuth]
+        [
+            loadFullProfile,
+            storeAuth,
+        ]
     );
 
     /**-------------------------------------------------------------------------------------------------------------------------------
@@ -364,39 +555,53 @@ export function AuthProvider({
         async (
             data: RegisterData
         ): Promise<AuthResponse> => {
-            const operationVersion = ++authVersionRef.current;
+            const operationVersion =
+                ++authVersionRef.current;
 
             setLoading(true);
 
             try {
-                const res = await authApi.register(data);
+                const res =
+                    await authApi.register(
+                        data
+                    );
 
                 if (
-                    operationVersion !== authVersionRef.current
+                    operationVersion !==
+                    authVersionRef.current
                 ) {
                     return res;
                 }
 
                 storeAuth(res);
 
+                await loadFullProfile();
+
                 return res;
             } catch (err) {
                 if (
-                    operationVersion === authVersionRef.current
+                    operationVersion ===
+                    authVersionRef.current
                 ) {
-                    setStatus("unauthenticated");
+                    setStatus(
+                        "unauthenticated"
+                    );
                 }
 
                 throw err;
             } finally {
                 if (
-                    operationVersion === authVersionRef.current
+                    operationVersion ===
+                    authVersionRef.current
                 ) {
                     setLoading(false);
                 }
             }
         },
-        [storeAuth]
+        [
+            loadFullProfile,
+            storeAuth,
+        ]
     );
 
     /**--------------------------------------------------------------------------------
@@ -415,6 +620,7 @@ export function AuthProvider({
         });
 
         clearAuth();
+
         setLoading(false);
     }, [clearAuth]);
 
@@ -422,69 +628,63 @@ export function AuthProvider({
         Refresh profile function that fetches the latest user profile from the API and updates the user state.
         It does nothing if there is no token available.
     --------------------------------------------------------------------------------------------------------------*/
-    const refreshUser = useCallback(async () => {
-        const activeToken = token ?? safeGet("access_token");
-
-        if (!activeToken) return;
-
-        try {
-            const raw: unknown = await userApi.getProfile();
-
-            const normalized = normalizeUser(raw);
-
-            if (
-                normalized.id &&
-                normalized.email
-            ) {
-                setUser(normalized);
-
-                safeSet(
-                    "user",
-                    JSON.stringify(
-                        normalized
-                    )
+    const refreshUser =
+        useCallback(async () => {
+            const activeToken =
+                token ??
+                safeGet(
+                    "access_token"
                 );
+
+            if (!activeToken) {
+                return;
             }
-        } catch {
-            // Keep the existing authenticated session.
-        }
-    }, [token]);
+
+            await loadFullProfile();
+
+        }, [
+            token,
+            loadFullProfile,
+        ]);
 
     /**--------------------------------------------------------------------------------------------------------------------
         Context value memoization to prevent unnecessary re-renders of consumers when the context value hasn't changed.
     -----------------------------------------------------------------------------------------------------------------------*/
-    const value = useMemo<AuthContextValue>(
-        () => ({
-            status,
-            user,
-            token,
-            loading,
+    const value =
+        useMemo<AuthContextValue>(
+            () => ({
+                status,
+                user,
+                token,
+                loading,
 
-            isAuthenticated:
-                status ===
-                    "authenticated" &&
-                Boolean(token) &&
-                Boolean(user),
+                isAuthenticated:
+                    status ===
+                        "authenticated" &&
+                    Boolean(token) &&
+                    Boolean(user),
 
-            login,
-            register,
-            logout,
-            refreshUser,
-        }),
-        [
-            status,
-            user,
-            token,
-            loading,
-            login,
-            register,
-            logout,
-            refreshUser,
-        ]
-    );
+                login,
+                register,
+                logout,
+                refreshUser,
+            }),
+            [
+                status,
+                user,
+                token,
+                loading,
+                login,
+                register,
+                logout,
+                refreshUser,
+            ]
+        );
 
     return (
-        <AuthContext.Provider value={value}>
+        <AuthContext.Provider
+            value={value}
+        >
             {children}
         </AuthContext.Provider>
     );
