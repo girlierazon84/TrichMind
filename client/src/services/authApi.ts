@@ -22,10 +22,11 @@ export interface LoginData {
     password: string;
 }
 
-/**-----------------------------------------------------------------------------
-    Minimal authenticated user shape shared by login, register and /auth/me.
---------------------------------------------------------------------------------*/
-// Authenticated user info
+/**----------------------------------------------------------------
+    User information shared by authentication endpoints.
+    avatarUrl must be preserved so an existing profile picture
+    is immediately available after login and session hydration.
+-------------------------------------------------------------------*/
 export interface AuthUser {
     id: string;
     email: string;
@@ -33,16 +34,15 @@ export interface AuthUser {
     avatarUrl?: string;
 }
 
-// Response from auth endpoints
 export interface AuthResponse {
     token: string;
     refreshToken?: string;
     user: AuthUser;
 }
 
-/**--------------------------
-    RAW CALLS / RESPONSES
------------------------------*/
+/**--------------
+    Raw types
+-----------------*/
 interface RawAuthUser {
     id?: string;
     _id?: string;
@@ -59,7 +59,7 @@ interface RawAuthResponse {
 }
 
 /**--------------------------------------
-    Normalize authenticated user data
+    Normalize authentication response
 -----------------------------------------*/
 function normalizeUser(raw: RawAuthUser): AuthUser {
     return {
@@ -73,9 +73,6 @@ function normalizeUser(raw: RawAuthUser): AuthUser {
     };
 }
 
-/**--------------------------------------
-    Normalize authentication response
------------------------------------------*/
 function normalize(
     raw: RawAuthResponse
 ): AuthResponse {
@@ -86,9 +83,10 @@ function normalize(
     };
 }
 
-/**------------------
+/**----------------------------------------------
     Raw API calls
----------------------*/
+    axiosClient baseURL already includes /api
+-------------------------------------------------*/
 async function rawRegister(
     data: RegisterData
 ): Promise<AuthResponse> {
@@ -116,11 +114,10 @@ async function rawLogin(
     return normalize(res.data);
 }
 
-/**------------------------------------------------------------
-    /auth/me is intentionally not wrapped with withLogging.
-    It is used during authentication hydration and should
-    not generate repeated logs during route transitions.
----------------------------------------------------------------*/
+/**-------------------------------------------------------
+    Do not wrap /auth/me with request logging.
+    It can run during hydration and route transitions.
+----------------------------------------------------------*/
 async function rawMe(): Promise<AuthUser> {
     // Make GET request to /auth/me
     const res =
@@ -180,9 +177,9 @@ async function rawChangePassword(data: {
     return res.data;
 }
 
-/**-----------------
-    Exported API
---------------------*/
+/**-------------
+    Auth API
+----------------*/
 export const authApi = {
     // ✅ wrapped with withLogging
     register: withLogging(
