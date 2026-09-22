@@ -14,30 +14,75 @@ const AvatarButton = styled.button`
     border: none;
     padding: 0;
     cursor: pointer;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 50%;
+
+    &:focus-visible {
+        outline: 2px solid
+            ${({ theme }) =>
+                theme.colors.primary};
+        outline-offset: 3px;
+    }
 `;
 
-const AvatarImg = styled(Image)`
-    width: 34px;
-    height: 34px;
+const AvatarImg = styled(Image)<{
+    $size: number;
+}>`
+    width: ${({ $size }) =>
+        `${$size}px`};
+
+    height: ${({ $size }) =>
+        `${$size}px`};
+
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid rgba(255, 255, 255, 0.9);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+
+    border: 2px solid
+        rgba(255, 255, 255, 0.9);
+
+    box-shadow: 0 4px 10px
+        rgba(0, 0, 0, 0.18);
 `;
 
 type Props = {
     onClick?: () => void;
-    size?: number; // default 34
+    size?: number;
 };
 
-export default function HeaderAvatar({ onClick, size = 34 }: Props) {
+export default function HeaderAvatar({
+    onClick,
+    size = 34,
+}: Props) {
     const { user } = useAuth();
 
-    const src = toImgSrc(user?.avatarUrl) || toImgSrc(UserIcon);
+    /**----------------------------------------------------------------------
+        AuthProvider is the single source of truth for the user's avatar.
+    -------------------------------------------------------------------------*/
+    const src =
+        toImgSrc(user?.avatarUrl) ||
+        toImgSrc(UserIcon);
 
     return (
-        <AvatarButton onClick={onClick} aria-label="Open profile">
-            <AvatarImg src={src} alt={user?.email || "Profile"} width={size} height={size} />
+        <AvatarButton
+            type="button"
+            onClick={onClick}
+            aria-label="Open profile"
+        >
+            <AvatarImg
+                src={src}
+                alt={
+                    user?.displayName ||
+                    user?.email ||
+                    "Profile"
+                }
+                width={size}
+                height={size}
+                $size={size}
+                unoptimized
+            />
         </AvatarButton>
     );
 }
