@@ -1,4 +1,5 @@
 // client/src/app/providers.tsx
+// This module ensures that all pages use the same AuthProvider.
 
 "use client";
 
@@ -9,12 +10,19 @@ import { theme, GlobalStyle } from "@/styles";
 import { AuthProvider } from "@/providers";
 
 
-export default function Providers({ children }: { children: ReactNode }) {
+export default function Providers({
+    children,
+}: {
+    children: ReactNode;
+}) {
     return (
         <StyledComponentsRegistry>
             <ThemeProvider theme={theme}>
                 <GlobalStyle />
-                <AuthProvider>{children}</AuthProvider>
+
+                <AuthProvider>
+                    {children}
+                </AuthProvider>
             </ThemeProvider>
         </StyledComponentsRegistry>
     );
