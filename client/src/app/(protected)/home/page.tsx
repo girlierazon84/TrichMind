@@ -310,7 +310,11 @@ function safeLocalStorageSet(key: string, value: string) {
 
 export default function HomePage() {
     const router = useRouter();
-    const { user, token, isAuthenticated } = useAuth();
+    const {
+        user,
+        token,
+        isAuthenticated
+    } = useAuth();
 
     const [hydrated, setHydrated] = useState(false);
     useEffect(() => setHydrated(true), []);
